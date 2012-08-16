@@ -1,0 +1,32 @@
+xxx
+==========
+
+* License: GPL v3 or later
+* Author: Karsten-Kai König <kkoenig@posteo.de>
+* Stable download:
+* Website:
+* Bug tracker:
+* Git:
+
+Features:
+---------
+
+Dependencies:
+-------------
+
+* Python 3
+* kppy
+* A POSIX-compatible operating system
+
+Copyright (C) 2012 Karsten-Kai König <kkoenig@posteo.de>
+
+xxx is free software: you can redistribute it and/or modify it under the terms
+of the GNU General Public License as published by the Free Software Foundation,
+either version 3 of the License, or at your option) any later version.
+
+xxx is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+xxx.  If not, see <http://www.gnu.org/licenses/>
