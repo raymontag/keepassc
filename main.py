@@ -218,12 +218,18 @@ class App(object):
     def db_browser(self):
         self.group_win = newwin(self.term_size[0]-1, int(self.term_size[1]/3), 
                                 1, 0)
-        self.entry_win = newwin(self.term_size[0]-1, 2*int(self.term_size[1]/3),
+        self.entry_win = newwin(2*int((self.term_size[0]-1)/3), 
+                                2*int(self.term_size[1]/3)-2, 
                                 1, int(self.term_size[0]/3)+2)
+        self.info_win = newwin(int((self.term_size[0]-1)/3)-1,
+                               int(self.term_size[1]/3)-2,
+                               2*int((self.term_size[0]-1)/3)+1,
+                               int(self.term_size[0]/3)+2)
         self.group_win.keypad(1)
         self.entry_win.keypad(1)
         self.group_win.bkgd(1)
         self.entry_win.bkgd(1)
+        self.info_win.bkgd(1)
 
         cur_root = self.db._root_group
         cur_win = 0
@@ -280,6 +286,19 @@ class App(object):
                 cur_win = 1
                 self.show_groups(g_highlight, cur_root, cur_win)
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win)
+            elif c == KEY_RESIZE:
+                self.term_size = self.stdscr.getmaxyx()
+                self.group_win.resize(self.term_size[0]-1, int(self.term_size[1]/3))
+                self.entry_win.resize(2*int((self.term_size[0]-1)/3),
+                                      2*int(self.term_size[1]/3)-2)
+                self.info_win.resize(int((self.term_size[0]-1)/3)-1,
+                                     int(self.term_size[1]/3)-2)
+                self.group_win.mvwin(1,0)
+                self.entry_win.mvwin(1, int(self.term_size[0]/3)+2)
+                self.info_win.mvwin(2*int((self.term_size[0]-1)/3)+1,
+                                    int(self.term_size[0]/3)+2)
+                self.show_groups(g_highlight, cur_root, cur_win)
+                self.show_entries(g_highlight, e_highlight, cur_root, cur_win)
 
     def show_groups(self, highlight, root, cur_win):
         self.group_win.erase()
@@ -290,26 +309,28 @@ class App(object):
         else:
             h_color = 6
             n_color = 1
+        ysize = self.group_win.getmaxyx()[0]
         for i in range(len(groups)):
             if highlight == i:
                 if groups[i].children:
                     title = '+'+groups[i].title
                 else:
                     title = ' '+groups[i].title
-                self.group_win.addstr(i, 0, title, 
+                self.group_win.addnstr(i, 0, title, ysize,
                                       color_pair(h_color))
             else:
                 if groups[i].children:
                     title = '+'+groups[i].title
                 else:
                     title = ' '+groups[i].title
-                self.group_win.addstr(i, 0, title,
+                self.group_win.addnstr(i, 0, title, ysize,
                                       color_pair(n_color))
         self.group_win.refresh()
 
     def show_entries(self, g_highlight, e_highlight, root, cur_win):
         self.entry_win.erase()
         entries = root.children[g_highlight].entries
+        ysize = self.entry_win.getmaxyx()[0]
         if cur_win == 1:
             h_color = 5
             n_color = 4
@@ -318,12 +339,24 @@ class App(object):
             n_color = 1
         for i in range(len(entries)):
             if e_highlight == i:
-                self.entry_win.addstr(i, 0, entries[i].title,
+                self.entry_win.addnstr(i, 0, entries[i].title, ysize,
                                       color_pair(h_color))
             else:
-                self.entry_win.addstr(i, 0, entries[i].title,
+                self.entry_win.addnstr(i, 0, entries[i].title, ysize,
                                       color_pair(n_color))
         self.entry_win.refresh()
+
+        self.info_win.erase()
+        entry = entries[e_highlight]
+        self.info_win.addnstr(0,0, entry.title, ysize, A_BOLD)
+        self.info_win.addnstr(1,0, "Group: "+entry.title, ysize)
+        self.info_win.addnstr(2,0, "URL: "+entry.url, ysize)
+        self.info_win.addnstr(3,0, "Creation: "+entry.creation.__str__(), ysize)
+        self.info_win.addnstr(4,0, "Access: "+entry.last_access.__str__(), ysize)
+        self.info_win.addnstr(5,0, "Modification: "+entry.last_mod.__str__(), ysize)
+        self.info_win.addnstr(6,0, "Expiration: "+entry.expire.__str__(), ysize)
+        self.info_win.addnstr(7,0, "Comment: "+entry.comment, ysize)
+        self.info_win.refresh()
         
 if __name__ == '__main__':
     if len(argv) > 1:
