@@ -69,6 +69,8 @@ class App(object):
                 if ret is False:
                     continue
                 self.db_browser()
+                last = self.cur_dir.split('/')[-1]
+                self.cur_dir = self.cur_dir[:-len(last)-1]
             elif c == ord('n'):
                 pass
             elif c == ord('q'):
@@ -83,26 +85,30 @@ class App(object):
             elif filepath == ord('e'):
                 return False
             else:
+                self.cur_dir = filepath
                 self.stdscr.clear()
                 self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
                                    color_pair(2))
                 self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                   filepath)
+                                   self.cur_dir)
                 self.stdscr.addstr(1,0, 'Password: ')
                 self.stdscr.refresh()
 
-                c = ''
                 password = ''
+                c = ''
                 while c != NL:
                     c = self.stdscr.getch()
-                    if c > 255 or c < 0:
+                    if c == KEY_BACKSPACE and len(password) != 0:
+                        password = password[:-1]
+                    elif c == KEY_BACKSPACE:
+                        pass
+                    elif c > 255 or c < 0:
                         continue
-                    password += chr(c)
-                
+                    else:
+                        password += chr(c)
                 password = password[:-1]
-
                 try:
-                    self.db = KPDB(filepath, password)
+                    self.db = KPDB(self.cur_dir, password)
                 except KPError as err:
                     self.stdscr.clear()
                     self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
@@ -113,6 +119,8 @@ class App(object):
                     self.stdscr.addstr(4,0, 'Press any key.')
                     self.stdscr.refresh()
                     self.stdscr.getch()
+                    last = self.cur_dir.split('/')[-1]
+                    self.cur_dir = self.cur_dir[:-len(last)-1]
                     continue
                 break
 
@@ -227,11 +235,11 @@ class App(object):
                                 1, 0)
         self.entry_win = newwin(2*int((self.term_size[0]-1)/3), 
                                 2*int(self.term_size[1]/3)-2, 
-                                1, int(self.term_size[0]/3)+2)
+                                1, int(self.term_size[1]/3)+2)
         self.info_win = newwin(int((self.term_size[0]-1)/3)-1,
-                               int(self.term_size[1]/3)-2,
+                               2*int(self.term_size[1]/3)-2,
                                2*int((self.term_size[0]-1)/3)+1,
-                               int(self.term_size[0]/3)+2)
+                               int(self.term_size[1]/3)+2)
         self.group_win.keypad(1)
         self.entry_win.keypad(1)
         self.group_win.bkgd(1)
@@ -269,12 +277,174 @@ class App(object):
                 doupdate()
                 break
             elif c == ord('q'):
-                self.db.close()
                 Popen(['xsel', '-bi'], stdin = PIPE).communicate(''.encode())
+                self.db.close()
                 self.close()
             elif c == ord('c'):
                 p = cur_root.children[g_highlight].entries[e_highlight].password
                 Popen(['xsel', '-bi'], stdin = PIPE).communicate(p.encode())
+            elif c == ord('d'):
+                if cur_win == 0 and cur_root.children:
+                    try:
+                        cur_root.children[g_highlight].remove_group()
+                    except KPError as err:
+                        self.stdscr.clear()
+                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                           color_pair(2))
+                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                           filepath)
+                        self.stdscr.addstr(1,0, err.__str__())
+                        self.stdscr.addstr(4,0, 'Press any key.')
+                        self.stdscr.refresh()
+                        self.stdscr.getch()
+                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                          e_offset)
+                        continue
+                        
+                    if g_highlight >= len(cur_root.children) and g_highlight != 0:
+                        g_highlight -= 1
+                    if cur_root.children:
+                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                        e_highlight = 0
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
+                elif cur_win == 1:
+                    try:
+                        cur_root.children[g_highlight].entries[e_highlight].remove_entry()
+                    except KPError as err:
+                        self.stdscr.clear()
+                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                           color_pair(2))
+                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                           filepath)
+                        self.stdscr.addstr(1,0, err.__str__())
+                        self.stdscr.addstr(4,0, 'Press any key.')
+                        self.stdscr.refresh()
+                        self.stdscr.getch()
+                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                          e_offset)
+                        continue
+                    if e_highlight >= len(cur_root.children[g_highlight].entries) \
+                        and e_highlight != 0:
+                        e_highlight -= 1
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
+            elif c == ord('t') or c == ord('u') or c == ord('U') or c == ord('C'):
+                if cur_root.children:
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                       self.cur_dir)
+                    if c == ord('t'):
+                        std = 'Title: '
+                        if cur_win == 0:
+                            edit= cur_root.children[g_highlight].title
+                        elif cur_win == 1:
+                            edit = cur_root.children[g_highlight].entries[e_highlight].title
+                    elif c == ord('u') and cur_root.children[g_highlight].entries:
+                        std = 'Username: '
+                        edit = cur_root.children[g_highlight].entries[e_highlight].username
+                    elif c == ord('U') and cur_root.children[g_highlight].entries:
+                        std = 'URL: '
+                        edit = cur_root.children[g_highlight].entries[e_highlight].url
+                    elif c == ord('C') and cur_root.children[g_highlight].entries:
+                        std = 'Comment: '
+                        edit = cur_root.children[g_highlight].entries[e_highlight].comment
+                    else:
+                        continue
+                    offset = len(std)
+
+                    self.stdscr.addstr(1,0, std)
+                    self.stdscr.addstr(1,offset, edit)
+                    self.group_win.clear()
+                    self.entry_win.clear()
+                    self.info_win.clear()
+                    self.group_win.refresh()
+                    self.entry_win.refresh()
+                    self.info_win.refresh()
+                    self.stdscr.refresh()
+                    e = self.stdscr.getch()
+                    while e != NL:
+                        if e == KEY_BACKSPACE and len(edit) != 0:
+                            edit = edit[:-1]
+                        elif e == KEY_BACKSPACE:
+                            pass
+                        else:
+                            edit += chr(e)
+                        self.stdscr.clear()
+                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                           color_pair(2))
+                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                           self.cur_dir)
+                        self.stdscr.addstr(1,0, std)
+                        self.stdscr.addstr(1,offset, edit)
+                        e = self.stdscr.getch()
+                    if c == ord('t'):
+                        if cur_win == 0:
+                            cur_root.children[g_highlight].set_title(edit)
+                            self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                            self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                              e_offset)
+                        elif cur_win == 1:
+                            cur_root.children[g_highlight].entries[e_highlight].set_title(edit)
+                            self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                            self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                              e_offset)
+                    elif c == ord('u'):
+                        cur_root.children[g_highlight].entries[e_highlight].set_username(edit)
+                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                          e_offset)
+                    elif c == ord('U'):
+                        cur_root.children[g_highlight].entries[e_highlight].set_url(edit)
+                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                          e_offset)
+                    elif c == ord('C'):
+                        cur_root.children[g_highlight].entries[e_highlight].set_comment(edit)
+                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                          e_offset)
+            elif c == ord('s'):
+                try:
+                    self.db.save()
+                except KPError as err:
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                       filepath)
+                    self.stdscr.addstr(1,0, err.__str__())
+                    self.stdscr.addstr(4,0, 'Press any key.')
+                    self.stdscr.refresh()
+                    self.stdscr.getch()
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
+                    continue
+            elif c == ord('x'):
+                Popen(['xsel', '-bi'], stdin = PIPE).communicate(''.encode())
+                try:
+                    self.db.save()
+                    self.db.close()
+                except KPError as err:
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                       filepath)
+                    self.stdscr.addstr(1,0, err.__str__())
+                    self.stdscr.addstr(4,0, 'Press any key.')
+                    self.stdscr.refresh()
+                    self.stdscr.getch()
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
+                    continue
+                self.close()
             elif c == KEY_DOWN:
                 if cur_win == 0:
                     if g_highlight >= len(cur_root.children)-1:
@@ -327,10 +497,11 @@ class App(object):
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                   e_offset)
             elif c == KEY_RIGHT:
-                cur_win = 1
-                self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                  e_offset)
+                if cur_root.children[g_highlight].entries:
+                    cur_win = 1
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
             elif c == KEY_RESIZE:
                 self.term_size = self.stdscr.getmaxyx()
                 self.group_win.resize(self.term_size[0]-1, int(self.term_size[1]/3))
@@ -346,7 +517,7 @@ class App(object):
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                   e_offset)
             elif c == NL:
-                if cur_root.children[g_highlight]:
+                if cur_root.children[g_highlight].children:
                     cur_root = cur_root.children[g_highlight]
                     g_highlight = 0
                     e_highlight = 0
@@ -408,29 +579,30 @@ class App(object):
 
     def show_entries(self, g_highlight, e_highlight, root, cur_win, offset):
         self.entry_win.clear()
-        entries = root.children[g_highlight].entries
-        if cur_win == 1:
-            h_color = 5
-            n_color = 4
-        else:
-            h_color = 6
-            n_color = 1
-
-        ysize = self.entry_win.getmaxyx()[0]
-        if len(entries) <= ysize-3:
-            num = len(entries)
-        else:
-            num = ysize-3
-                
-        for i in range(num):
-            if e_highlight == i+offset:
-                self.entry_win.addnstr(i, 0, entries[i+offset].title, ysize,
-                                       color_pair(h_color))
+        if root.children:
+            entries = root.children[g_highlight].entries
+            if cur_win == 1:
+                h_color = 5
+                n_color = 4
             else:
-                self.entry_win.addnstr(i, 0, entries[i+offset].title, ysize,
-                                       color_pair(n_color))
-        self.entry_win.addnstr(ysize-2, 0, str(e_highlight+1)+' of '+str(len(entries)),
-                               ysize)
+                h_color = 6
+                n_color = 1
+
+            ysize = self.entry_win.getmaxyx()[0]
+            if len(entries) <= ysize-3:
+                num = len(entries)
+            else:
+                num = ysize-3
+                
+            for i in range(num):
+                if e_highlight == i+offset:
+                    self.entry_win.addnstr(i, 0, entries[i+offset].title, ysize,
+                                           color_pair(h_color))
+                else:
+                    self.entry_win.addnstr(i, 0, entries[i+offset].title, ysize,
+                                           color_pair(n_color))
+            self.entry_win.addnstr(ysize-2, 0, str(e_highlight+1)+' of '+str(len(entries)),
+                                   ysize)
         self.entry_win.noutrefresh()
 
         self.info_win.clear()
