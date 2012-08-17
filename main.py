@@ -22,6 +22,7 @@ from curses.ascii import NL
 from os import *
 from os.path import isdir
 from socket import gethostname
+from subprocess import Popen, PIPE
 from sys import exit, argv
 
 from kppy import *
@@ -47,16 +48,16 @@ class App(object):
         self.cur_dir = getcwd()
         chdir('/var/empty')
 
-        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                           color_pair(2))
-        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                           self.cur_dir)
-
         self.term_size = self.stdscr.getmaxyx()
         self.db = None
 
     def main_loop(self):
         while True:
+            self.stdscr.clear()
+            self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                               color_pair(2))
+            self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                               self.cur_dir)
             self.stdscr.addstr(1,0, 'To open an existing database type \'o\',')
             self.stdscr.addstr(2,0, 'to create a new one type \'n\'.')
             self.stdscr.addstr(4,0, 'Type \'q\' to quit.')
@@ -64,7 +65,9 @@ class App(object):
 
             c = self.stdscr.getch()
             if c == ord('o'):
-                self.open_db()
+                ret = self.open_db()
+                if ret is False:
+                    continue
                 self.db_browser()
             elif c == ord('n'):
                 pass
@@ -77,12 +80,14 @@ class App(object):
             
             if filepath is False:
                 continue
+            elif filepath == ord('e'):
+                return False
             else:
-                self.stdscr.erase()
+                self.stdscr.clear()
                 self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
                                    color_pair(2))
                 self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                   self.cur_dir)
+                                   filepath)
                 self.stdscr.addstr(1,0, 'Password: ')
                 self.stdscr.refresh()
 
@@ -99,11 +104,11 @@ class App(object):
                 try:
                     self.db = KPDB(filepath, password)
                 except KPError as err:
-                    self.stdscr.erase()
+                    self.stdscr.clear()
                     self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
                                        color_pair(2))
                     self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                       self.cur_dir)
+                                       filepath)
                     self.stdscr.addstr(1,0, err.__str__())
                     self.stdscr.addstr(4,0, 'Press any key.')
                     self.stdscr.refresh()
@@ -112,7 +117,7 @@ class App(object):
                 break
 
     def browser(self):
-        self.stdscr.erase()
+        self.stdscr.clear()
         self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':',  
                            color_pair(2))
         self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
@@ -122,7 +127,7 @@ class App(object):
         try:
             dir_cont = listdir(self.cur_dir)
         except OSError:
-            self.stdscr.erase()
+            self.stdscr.clear()
             self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
                                color_pair(2))
             self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
@@ -194,6 +199,8 @@ class App(object):
                     return self.cur_dir+'/'+dir_cont[highlight]
             elif c == ord('q'):
                 self.close()
+            elif c == ord('e'):
+                return c
 
     def close(self):
         nocbreak()
@@ -235,57 +242,95 @@ class App(object):
         cur_win = 0
         g_highlight = 0
         e_highlight = 0
+        g_offset = 0
+        e_offset = 0
 
-        self.show_groups(g_highlight, cur_root, cur_win)
-        self.show_entries(g_highlight, e_highlight, cur_root, cur_win)
+        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+        self.show_entries(g_highlight, e_highlight, cur_root, cur_win, e_offset)
 
         while True:
             c = self.group_win.getch()
+            
+            if c == ord('\t'):
+                if cur_win == 0:
+                    c = KEY_RIGHT
+                else:
+                    c = KEY_LEFT
 
             if c == ord('e'):
                 self.db.close()
-                self.group_win.erase()
-                self.entry_win.erase()
-                self.group_win.refresh()
-                self.entry_win.refresh()
+                Popen(['xsel', '-bi'], stdin = PIPE).communicate(''.encode())
+                self.group_win.clear()
+                self.entry_win.clear()
+                self.info_win.clear()
+                self.group_win.noutrefresh()
+                self.entry_win.noutrefresh()
+                self.info_win.noutrefresh()
+                doupdate()
                 break
             elif c == ord('q'):
                 self.db.close()
+                Popen(['xsel', '-bi'], stdin = PIPE).communicate(''.encode())
                 self.close()
+            elif c == ord('c'):
+                p = cur_root.children[g_highlight].entries[e_highlight].password
+                Popen(['xsel', '-bi'], stdin = PIPE).communicate(p.encode())
             elif c == KEY_DOWN:
                 if cur_win == 0:
                     if g_highlight >= len(cur_root.children)-1:
                         continue
+                    ysize = self.group_win.getmaxyx()[0]
+                    if g_highlight >= ysize-4 and \
+                        not g_offset >= len(cur_root.children)-ysize+4:
+                        g_offset += 1
                     g_highlight += 1
-                    self.show_groups(g_highlight, cur_root, cur_win)
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     e_highlight = 0
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
                 elif cur_win == 1:
-                    if e_highlight >= len(cur_root.children[g_highlight].entries):
+                    if e_highlight >= len(cur_root.children[g_highlight].entries)-1:
                         continue
+                    ysize = self.entry_win.getmaxyx()[0]
+                    if e_highlight >= ysize-4 and \
+                        not e_offset >= len(cur_root.children[g_highlight].entries)-ysize+3:
+                        e_offset += 1
                     e_highlight += 1
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
             elif c == KEY_UP:
                 if cur_win == 0:
                     if g_highlight <= 0:
                         continue
+                    ysize = self.group_win.getmaxyx()[0]
+                    if g_highlight <= len(cur_root.children)-ysize+4 and \
+                        not g_offset <= 0:
+                        g_offset -= 1
                     g_highlight -= 1
-                    self.show_groups(g_highlight, cur_root, cur_win)
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     e_highlight = 0
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
                 elif cur_win == 1:
                     if e_highlight <= 0:
                         continue
+                    ysize = self.entry_win.getmaxyx()[0]
+                    if e_highlight <= len(cur_root.children[g_highlight].entries)-ysize+6 and \
+                        not e_offset <= 0:
+                        e_offset -= 1
                     e_highlight -= 1
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
             elif c == KEY_LEFT:
                 cur_win = 0
-                self.show_groups(g_highlight, cur_root, cur_win)
-                self.show_entries(g_highlight, e_highlight, cur_root, cur_win)
+                self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                  e_offset)
             elif c == KEY_RIGHT:
                 cur_win = 1
-                self.show_groups(g_highlight, cur_root, cur_win)
-                self.show_entries(g_highlight, e_highlight, cur_root, cur_win)
+                self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                  e_offset)
             elif c == KEY_RESIZE:
                 self.term_size = self.stdscr.getmaxyx()
                 self.group_win.resize(self.term_size[0]-1, int(self.term_size[1]/3))
@@ -297,66 +342,115 @@ class App(object):
                 self.entry_win.mvwin(1, int(self.term_size[0]/3)+2)
                 self.info_win.mvwin(2*int((self.term_size[0]-1)/3)+1,
                                     int(self.term_size[0]/3)+2)
-                self.show_groups(g_highlight, cur_root, cur_win)
-                self.show_entries(g_highlight, e_highlight, cur_root, cur_win)
+                self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                  e_offset)
+            elif c == NL:
+                if cur_root.children[g_highlight]:
+                    cur_root = cur_root.children[g_highlight]
+                    g_highlight = 0
+                    e_highlight = 0
+                    cur_win = 0
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
+            elif c == KEY_BACKSPACE:
+                if not cur_root is self.db._root_group:
+                    cur_root = cur_root.parent
+                    g_highlight = 0
+                    e_highlight = 0
+                    cur_win = 0
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
+                    
 
-    def show_groups(self, highlight, root, cur_win):
-        self.group_win.erase()
+    def show_groups(self, highlight, root, cur_win, offset):
+        self.group_win.clear()
         groups = root.children
+        if root is  self.db._root_group:
+            root_title = 'Parent: _ROOT_'
+        else:
+            root_title = 'Parent: '+root.title
         if cur_win == 0:
             h_color = 5
             n_color = 4
         else:
             h_color = 6
             n_color = 1
+
         ysize = self.group_win.getmaxyx()[0]
-        for i in range(len(groups)):
-            if highlight == i:
+        self.group_win.addnstr(0,0, root_title, ysize,
+                               color_pair(n_color))
+        if len(groups) <= ysize-3:
+            num = len(groups)
+        else:
+            num = ysize-3
+                
+        for i in range(num):
+            if highlight == i+offset:
                 if groups[i].children:
-                    title = '+'+groups[i].title
+                    title = '+'+groups[i+offset].title
                 else:
-                    title = ' '+groups[i].title
-                self.group_win.addnstr(i, 0, title, ysize,
+                    title = ' '+groups[i+offset].title
+                self.group_win.addnstr(i+1, 0, title, ysize,
                                       color_pair(h_color))
             else:
                 if groups[i].children:
-                    title = '+'+groups[i].title
+                    title = '+'+groups[i+offset].title
                 else:
-                    title = ' '+groups[i].title
-                self.group_win.addnstr(i, 0, title, ysize,
+                    title = ' '+groups[i+offset].title
+                self.group_win.addnstr(i+1, 0, title, ysize,
                                       color_pair(n_color))
-        self.group_win.refresh()
+        self.group_win.addnstr(ysize-2,0, str(highlight+1)+' of '+str(len(groups)),
+                               ysize)
+        self.group_win.noutrefresh()
 
-    def show_entries(self, g_highlight, e_highlight, root, cur_win):
-        self.entry_win.erase()
+    def show_entries(self, g_highlight, e_highlight, root, cur_win, offset):
+        self.entry_win.clear()
         entries = root.children[g_highlight].entries
-        ysize = self.entry_win.getmaxyx()[0]
         if cur_win == 1:
             h_color = 5
             n_color = 4
         else:
             h_color = 6
             n_color = 1
-        for i in range(len(entries)):
-            if e_highlight == i:
-                self.entry_win.addnstr(i, 0, entries[i].title, ysize,
-                                      color_pair(h_color))
-            else:
-                self.entry_win.addnstr(i, 0, entries[i].title, ysize,
-                                      color_pair(n_color))
-        self.entry_win.refresh()
 
-        self.info_win.erase()
-        entry = entries[e_highlight]
-        self.info_win.addnstr(0,0, entry.title, ysize, A_BOLD)
-        self.info_win.addnstr(1,0, "Group: "+entry.title, ysize)
-        self.info_win.addnstr(2,0, "URL: "+entry.url, ysize)
-        self.info_win.addnstr(3,0, "Creation: "+entry.creation.__str__(), ysize)
-        self.info_win.addnstr(4,0, "Access: "+entry.last_access.__str__(), ysize)
-        self.info_win.addnstr(5,0, "Modification: "+entry.last_mod.__str__(), ysize)
-        self.info_win.addnstr(6,0, "Expiration: "+entry.expire.__str__(), ysize)
-        self.info_win.addnstr(7,0, "Comment: "+entry.comment, ysize)
-        self.info_win.refresh()
+        ysize = self.entry_win.getmaxyx()[0]
+        if len(entries) <= ysize-3:
+            num = len(entries)
+        else:
+            num = ysize-3
+                
+        for i in range(num):
+            if e_highlight == i+offset:
+                self.entry_win.addnstr(i, 0, entries[i+offset].title, ysize,
+                                       color_pair(h_color))
+            else:
+                self.entry_win.addnstr(i, 0, entries[i+offset].title, ysize,
+                                       color_pair(n_color))
+        self.entry_win.addnstr(ysize-2, 0, str(e_highlight+1)+' of '+str(len(entries)),
+                               ysize)
+        self.entry_win.noutrefresh()
+
+        self.info_win.clear()
+        if entries:
+            entry = entries[e_highlight]
+            self.info_win.addnstr(0,0, entry.title, ysize, A_BOLD)
+            self.info_win.addnstr(1,0, "Group: "+entry.title, ysize)
+            self.info_win.addnstr(2,0, "Username: "+entry.username, ysize)
+            self.info_win.addnstr(3,0, "URL: "+entry.url, ysize)
+            self.info_win.addnstr(4,0, "Creation: "+entry.creation.__str__()[:10],
+                                  ysize)
+            self.info_win.addnstr(5,0, "Access: "+entry.last_access.__str__()[:10],
+                                  ysize)
+            self.info_win.addnstr(6,0, "Modification: "+entry.last_mod.__str__()[:10],
+                                  ysize)
+            self.info_win.addnstr(7,0, "Expiration: "+entry.expire.__str__()[:10],
+                                  ysize)
+            self.info_win.addnstr(8,0, "Comment: "+entry.comment, ysize)
+        self.info_win.noutrefresh()
+        doupdate()
         
 if __name__ == '__main__':
     if len(argv) > 1:
