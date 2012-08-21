@@ -332,6 +332,8 @@ class App(object):
                                       e_offset)
             elif c == ord('t') or c == ord('u') or c == ord('U') or c == ord('C'):
                 if cur_root.children:
+                    if not cur_root.children[g_highlight].entries and cur_win == 1:
+                        continue
                     self.stdscr.clear()
                     self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
                                        color_pair(2))
@@ -407,6 +409,120 @@ class App(object):
                         self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                         self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                           e_offset)
+            elif c == ord('p'):
+                if cur_root.children:
+                    if not cur_root.children[g_highlight].entries:
+                        continue
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
+                                       self.cur_dir)
+                    self.stdscr.addstr(1,0, "Password: ")
+                    self.stdscr.refresh()
+                    
+                    password = ''
+                    e = ''
+                    while e != NL:
+                        e = self.stdscr.getch()
+                        if e == KEY_BACKSPACE and len(password) != 0:
+                            password = password[:-1]
+                        elif e == KEY_BACKSPACE:
+                            pass
+                        else:
+                            password += chr(e)
+                    password = password[:-1]
+
+                    self.stdscr.addstr(2,0, "Confirm: ")
+                    self.stdscr.refresh()
+
+                    confirm = ''
+                    e = ''
+                    while e != NL:
+                        e = self.stdscr.getch()
+                        if e == KEY_BACKSPACE and len(password) != 0:
+                            confirm = confirm[:-1]
+                        elif e == KEY_BACKSPACE:
+                            pass
+                        else:
+                            confirm += chr(e)
+                    confirm = confirm[:-1]
+                    
+                    if password == confirm:
+                        cur_root.children[g_highlight].entries[e_highlight].set_password(password)
+                    else:
+                        self.stdscr.addstr(3,0, 'Passwords didn\'t match. Press any key.')
+                        e = self.stdscr.getch()
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
+            elif c == ord('E'):
+                if cur_root.children:
+                    if not cur_root.children[g_highlight].entries:
+                        continue
+                    e = ''
+                    d_highlight = 0
+                    timetuple = cur_root.children[g_highlight].entries[e_highlight].expire.timetuple()
+                    y = timetuple[0]
+                    mon = timetuple[1]
+                    d = timetuple[2]
+                    while e != NL:
+                        self.stdscr.clear()
+                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                           color_pair(2))
+                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
+                                           self.cur_dir)
+                        
+                        if d_highlight == 0:
+                            self.stdscr.addstr(1,0, str(y)+'-', color_pair(6))
+                        else:
+                            self.stdscr.addstr(1,0, str(y)+'-')
+                        if d_highlight == 1:
+                            self.stdscr.addstr(1,5, str(mon)+'-', color_pair(6))
+                        else:
+                            self.stdscr.addstr(1,5, str(mon)+'-')
+                        if d_highlight == 2:
+                            self.stdscr.addstr(1,8, str(d), color_pair(6))
+                        else:
+                            self.stdscr.addstr(1,8, str(d))
+
+                        e = self.stdscr.getch()
+                        if e == KEY_UP:
+                            if d_highlight == 0 and y < 9999:
+                                y += 1
+                            elif d_highlight == 1 and mon < 11:
+                                mon += 1
+                            elif d_highlight == 2:
+                                if mon == 1 or mon == 3 or mon == 5 or mon == 7 \
+                                    or mon == 8 or mon == 10 or mon == 12 and d < 31:
+                                    d += 1
+                                elif mon == 2 and d < 28:
+                                    d += 1
+                                elif mon == 4 or mon == 6 or mon == 9 or mon == 11 \
+                                    and d < 30:
+                                    d += 1
+                            else:
+                                continue
+                        elif e == KEY_DOWN:
+                            if d_highlight == 0 and y > 1:
+                                y -= 1
+                            elif d_highlight == 1 and mon > 1:
+                                mon -= 1
+                            elif d_highlight == 2 and d > 1:
+                                d -= 1
+                            else:
+                                continue
+                        elif e == KEY_LEFT and d_highlight > 0:
+                            d_highlight -= 1
+                        elif e == KEY_RIGHT and d_highlight < 2:
+                            d_highlight += 1
+                        else:
+                            continue
+                    cur_root.children[g_highlight].entries[e_highlight].set_expire(y, mon, d, 
+                        timetuple[3], timetuple[4], timetuple[5])
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
             elif c == ord('s'):
                 try:
                     self.db.save()
