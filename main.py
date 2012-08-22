@@ -383,6 +383,14 @@ class App(object):
                         self.stdscr.addstr(1,0, std)
                         self.stdscr.addstr(1,offset, edit)
                         e = self.stdscr.getch()
+
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
+                                       self.cur_dir)
+                    self.stdscr.refresh()
+
                     if c == ord('t'):
                         if cur_win == 0:
                             cur_root.children[g_highlight].set_title(edit)
@@ -453,6 +461,14 @@ class App(object):
                     else:
                         self.stdscr.addstr(3,0, 'Passwords didn\'t match. Press any key.')
                         e = self.stdscr.getch()
+
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
+                                       self.cur_dir)
+                    self.stdscr.refresh()
+
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                       e_offset)
@@ -460,66 +476,134 @@ class App(object):
                 if cur_root.children:
                     if not cur_root.children[g_highlight].entries:
                         continue
-                    e = ''
-                    d_highlight = 0
-                    timetuple = cur_root.children[g_highlight].entries[e_highlight].expire.timetuple()
-                    y = timetuple[0]
-                    mon = timetuple[1]
-                    d = timetuple[2]
+                    exp = cur_root.children[g_highlight].entries[e_highlight].expire.timetuple()
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
+                                       self.cur_dir)
+
+                    edit = ''
+                    e = -1
                     while e != NL:
+                        if e == KEY_BACKSPACE and len(edit) != 0:
+                            edit = edit[:-1]
+                        elif e == KEY_BACKSPACE:
+                            pass
+                        elif len(edit) < 4 and e >= 48 and e <= 57:
+                            edit += chr(e)
                         self.stdscr.clear()
                         self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
                                            color_pair(2))
-                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
+                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
                                            self.cur_dir)
-                        
-                        if d_highlight == 0:
-                            self.stdscr.addstr(1,0, str(y)+'-', color_pair(6))
-                        else:
-                            self.stdscr.addstr(1,0, str(y)+'-')
-                        if d_highlight == 1:
-                            self.stdscr.addstr(1,5, str(mon)+'-', color_pair(6))
-                        else:
-                            self.stdscr.addstr(1,5, str(mon)+'-')
-                        if d_highlight == 2:
-                            self.stdscr.addstr(1,8, str(d), color_pair(6))
-                        else:
-                            self.stdscr.addstr(1,8, str(d))
-
+                        self.stdscr.addstr(1,0, 'Special date 2999-12-28 means that the entry expires never.')
+                        self.stdscr.addstr(2,0, 'Actual expiration date: '+str(exp[0])+'-'+str(exp[1])+'-'+str(exp[2]))
+                        self.stdscr.addstr(3,0, 'Year: ')
+                        self.stdscr.addstr(3,6, edit)
+                        self.stdscr.refresh()
                         e = self.stdscr.getch()
-                        if e == KEY_UP:
-                            if d_highlight == 0 and y < 9999:
-                                y += 1
-                            elif d_highlight == 1 and mon < 11:
-                                mon += 1
-                            elif d_highlight == 2:
-                                if mon == 1 or mon == 3 or mon == 5 or mon == 7 \
-                                    or mon == 8 or mon == 10 or mon == 12 and d < 31:
-                                    d += 1
-                                elif mon == 2 and d < 28:
-                                    d += 1
-                                elif mon == 4 or mon == 6 or mon == 9 or mon == 11 \
-                                    and d < 30:
-                                    d += 1
-                            else:
-                                continue
-                        elif e == KEY_DOWN:
-                            if d_highlight == 0 and y > 1:
-                                y -= 1
-                            elif d_highlight == 1 and mon > 1:
-                                mon -= 1
-                            elif d_highlight == 2 and d > 1:
-                                d -= 1
-                            else:
-                                continue
-                        elif e == KEY_LEFT and d_highlight > 0:
-                            d_highlight -= 1
-                        elif e == KEY_RIGHT and d_highlight < 2:
-                            d_highlight += 1
-                        else:
-                            continue
+                    y = int(edit)
+                        
+                    edit = ''
+                    e = -1
+                    while e != NL:
+                        if e == KEY_BACKSPACE and len(edit) != 0:
+                            edit = edit[:-1]
+                        elif e == KEY_BACKSPACE:
+                            pass
+                        elif len(edit) < 2 and e >= 48 and e <= 57:
+                            edit += chr(e)
+                        self.stdscr.clear()
+                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                           color_pair(2))
+                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                           self.cur_dir)
+                        self.stdscr.addstr(1,0, 'Special date 2999-12-28 means that the entry expires never.')
+                        self.stdscr.addstr(2,0, 'Actual expiration date: '+str(exp[0])+'-'+str(exp[1])+'-'+str(exp[2]))
+                        self.stdscr.addstr(3,0, 'Year: '+str(y))
+                        self.stdscr.addstr(4,0, 'Month: ')
+                        self.stdscr.addstr(4,7, edit)
+                        self.stdscr.refresh()
+                        e = self.stdscr.getch()
+
+                        if e == NL and (int(edit) > 12 or int(edit) < 1):
+                            self.stdscr.clear()
+                            self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                               color_pair(2))
+                            self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                               self.cur_dir)
+                            self.stdscr.addstr(1,0, 'Month must be between 1 and 12. Press any key.')
+                            self.stdscr.getch()
+                            e = ''
+                    mon = int(edit)
+
+                    edit = ''
+                    e = -1
+                    while e != NL:
+                        if e == KEY_BACKSPACE and len(edit) != 0:
+                            edit = edit[:-1]
+                        elif e == KEY_BACKSPACE:
+                            pass
+                        elif len(edit) < 2 and e >= 48 and e <= 57:
+                            edit += chr(e)
+                        self.stdscr.clear()
+                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                           color_pair(2))
+                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                           self.cur_dir)
+                        self.stdscr.addstr(1,0, 'Special date 2999-12-28 means that the entry expires never.')
+                        self.stdscr.addstr(2,0, 'Actual expiration date: '+str(exp[0])+'-'+str(exp[1])+'-'+str(exp[2]))
+                        self.stdscr.addstr(3,0, 'Year: '+str(y))
+                        self.stdscr.addstr(4,0, 'Month: '+str(mon))
+                        self.stdscr.addstr(5,0, 'Day: ')
+                        self.stdscr.addstr(5,5, edit)
+                        self.stdscr.refresh()
+                        e = self.stdscr.getch()
+                       
+                        if e == NL and (mon == 1 or mon == 3 or mon == 5 or mon == 7 or mon == 8 or mon == 10 or mon == 12) \
+                            and (int(edit) > 31 or int(edit) < 0):
+                            self.stdscr.clear()
+                            self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                               color_pair(2))
+                            self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                               self.cur_dir)
+                            self.stdscr.addstr(1,0, 'Day must be between 1 and 31. Press any key.')
+                            self.stdscr.refresh()
+                            self.stdscr.getch()
+                            e = ''
+                        elif e == NL and mon == 2 \
+                            and (int(edit) > 28 or int(edit) < 0):
+                            self.stdscr.clear()
+                            self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                               color_pair(2))
+                            self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                               self.cur_dir)
+                            self.stdscr.addstr(1,0, 'Day must be between 1 and 28. Press any key.')
+                            self.stdscr.refresh()
+                            self.stdscr.getch()
+                            e = ''
+                        elif e == NL and (mon == 4 or mon == 6 or mon == 9 or mon == 11) \
+                            and (int(edit) > 30 or int(edit) < 0):
+                            self.stdscr.clear()
+                            self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                               color_pair(2))
+                            self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                               self.cur_dir)
+                            self.stdscr.addstr(1,0, 'Day must be between 1 and 30. Press any key.')
+                            self.stdscr.refresh()
+                            self.stdscr.getch()
+                            e = ''
+                    d = int(edit)
+
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
+                                       self.cur_dir)
+                    self.stdscr.refresh()
                     cur_root.children[g_highlight].entries[e_highlight].set_expire(y, mon, d, 
-                        timetuple[3], timetuple[4], timetuple[5])
+                        exp[3], exp[4], exp[5])
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                       e_offset)
