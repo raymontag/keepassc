@@ -103,8 +103,6 @@ class App(object):
                         password = password[:-1]
                     elif c == KEY_BACKSPACE:
                         pass
-                    elif c > 255 or c < 0:
-                        continue
                     else:
                         password += chr(c)
                 password = password[:-1]
@@ -268,6 +266,7 @@ class App(object):
             if c == ord('e'):
                 self.db.close()
                 Popen(['xsel', '-bi'], stdin = PIPE).communicate(''.encode())
+                Popen(['xsel', '-pi'], stdin = PIPE).communicate(''.encode())
                 self.group_win.clear()
                 self.entry_win.clear()
                 self.info_win.clear()
@@ -278,13 +277,117 @@ class App(object):
                 break
             elif c == ord('q'):
                 Popen(['xsel', '-bi'], stdin = PIPE).communicate(''.encode())
+                Popen(['xsel', '-pi'], stdin = PIPE).communicate(''.encode())
                 self.db.close()
                 self.close()
             elif c == ord('c'):
                 p = cur_root.children[g_highlight].entries[e_highlight].password
                 Popen(['xsel', '-bi'], stdin = PIPE).communicate(p.encode())
+                Popen(['xsel', '-pi'], stdin = PIPE).communicate(p.encode())
+            elif c == ord('s'):
+                try:
+                    self.db.save()
+                except KPError as err:
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                       filepath)
+                    self.stdscr.addstr(1,0, err.__str__())
+                    self.stdscr.addstr(4,0, 'Press any key.')
+                    self.stdscr.refresh()
+                    self.stdscr.getch()
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
+                    continue
+            elif c == ord('x'):
+                Popen(['xsel', '-bi'], stdin = PIPE).communicate(''.encode())
+                Popen(['xsel', '-pi'], stdin = PIPE).communicate(''.encode())
+                try:
+                    self.db.save()
+                    self.db.close()
+                except KPError as err:
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                       filepath)
+                    self.stdscr.addstr(1,0, err.__str__())
+                    self.stdscr.addstr(4,0, 'Press any key.')
+                    self.stdscr.refresh()
+                    self.stdscr.getch()
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
+                    continue
+                self.close()
+            elif c == ord('g'):
+                self.stdscr.clear()
+                self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                   color_pair(2))
+                self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                   self.cur_dir)
+                self.stdscr.addstr(1,0, 'Title: ')
+                self.stdscr.refresh()
+
+                edit = ''
+                e = KEY_BACKSPACE
+                while e != NL:
+                    if e == KEY_BACKSPACE and len(edit) != 0:
+                        edit = edit[:-1]
+                    elif e == KEY_BACKSPACE:
+                        pass
+                    else:
+                        edit += chr(e)
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                       self.cur_dir)
+                    self.stdscr.addstr(1,0, 'Title: ')
+                    self.stdscr.addstr(1,7, edit)
+                    self.stdscr.refresh()
+                    e = self.stdscr.getch()
+
+                try: 
+                    if cur_root is self.db._root_group:
+                        self.db.create_group(edit)
+                    else:
+                        self.db.create_group(edit, cur_root)
+                except KPError as err:
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                       self.cur_dir)
+                    self.stdscr.addstr(1,0, err.__str__())
+                    self.stdscr.addstr(4,0, 'Press any key.')
+                    self.stdscr.refresh()
+                    self.stdscr.getch()
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
+                    continue
+                self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                  e_offset)
+                    
             elif c == ord('d'):
                 if cur_win == 0 and cur_root.children:
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                       self.cur_dir)
+                    self.stdscr.addstr(1,0, 'Really delete group '+cur_root.children[g_highlight].title+'? [y/N]')
+                    self.stdscr.refresh()
+                    e = self.stdscr.getch()
+                    if not e == ord('y'):
+                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                          e_offset)
+                        continue
                     try:
                         cur_root.children[g_highlight].remove_group()
                     except KPError as err:
@@ -302,13 +405,35 @@ class App(object):
                                           e_offset)
                         continue
                         
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
+                                       self.cur_dir)
+                    self.stdscr.refresh()
+
                     if g_highlight >= len(cur_root.children) and g_highlight != 0:
                         g_highlight -= 1
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     e_highlight = 0
                     self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                       e_offset)
-                elif cur_win == 1:
+                elif cur_win == 1 and cur_root.children:
+                    if not cur_root.children[g_highlight].entries:
+                        continue
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                       self.cur_dir)
+                    self.stdscr.addstr(1,0, 'Really delete entry '+cur_root.children[g_highlight].entries[e_highlight].title+'? [y/N]')
+                    self.stdscr.refresh()
+                    e = self.stdscr.getch()
+                    if not e == ord('y'):
+                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                          e_offset)
+                        continue
                     try:
                         cur_root.children[g_highlight].entries[e_highlight].remove_entry()
                     except KPError as err:
@@ -325,6 +450,14 @@ class App(object):
                         self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                           e_offset)
                         continue
+
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
+                                       self.cur_dir)
+                    self.stdscr.refresh()
+
                     if e_highlight >= len(cur_root.children[g_highlight].entries) \
                         and e_highlight != 0:
                         e_highlight -= 1
@@ -484,7 +617,7 @@ class App(object):
                                        self.cur_dir)
 
                     edit = ''
-                    e = -1
+                    e = KEY_BACKSPACE
                     while e != NL:
                         if e == KEY_BACKSPACE and len(edit) != 0:
                             edit = edit[:-1]
@@ -506,7 +639,7 @@ class App(object):
                     y = int(edit)
                         
                     edit = ''
-                    e = -1
+                    e = KEY_BACKSPACE
                     while e != NL:
                         if e == KEY_BACKSPACE and len(edit) != 0:
                             edit = edit[:-1]
@@ -539,7 +672,7 @@ class App(object):
                     mon = int(edit)
 
                     edit = ''
-                    e = -1
+                    e = KEY_BACKSPACE
                     while e != NL:
                         if e == KEY_BACKSPACE and len(edit) != 0:
                             edit = edit[:-1]
@@ -607,43 +740,6 @@ class App(object):
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                       e_offset)
-            elif c == ord('s'):
-                try:
-                    self.db.save()
-                except KPError as err:
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                       filepath)
-                    self.stdscr.addstr(1,0, err.__str__())
-                    self.stdscr.addstr(4,0, 'Press any key.')
-                    self.stdscr.refresh()
-                    self.stdscr.getch()
-                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
-                    continue
-            elif c == ord('x'):
-                Popen(['xsel', '-bi'], stdin = PIPE).communicate(''.encode())
-                try:
-                    self.db.save()
-                    self.db.close()
-                except KPError as err:
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                       filepath)
-                    self.stdscr.addstr(1,0, err.__str__())
-                    self.stdscr.addstr(4,0, 'Press any key.')
-                    self.stdscr.refresh()
-                    self.stdscr.getch()
-                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
-                    continue
-                self.close()
             elif c == KEY_DOWN:
                 if cur_win == 0:
                     if g_highlight >= len(cur_root.children)-1:
