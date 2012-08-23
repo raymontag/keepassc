@@ -735,6 +735,35 @@ class App(object):
                     continue
                 self.db_close()
                 self.close()
+            elif c == ord('l'):
+                self.db.lock()
+                while True:
+                    password = self.get_password('Password: ')
+
+                    try:
+                        self.db.unlock(password)
+                        cur_root = self.db._root_group
+                        self.stdscr.clear()
+                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                           color_pair(2))
+                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                           self.cur_dir)
+                        self.stdscr.refresh()
+                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                          e_offset)
+                        break
+                    except KPError as err:
+                        self.stdscr.clear()
+                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                           color_pair(2))
+                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                           self.cur_dir)
+                        self.stdscr.addstr(1,0, err.__str__())
+                        self.stdscr.addstr(4,0, 'Press any key.')
+                        self.stdscr.refresh()
+                        self.stdscr.getch()
+                        continue
             # DB editing
             elif c == ord('P'):
                 password = self.get_password('New Password: ')
