@@ -427,23 +427,6 @@ class App(object):
         self.stdscr.refresh()
 
     def save(self, cur_dir):
-        if isfile(cur_dir):
-            self.stdscr.clear()
-            self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                               color_pair(2))
-            self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                               self.cur_dir)
-            self.stdscr.addstr(1,0, 'File exists. Overwrite? [y/(n)]')
-            self.stdscr.refresh()
-            c = self.stdscr.getch()
-            if c != ord('y'):
-                self.stdscr.clear()
-                self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                   color_pair(2))
-                self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                   self.cur_dir)
-                self.refresh()
-                return False
         try:
             if cur_dir is False:
                 self.db.save()
@@ -654,28 +637,16 @@ class App(object):
                 if self.db.filepath is None:
                     filepath = self.get_filepath()
                     if filepath is False:
-                        self.stdscr.clear()
-                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                           color_pair(2))
-                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                           self.cur_dir)
-                        self.stdscr.refresh()
                         self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                         self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                           e_offset)
                         continue
                     self.cur_dir = filepath
-                    if self.save(self.cur_dir) is False:
-                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                          e_offset)
-                        continue
-                self.stdscr.clear()
-                self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                   color_pair(2))
-                self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                   self.cur_dir)
-                self.stdscr.refresh()
+                if self.save(self.cur_dir) is False:
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
+                    continue
                 self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                   e_offset)
@@ -695,6 +666,23 @@ class App(object):
                     continue
                 if self.db.filepath is None:
                     self.cur_dir = filepath
+                if isfile(filepath):
+                    self.stdscr.clear()
+                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                       color_pair(2))
+                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                       self.cur_dir)
+                    self.stdscr.addstr(1,0, 'File exists. Overwrite? [y/(n)]')
+                    self.stdscr.refresh()
+                    c = self.stdscr.getch()
+                    if c != ord('y'):
+                        self.stdscr.clear()
+                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                           color_pair(2))
+                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                           self.cur_dir)
+                        self.refresh()
+                        continue
                 if self.save(filepath) is False:
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
@@ -1061,6 +1049,8 @@ class App(object):
                                           e_offset)
                         continue
 
+                    if not cur_root.children:
+                        cur_root = cur_root.parent
                     changed = True
                     self.stdscr.clear()
                     self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
@@ -1121,10 +1111,13 @@ class App(object):
                     self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
                                        self.cur_dir)
                     self.stdscr.refresh()
-
+                    
+                    if not cur_root.children[g_highlight].entries:
+                        cur_win = 0
                     if e_highlight >= len(cur_root.children[g_highlight].entries) \
                         and e_highlight != 0:
                         e_highlight -= 1
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                       e_offset)
             # Edit attributes
@@ -1521,7 +1514,7 @@ class App(object):
             if entries:
                 entry = entries[e_highlight]
                 self.info_win.addnstr(0,0, entry.title, ysize, A_BOLD)
-                self.info_win.addnstr(1,0, "Group: "+entry.title, ysize)
+                self.info_win.addnstr(1,0, "Group: "+entry.group.title, ysize)
                 self.info_win.addnstr(2,0, "Username: "+entry.username, ysize)
                 self.info_win.addnstr(3,0, "URL: "+entry.url, ysize)
                 self.info_win.addnstr(4,0, "Creation: "+entry.creation.__str__()[:10],
@@ -1543,7 +1536,17 @@ class App(object):
         doupdate()
         
 if __name__ == '__main__':
-    if len(argv) > 1:
+    if getuid() == 0 and len(argv) < 2:
+        print('If you really want to execute this program as root user type \'keepassc --asroot\'')
+        print('Warning: This will annul a security concept of keepassc')
+    elif getuid() == 0 and len(argv) > 1:
+        if argv[1] == '--asroot':
+            app = App()
+            app.main_loop()
+        else:
+            print('If you really want to execute this program as root user type \'keepassc --asroot\'')
+            print('Warning: This will annul a security concept of keepassc')
+    elif len(argv) > 1:
         print('Usage: keepassc')
         print('Type \'h\' while running the program to get help.')
     else:
