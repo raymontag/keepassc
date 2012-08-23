@@ -534,9 +534,10 @@ class App(object):
                 print('\'c\' - copy password of current entry')
                 print('\'P\' - edit db password')
                 print('\'g\' - create group')
+                print('\'G\' - create subgroup')
                 print('\'y\' - create entry')
                 print('\'d\' - delete group or entry')
-                print('\'t\' - edit title')
+                print('\'t\' - edit title of selected group or entry')
                 print('\'u\' - edit username')
                 print('\'p\' - edit password')
                 print('\'U\' - edit URL')
@@ -817,6 +818,36 @@ class App(object):
                 self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                   e_offset)
+            elif c == ord('G'):
+                if cur_root.children:
+                    edit = self.get_string('', 'Title: ')
+
+                    try: 
+                        self.db.create_group(edit, cur_root.children[g_highlight])
+                    except KPError as err:
+                        self.stdscr.clear()
+                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                           color_pair(2))
+                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                           self.cur_dir)
+                        self.stdscr.addstr(1,0, err.__str__())
+                        self.stdscr.addstr(4,0, 'Press any key.')
+                        self.stdscr.refresh()
+                        self.stdscr.getch()
+                        self.stdscr.clear()
+                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                           color_pair(2))
+                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
+                                           self.cur_dir)
+                        self.stdscr.refresh()
+                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                          e_offset)
+                        continue
+                    changed = True
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                      e_offset)
             elif c == ord('y'):
                 if cur_root.children:
                     self.stdscr.clear()
