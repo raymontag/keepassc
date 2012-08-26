@@ -10,6 +10,7 @@ under the terms of the GNU General Public License as published by the
 Free Software Foundation, either version 3 of the License, or at your 
 option) any later version.
 
+
 keepassc is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
@@ -128,6 +129,141 @@ class App(object):
                     password = password[:-1]
         return password
 
+    def get_exp_date(self, *exp):
+        edit = ''
+        e = KEY_BACKSPACE
+        while e != NL:
+            if e == KEY_BACKSPACE and len(edit) != 0:
+                edit = edit[:-1]
+            elif e == KEY_BACKSPACE:
+                pass
+            elif e == -1:
+                self.clipboard.communicate(''.encode())
+                self.primary.communicate(''.encode())
+            elif e == 4:
+                self.clipboard.communicate(''.encode())
+                self.primary.communicate(''.encode())
+                if not self.db is None:
+                    self.db_close()
+                self.close()
+            elif len(edit) < 4 and e >= 48 and e <= 57:
+                edit += chr(e)
+            if exp:
+                self.draw_text((1,0, 'Special date 2999-12-28 means that the '
+                                     'expires never.'),
+                               (2,0, 'Actual expiration date: '+str(exp[0])+
+                                     '-'+str(exp[1])+'-'+str(exp[2])),
+                               (3,0, 'Year: '),
+                               (3,6, edit))
+            else:
+                self.draw_text((1,0, 'Special date 2999-12-28 means that the '
+                                     'expires never.'),
+                               (3,0, 'Year: '),
+                               (3,6, edit))
+            e = self.stdscr.getch()
+        y = int(edit)
+            
+        edit = ''
+        e = KEY_BACKSPACE
+        while e != NL:
+            if e == KEY_BACKSPACE and len(edit) != 0:
+                edit = edit[:-1]
+            elif e == KEY_BACKSPACE:
+                pass
+            elif e == -1:
+                self.clipboard.communicate(''.encode())
+                self.primary.communicate(''.encode())
+            elif e == 4:
+                self.clipboard.communicate(''.encode())
+                self.primary.communicate(''.encode())
+                if not self.db is None:
+                    self.db_close()
+                self.close()
+            elif len(edit) < 2 and e >= 48 and e <= 57:
+                edit += chr(e)
+            if exp:
+                self.draw_text((1,0, 'Special date 2999-12-28 means that the '
+                                     'expires never.'),
+                               (2,0, 'Actual expiration date: '+str(exp[0])+
+                                     '-'+str(exp[1])+'-'+str(exp[2])),
+                               (3,0, 'Year: '+str(y)),
+                               (4,0, 'Month: '),
+                               (4,7, edit))
+            else:
+                self.draw_text((1,0, 'Special date 2999-12-28 means that the '
+                                     'expires never.'),
+                               (3,0, 'Year: '+str(y)),
+                               (4,0, 'Month: '),
+                               (4,7, edit))
+            e = self.stdscr.getch()
+
+            if e == NL and (int(edit) > 12 or int(edit) < 1):
+                self.draw_text((1,0, 'Month must be between 1 and 12. Press '
+                                     'any key.'))
+                self.stdscr.getch()
+                e = ''
+        mon = int(edit)
+
+        edit = ''
+        e = KEY_BACKSPACE
+        while e != NL:
+            if e == KEY_BACKSPACE and len(edit) != 0:
+                edit = edit[:-1]
+            elif e == KEY_BACKSPACE:
+                pass
+            elif e == -1:
+                self.clipboard.communicate(''.encode())
+                self.primary.communicate(''.encode())
+            elif e == 4:
+                self.clipboard.communicate(''.encode())
+                self.primary.communicate(''.encode())
+                if not self.db is None:
+                    self.db_close()
+                self.close()
+            elif len(edit) < 2 and e >= 48 and e <= 57:
+                edit += chr(e)
+            if exp:
+                self.draw_text((1,0, 'Special date 2999-12-28 means that the '
+                                     'expires never.'),
+                               (2,0, 'Actual expiration date: '+str(exp[0])+
+                                     '-'+str(exp[1])+'-'+str(exp[2])),
+                               (3,0, 'Year: '+str(y)),
+                               (4,0, 'Month: '+str(mon)),
+                               (5,0, 'Day: '),
+                               (5,5, edit))
+            else:
+                self.draw_text((1,0, 'Special date 2999-12-28 means that the '
+                                     'expires never.'),
+                               (3,0, 'Year: '+str(y)),
+                               (4,0, 'Month: '+str(mon)),
+                               (5,0, 'Day: '),
+                               (5,5, edit))
+            e = self.stdscr.getch()
+           
+            if (e == NL and (mon == 1 or mon == 3 or 
+                mon == 5 or mon == 7 or mon == 8 or 
+                mon == 10 or mon == 12) and
+                (int(edit) > 31 or int(edit) < 0)):
+                self.draw_text((1,0, 'Day must be between 1 and 31. Press '
+                                     'any key.'))
+                self.stdscr.getch()
+                e = ''
+            elif (e == NL and mon == 2 and
+                  (int(edit) > 28 or int(edit) < 0)):
+                self.draw_text((1,0, 'Day must be between 1 and 28. Press '
+                                     'any key.'))
+                self.stdscr.getch()
+                e = ''
+            elif (e == NL and (mon == 4 or mon == 6 or 
+                  mon == 9 or mon == 11) and 
+                  (int(edit) > 30 or int(edit) < 0)):
+                self.draw_text((1,0, 'Day must be between 1 and 30. Press '
+                                     'any key.'))
+                self.stdscr.getch()
+                e = ''
+        d = int(edit)
+        return y, mon, d
+
     def main_loop(self):
         while True:
             self.draw_text((1,0, 'To open an existing database type \'o\','),
@@ -208,9 +344,7 @@ class App(object):
                 return False
             else:
                 break
-
         filename = self.get_string('', 'Filename: ')
-
         filepath += '/'+filename+'.kdb'
         return filepath
 
@@ -219,7 +353,6 @@ class App(object):
         if self.cur_dir[-4:] == '.kdb':
             kdb_file = self.cur_dir.split('/')[-1]
             self.cur_dir = self.cur_dir[:-len(kdb_file)-1]
-
 
         self.draw_text()
         try:
@@ -674,14 +807,7 @@ class App(object):
                     self.db.masterkey = password
                 else:
                     self.stdscr.addstr(3,0, 'Passwords didn\'t match. Press any key.')
-                    e = self.stdscr.getch()
-
-                self.stdscr.clear()
-                self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                   color_pair(2))
-                self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
-                                   self.cur_dir)
-                self.stdscr.refresh()
+                    self.stdscr.getch()
 
                 self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
@@ -695,26 +821,11 @@ class App(object):
                     else:
                         self.db.create_group(edit, cur_root)
                 except KPError as err:
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                       self.cur_dir)
-                    self.stdscr.addstr(1,0, err.__str__())
-                    self.stdscr.addstr(4,0, 'Press any key.')
-                    self.stdscr.refresh()
+                    self.draw_text((1,0, err.__str__()),
+                                   (4,0, 'Press any key.'))
                     self.stdscr.getch()
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                       self.cur_dir)
-                    self.stdscr.refresh()
-                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
-                    continue
-                changed = True
+                else:
+                    changed = True
                 self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                   e_offset)
@@ -725,38 +836,18 @@ class App(object):
                     try: 
                         self.db.create_group(edit, cur_root.children[g_highlight])
                     except KPError as err:
-                        self.stdscr.clear()
-                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                           color_pair(2))
-                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                           self.cur_dir)
-                        self.stdscr.addstr(1,0, err.__str__())
-                        self.stdscr.addstr(4,0, 'Press any key.')
-                        self.stdscr.refresh()
+                        self.draw_text((1,0, err.__str__()),
+                                       (4,0, 'Press any key.'))
                         self.stdscr.getch()
-                        self.stdscr.clear()
-                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                           color_pair(2))
-                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                           self.cur_dir)
-                        self.stdscr.refresh()
-                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                          e_offset)
-                        continue
-                    changed = True
+                    else:
+                        changed = True
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                       e_offset)
             elif c == ord('y'):
                 if cur_root.children:
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                       self.cur_dir)
-                    self.stdscr.addstr(1,0, 'At least one of the following attributes must be given. Press any key.')
-                    self.stdscr.refresh()
+                    draw_text((1,0, 'At least one of the following attributes '
+                                    'must be given. Press any key'))
                     self.stdscr.getch()
                     title = self.get_string('', 'Title: ')
                     url = self.get_string('', 'URL: ')
@@ -768,497 +859,161 @@ class App(object):
                         confirm = ''
 
                     if password != confirm:
-                        self.stdscr.clear()
-                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                           color_pair(2))
-                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                           self.cur_dir)
-                        self.stdscr.addstr(1,0, 'Passwords didn\'t match. Will not set this attribute. Press any key.')
-                        self.stdscr.refresh()
+                        self.draw_text((1,0, 'Passwords didn\'t match. Will '
+                                             'not set this attribute. Press '
+                                             'any key.'))
                         self.stdscr.getch()
                         password = ''
                     comment = self.get_string('', 'Comment: ')
                     
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                       self.cur_dir)
-                    self.stdscr.addstr(1,0, 'Set expiration date? [y/(n)]')
-                    self.stdscr.refresh()
+                    self.draw_text((1,0, 'Set expiration date? [y/(n)]'))
                     e = self.stdscr.getch()
 
                     if e == ord('y'):
-                        edit = ''
-                        e = KEY_BACKSPACE
-                        while e != NL:
-                            if e == KEY_BACKSPACE and len(edit) != 0:
-                                edit = edit[:-1]
-                            elif e == KEY_BACKSPACE:
-                                pass
-                            elif len(edit) < 4 and e >= 48 and e <= 57:
-                                edit += chr(e)
-                            self.stdscr.clear()
-                            self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                               color_pair(2))
-                            self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                               self.cur_dir)
-                            self.stdscr.addstr(1,0, 'Special date 2999-12-28 means that the entry expires never.')
-                            self.stdscr.addstr(3,0, 'Year: ')
-                            self.stdscr.addstr(3,6, edit)
-                            self.stdscr.refresh()
-                            e = self.stdscr.getch()
-                        y = int(edit)
-                            
-                        edit = ''
-                        e = KEY_BACKSPACE
-                        while e != NL:
-                            if e == KEY_BACKSPACE and len(edit) != 0:
-                                edit = edit[:-1]
-                            elif e == KEY_BACKSPACE:
-                                pass
-                            elif len(edit) < 2 and e >= 48 and e <= 57:
-                                edit += chr(e)
-                            self.stdscr.clear()
-                            self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                               color_pair(2))
-                            self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                               self.cur_dir)
-                            self.stdscr.addstr(1,0, 'Special date 2999-12-28 means that the entry expires never.')
-                            self.stdscr.addstr(3,0, 'Year: '+str(y))
-                            self.stdscr.addstr(4,0, 'Month: ')
-                            self.stdscr.addstr(4,7, edit)
-                            self.stdscr.refresh()
-                            e = self.stdscr.getch()
-
-                            if e == NL and (int(edit) > 12 or int(edit) < 1):
-                                self.stdscr.clear()
-                                self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                                   color_pair(2))
-                                self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                                   self.cur_dir)
-                                self.stdscr.addstr(1,0, 'Month must be between 1 and 12. Press any key.')
-                                self.stdscr.getch()
-                                e = ''
-                        mon = int(edit)
-
-                        edit = ''
-                        e = KEY_BACKSPACE
-                        while e != NL:
-                            if e == KEY_BACKSPACE and len(edit) != 0:
-                                edit = edit[:-1]
-                            elif e == KEY_BACKSPACE:
-                                pass
-                            elif len(edit) < 2 and e >= 48 and e <= 57:
-                                edit += chr(e)
-                            self.stdscr.clear()
-                            self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                               color_pair(2))
-                            self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                               self.cur_dir)
-                            self.stdscr.addstr(1,0, 'Special date 2999-12-28 means that the entry expires never.')
-                            self.stdscr.addstr(3,0, 'Year: '+str(y))
-                            self.stdscr.addstr(4,0, 'Month: '+str(mon))
-                            self.stdscr.addstr(5,0, 'Day: ')
-                            self.stdscr.addstr(5,5, edit)
-                            self.stdscr.refresh()
-                            e = self.stdscr.getch()
-                           
-                            if (e == NL and (mon == 1 or mon == 3 or 
-                                mon == 5 or mon == 7 or mon == 8 or 
-                                mon == 10 or mon == 12) and
-                                (int(edit) > 31 or int(edit) < 0)):
-                                self.stdscr.clear()
-                                self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                                   color_pair(2))
-                                self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                                   self.cur_dir)
-                                self.stdscr.addstr(1,0, 'Day must be between 1 and 31. Press any key.')
-                                self.stdscr.refresh()
-                                self.stdscr.getch()
-                                e = ''
-                            elif (e == NL and mon == 2 and
-                                  (int(edit) > 28 or int(edit) < 0)):
-                                self.stdscr.clear()
-                                self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                                   color_pair(2))
-                                self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                                   self.cur_dir)
-                                self.stdscr.addstr(1,0, 'Day must be between 1 and 28. Press any key.')
-                                self.stdscr.refresh()
-                                self.stdscr.getch()
-                                e = ''
-                            elif (e == NL and (mon == 4 or mon == 6 or 
-                                  mon == 9 or mon == 11) and 
-                                  (int(edit) > 30 or int(edit) < 0)):
-                                self.stdscr.clear()
-                                self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                                   color_pair(2))
-                                self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                                   self.cur_dir)
-                                self.stdscr.addstr(1,0, 'Day must be between 1 and 30. Press any key.')
-                                self.stdscr.refresh()
-                                self.stdscr.getch()
-                                e = ''
-                        d = int(edit)
+                        y, mon, d = self.get_exp_date()
                     else:
                         y = 2999
                         mon = 12
                         d = 28
 
                     try:
-                        cur_root.children[g_highlight].create_entry(title, 1, url, username, password, comment, y, mon, d)
+                        cur_root.children[g_highlight].create_entry(title, 1, 
+                                                                    url, 
+                                                                    username,
+                                                                    password,
+                                                                    comment,
+                                                                    y, mon, d)
                     except KPError as err:
-                        self.stdscr.clear()
-                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                           color_pair(2))
-                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                           self.cur_dir)
-                        self.stdscr.addstr(1,0, err.__str__())
-                        self.stdscr.addstr(4,0, 'Press any key.')
-                        self.stdscr.refresh()
+                        draw_text((1,0, err.__str__()),
+                                  (4,0, 'Press any key.'))
                         self.stdscr.getch()
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                       self.cur_dir)
-                    self.stdscr.refresh()
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win, e_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, 
+                                      cur_win, e_offset)
             elif c == ord('d'):
                 if cur_win == 0 and cur_root.children:
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                       self.cur_dir)
-                    self.stdscr.addstr(1,0, 'Really delete group '+cur_root.children[g_highlight].title+'? [y/(n)]')
-                    self.stdscr.refresh()
+                    title = cur_root.children[g_highlight].title
+                    self.draw_text((1,0, 'Really delete group '+title+'? '
+                                         '[y/(n)]'))
                     e = self.stdscr.getch()
-                    if not e == ord('y'):
-                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                          e_offset)
-                        continue
-                    try:
-                        cur_root.children[g_highlight].remove_group()
-                    except KPError as err:
-                        self.stdscr.clear()
-                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                           color_pair(2))
-                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                           self.cur_dir)
-                        self.stdscr.addstr(1,0, err.__str__())
-                        self.stdscr.addstr(4,0, 'Press any key.')
-                        self.stdscr.refresh()
-                        self.stdscr.getch()
-                        self.stdscr.clear()
-                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                           color_pair(2))
-                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                           self.cur_dir)
-                        self.stdscr.refresh()
-                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                          e_offset)
-                        continue
+                    if e = ord('y'):
+                        try:
+                            cur_root.children[g_highlight].remove_group()
+                        except KPError as err:
+                            draw_text((1,0, err.__str__()),
+                                      (4,0, 'Press any key.'))
+                            self.stdscr.getch()
+                        else:
+                            if not cur_root.children:
+                                cur_root = cur_root.parent
+                            changed = True
 
-                    if not cur_root.children:
-                        cur_root = cur_root.parent
-                    changed = True
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
-                                       self.cur_dir)
-                    self.stdscr.refresh()
-
-                    if g_highlight >= len(cur_root.children) and g_highlight != 0:
-                        g_highlight -= 1
+                            if g_highlight >= len(cur_root.children) and g_highlight != 0:
+                                g_highlight -= 1
+                            e_highlight = 0
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                    e_highlight = 0
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, 
+                                      cur_win, e_offset)
                 elif cur_win == 1 and cur_root.children:
                     if not cur_root.children[g_highlight].entries:
                         continue
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                       self.cur_dir)
-                    self.stdscr.addstr(1,0, 'Really delete entry '+cur_root.children[g_highlight].entries[e_highlight].title+'? [y/(n)]')
-                    self.stdscr.refresh()
+                    title = (cur_root.children[g_highlight]
+                             .entries[e_highlight].title)
+                    draw_text((1,0, 'Really delete entry'+title+'? [y/(n)]'))
                     e = self.stdscr.getch()
-                    if not e == ord('y'):
-                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                          e_offset)
-                        continue
-                    try:
-                        cur_root.children[g_highlight].entries[e_highlight].remove_entry()
-                    except KPError as err:
-                        self.stdscr.clear()
-                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                           color_pair(2))
-                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                           self.cur_dir)
-                        self.stdscr.addstr(1,0, err.__str__())
-                        self.stdscr.addstr(4,0, 'Press any key.')
-                        self.stdscr.refresh()
-                        self.stdscr.getch()
-                        self.stdscr.clear()
-                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                           color_pair(2))
-                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                           self.cur_dir)
-                        self.stdscr.refresh()
-                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                          e_offset)
-                        continue
-
-                    changed = True
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
-                                       self.cur_dir)
-                    self.stdscr.refresh()
-                    
-                    if not cur_root.children[g_highlight].entries:
-                        cur_win = 0
-                    if (e_highlight >= len(cur_root.children[g_highlight].entries) and
-                        e_highlight != 0):
-                        e_highlight -= 1
+                    if e == ord('y'):
+                        try:
+                            (cur_root.children[g_highlight]
+                             .entries[e_highlight].remove_entry())
+                        except KPError as err:
+                            draw_text((1,0, err.__str__()),
+                                      (4,0, 'Press any key.'))
+                            self.stdscr.getch()
+                        else:
+                            changed = True
+                            if not cur_root.children[g_highlight].entries:
+                                cur_win = 0
+                            entries = cur_root.children[g_highlight].entries
+                            if (e_highlight >= len(entries) and
+                                e_highlight != 0):
+                                e_highlight -= 1
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, 
+                                      cur_win, e_offset)
             # Edit attributes
-            elif c == ord('t') or c == ord('u') or c == ord('U') or c == ord('C'):
+            elif (c == ord('t') or c == ord('u') or c == ord('U') or 
+                  c == ord('C')):
                 if cur_root.children:
-                    if not cur_root.children[g_highlight].entries and cur_win == 1:
+                    entries = cur_root.children[g_highlight].entries 
+                    if not entries and cur_win == 1:
                         continue
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                       self.cur_dir)
                     if c == ord('t'):
                         std = 'Title: '
                         if cur_win == 0:
                             edit= cur_root.children[g_highlight].title
                         elif cur_win == 1:
-                            edit = cur_root.children[g_highlight].entries[e_highlight].title
-                    elif c == ord('u') and cur_root.children[g_highlight].entries:
+                            edit = entries[e_highlight].title
+                    elif c == ord('u') and entries:
                         std = 'Username: '
-                        edit = cur_root.children[g_highlight].entries[e_highlight].username
-                    elif c == ord('U') and cur_root.children[g_highlight].entries:
+                        edit = entries[e_highlight].username
+                    elif c == ord('U') and entries:
                         std = 'URL: '
-                        edit = cur_root.children[g_highlight].entries[e_highlight].url
-                    elif c == ord('C') and cur_root.children[g_highlight].entries:
+                        edit = entries[e_highlight].url
+                    elif c == ord('C') and entries:
                         std = 'Comment: '
-                        edit = cur_root.children[g_highlight].entries[e_highlight].comment
+                        edit = entries[e_highlight].comment
                     else:
                         continue
-                    offset = len(std)
-
                     edit = self.get_string(edit, std)
-
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
-                                       self.cur_dir)
-                    self.stdscr.refresh()
+                    self.draw_text()
                     changed = True
 
                     if c == ord('t'):
                         if cur_win == 0:
                             cur_root.children[g_highlight].set_title(edit)
-                            self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                            self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                              e_offset)
                         elif cur_win == 1:
-                            cur_root.children[g_highlight].entries[e_highlight].set_title(edit)
-                            self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                            self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                              e_offset)
+                            entries[e_highlight].set_title(edit)
                     elif c == ord('u'):
-                        cur_root.children[g_highlight].entries[e_highlight].set_username(edit)
-                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                          e_offset)
+                        entries[e_highlight].set_username(edit)
                     elif c == ord('U'):
-                        cur_root.children[g_highlight].entries[e_highlight].set_url(edit)
-                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                          e_offset)
+                        entries[e_highlight].set_url(edit)
                     elif c == ord('C'):
-                        cur_root.children[g_highlight].entries[e_highlight].set_comment(edit)
-                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                          e_offset)
+                        entries[e_highlight].set_comment(edit)
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, 
+                                      cur_win, e_offset)
             elif c == ord('p'):
                 if cur_root.children:
-                    if not cur_root.children[g_highlight].entries:
+                    entries = cur_root.children[g_highlight].entries
+                    if entries:
                         continue
                     password = self.get_password('Password: ')
                     confirm = self.get_password('Confirm: ')
                     
                     if password == confirm:
-                        cur_root.children[g_highlight].entries[e_highlight].set_password(password)
+                        entries[e_highlight].set_password(password)
                         changed = True
                     else:
                         self.stdscr.addstr(3,0, 'Passwords didn\'t match. Press any key.')
-                        e = self.stdscr.getch()
-
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
-                                       self.cur_dir)
-                    self.stdscr.refresh()
+                        self.stdscr.getch()
 
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                       e_offset)
             elif c == ord('E'):
                 if cur_root.children:
-                    if not cur_root.children[g_highlight].entries:
+                    entries = cur_root.children[g_highlight].entries
+                    if not entries:
                         continue
-                    exp = cur_root.children[g_highlight].entries[e_highlight].expire.timetuple()
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
-                                       self.cur_dir)
+                    exp = entries[e_highlight].expire.timetuple()
+                    y, mon, d = self.get_exp_date(exp[0], exp[1], exp[2])
 
-                    edit = ''
-                    e = KEY_BACKSPACE
-                    while e != NL:
-                        if e == KEY_BACKSPACE and len(edit) != 0:
-                            edit = edit[:-1]
-                        elif e == KEY_BACKSPACE:
-                            pass
-                        elif len(edit) < 4 and e >= 48 and e <= 57:
-                            edit += chr(e)
-                        self.stdscr.clear()
-                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                           color_pair(2))
-                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                           self.cur_dir)
-                        self.stdscr.addstr(1,0, 'Special date 2999-12-28 means that the entry expires never.')
-                        self.stdscr.addstr(2,0, 'Actual expiration date: '+str(exp[0])+'-'+str(exp[1])+'-'+str(exp[2]))
-                        self.stdscr.addstr(3,0, 'Year: ')
-                        self.stdscr.addstr(3,6, edit)
-                        self.stdscr.refresh()
-                        e = self.stdscr.getch()
-                    y = int(edit)
-                        
-                    edit = ''
-                    e = KEY_BACKSPACE
-                    while e != NL:
-                        if e == KEY_BACKSPACE and len(edit) != 0:
-                            edit = edit[:-1]
-                        elif e == KEY_BACKSPACE:
-                            pass
-                        elif len(edit) < 2 and e >= 48 and e <= 57:
-                            edit += chr(e)
-                        self.stdscr.clear()
-                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                           color_pair(2))
-                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                           self.cur_dir)
-                        self.stdscr.addstr(1,0, 'Special date 2999-12-28 means that the entry expires never.')
-                        self.stdscr.addstr(2,0, 'Actual expiration date: '+str(exp[0])+'-'+str(exp[1])+'-'+str(exp[2]))
-                        self.stdscr.addstr(3,0, 'Year: '+str(y))
-                        self.stdscr.addstr(4,0, 'Month: ')
-                        self.stdscr.addstr(4,7, edit)
-                        self.stdscr.refresh()
-                        e = self.stdscr.getch()
-
-                        if e == NL and (int(edit) > 12 or int(edit) < 1):
-                            self.stdscr.clear()
-                            self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                               color_pair(2))
-                            self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                               self.cur_dir)
-                            self.stdscr.addstr(1,0, 'Month must be between 1 and 12. Press any key.')
-                            self.stdscr.getch()
-                            e = ''
-                    mon = int(edit)
-
-                    edit = ''
-                    e = KEY_BACKSPACE
-                    while e != NL:
-                        if e == KEY_BACKSPACE and len(edit) != 0:
-                            edit = edit[:-1]
-                        elif e == KEY_BACKSPACE:
-                            pass
-                        elif len(edit) < 2 and e >= 48 and e <= 57:
-                            edit += chr(e)
-                        self.stdscr.clear()
-                        self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                           color_pair(2))
-                        self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                           self.cur_dir)
-                        self.stdscr.addstr(1,0, 'Special date 2999-12-28 means that the entry expires never.')
-                        self.stdscr.addstr(2,0, 'Actual expiration date: '+str(exp[0])+'-'+str(exp[1])+'-'+str(exp[2]))
-                        self.stdscr.addstr(3,0, 'Year: '+str(y))
-                        self.stdscr.addstr(4,0, 'Month: '+str(mon))
-                        self.stdscr.addstr(5,0, 'Day: ')
-                        self.stdscr.addstr(5,5, edit)
-                        self.stdscr.refresh()
-                        e = self.stdscr.getch()
-                       
-                        if e == NL and (mon == 1 or mon == 3 or mon == 5 or mon == 7 or mon == 8 or mon == 10 or mon == 12) \
-                            and (int(edit) > 31 or int(edit) < 0):
-                            self.stdscr.clear()
-                            self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                               color_pair(2))
-                            self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                               self.cur_dir)
-                            self.stdscr.addstr(1,0, 'Day must be between 1 and 31. Press any key.')
-                            self.stdscr.refresh()
-                            self.stdscr.getch()
-                            e = ''
-                        elif (e == NL and mon == 2 and
-                              (int(edit) > 28 or int(edit) < 0)):
-                            self.stdscr.clear()
-                            self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                               color_pair(2))
-                            self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                               self.cur_dir)
-                            self.stdscr.addstr(1,0, 'Day must be between 1 and 28. Press any key.')
-                            self.stdscr.refresh()
-                            self.stdscr.getch()
-                            e = ''
-                        elif e == NL and (mon == 4 or mon == 6 or mon == 9 or mon == 11) \
-                            and (int(edit) > 30 or int(edit) < 0):
-                            self.stdscr.clear()
-                            self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                               color_pair(2))
-                            self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'), 
-                                               self.cur_dir)
-                            self.stdscr.addstr(1,0, 'Day must be between 1 and 30. Press any key.')
-                            self.stdscr.refresh()
-                            self.stdscr.getch()
-                            e = ''
-                    d = int(edit)
-
-                    self.stdscr.clear()
-                    self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
-                                       color_pair(2))
-                    self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
-                                       self.cur_dir)
-                    self.stdscr.refresh()
-                    cur_root.children[g_highlight].entries[e_highlight].set_expire(y, mon, d, 
-                        exp[3], exp[4], exp[5])
+                    entries[e_highlight].set_expire(y, mon, d, 
+                                                    exp[3], exp[4], exp[5])
                     changed = True
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                    self.show_entries(g_highlight, e_highlight, cur_root, 
+                                      cur_win,
                                       e_offset)
             # Navigation
             elif c == KEY_DOWN:
@@ -1266,47 +1021,49 @@ class App(object):
                     if g_highlight >= len(cur_root.children)-1:
                         continue
                     ysize = self.group_win.getmaxyx()[0]
-                    if g_highlight >= ysize-4 and \
-                        not g_offset >= len(cur_root.children)-ysize+4:
+                    if (g_highlight >= ysize-4 and 
+                        not g_offset >= len(cur_root.children)-ysize+4):
                         g_offset += 1
                     g_highlight += 1
-                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     e_highlight = 0
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, 
+                                      cur_win, e_offset)
                 elif cur_win == 1:
-                    if e_highlight >= len(cur_root.children[g_highlight].entries)-1:
+                    if e_highlight >= len(entries)-1:
                         continue
                     ysize = self.entry_win.getmaxyx()[0]
-                    if e_highlight >= ysize-4 and \
-                        not e_offset >= len(cur_root.children[g_highlight].entries)-ysize+3:
+                    entries = cur_root.children[g_highlight].entries
+                    if (e_highlight >= ysize-4 and 
+                        not e_offset >= len(entries)-ysize+3):
                         e_offset += 1
                     e_highlight += 1
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root,
+                                      cur_win, e_offset)
             elif c == KEY_UP:
                 if cur_win == 0:
                     if g_highlight <= 0:
                         continue
                     ysize = self.group_win.getmaxyx()[0]
-                    if g_highlight <= len(cur_root.children)-ysize+4 and \
-                        not g_offset <= 0:
+                    if (g_highlight <= len(cur_root.children)-ysize+4 and 
+                        not g_offset <= 0):
                         g_offset -= 1
                     g_highlight -= 1
-                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     e_highlight = 0
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, 
+                                      cur_win, e_offset)
                 elif cur_win == 1:
                     if e_highlight <= 0:
                         continue
                     ysize = self.entry_win.getmaxyx()[0]
-                    if e_highlight <= len(cur_root.children[g_highlight].entries)-ysize+6 and \
+                    entries = cur_root.children[g_highlight].entries
+                    if e_highlight <= len(entries)-ysize+6 and \
                         not e_offset <= 0:
                         e_offset -= 1
                     e_highlight -= 1
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root,
+                                      cur_win,  e_offset)
             elif c == KEY_LEFT:
                 cur_win = 0
                 self.show_groups(g_highlight, cur_root, cur_win, g_offset)
@@ -1316,8 +1073,8 @@ class App(object):
                 if cur_root.children[g_highlight].entries:
                     cur_win = 1
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, 
+                                      cur_win, e_offset)
             elif c == KEY_RESIZE:
                 self.ysize, self.xsize = self.stdscr.getmaxyx()
                 self.group_win.resize(self.ysize-1, int(self.xsize/3))
@@ -1339,8 +1096,8 @@ class App(object):
                     e_highlight = 0
                     cur_win = 0
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, 
+                                      cur_win, e_offset)
             elif c == KEY_BACKSPACE:
                 if not cur_root is self.db._root_group:
                     cur_root = cur_root.parent
@@ -1348,11 +1105,10 @@ class App(object):
                     e_highlight = 0
                     cur_win = 0
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root,
+                                      cur_win, e_offset)
                     
     def show_groups(self, highlight, root, cur_win, offset):
-        self.group_win.clear()
         if root is  self.db._root_group:
             root_title = 'Parent: _ROOT_'
         else:
@@ -1364,69 +1120,75 @@ class App(object):
             h_color = 6
             n_color = 1
 
-        ysize = self.group_win.getmaxyx()[0]
-        self.group_win.addnstr(0,0, root_title, ysize,
-                               color_pair(n_color))
-
-        if root.children:
-            groups = root.children
-
-            if len(groups) <= ysize-3:
-                num = len(groups)
-            else:
-                num = ysize-3
-                
-            for i in range(num):
-                if highlight == i+offset:
-                    if groups[i].children:
-                        title = '+'+groups[i+offset].title
-                    else:
-                        title = ' '+groups[i+offset].title
-                    self.group_win.addnstr(i+1, 0, title, ysize,
-                                          color_pair(h_color))
-                else:
-                    if groups[i].children:
-                        title = '+'+groups[i+offset].title
-                    else:
-                        title = ' '+groups[i+offset].title
-                    self.group_win.addnstr(i+1, 0, title, ysize,
-                                          color_pair(n_color))
-            self.group_win.addnstr(ysize-2,0, str(highlight+1)+' of '+str(len(groups)),
-                                   ysize)
-        self.group_win.noutrefresh()
-
-    def show_entries(self, g_highlight, e_highlight, root, cur_win, offset):
-        self.entry_win.clear()
-        if root.children:
-            entries = root.children[g_highlight].entries
-            if entries:
-                if cur_win == 1:
-                    h_color = 5
-                    n_color = 4
-                else:
-                    h_color = 6
-                    n_color = 1
-
-                ysize = self.entry_win.getmaxyx()[0]
-                if len(entries) <= ysize-3:
-                    num = len(entries)
+        try:
+            self.group_win.clear()
+            ysize = self.group_win.getmaxyx()[0]
+            self.group_win.addnstr(0,0, root_title, ysize,
+                                   color_pair(n_color))
+            if root.children:
+                groups = root.children
+                if len(groups) <= ysize-3:
+                    num = len(groups)
                 else:
                     num = ysize-3
                     
                 for i in range(num):
-                    if e_highlight == i+offset:
-                        self.entry_win.addnstr(i, 0, entries[i+offset].title, ysize,
+                    if highlight == i+offset:
+                        if groups[i].children:
+                            title = '+'+groups[i+offset].title
+                        else:
+                            title = ' '+groups[i+offset].title
+                        self.group_win.addnstr(i+1, 0, title, ysize,
                                                color_pair(h_color))
                     else:
-                        self.entry_win.addnstr(i, 0, entries[i+offset].title, ysize,
-                                               color_pair(n_color))
-                self.entry_win.addnstr(ysize-2, 0, str(e_highlight+1)+' of '+str(len(entries)),
-                                       ysize)
-        self.entry_win.noutrefresh()
+                        if groups[i].children:
+                            title = '+'+groups[i+offset].title
+                        else:
+                            title = ' '+groups[i+offset].title
+                        self.group_win.addnstr(i+1, 0, title, ysize,
+                                              color_pair(n_color))
+                x_of_n = str(highlight+1)+' of '+str(len(groups))
+                self.group_win.addnstr(ysize-2,0, x_of_n, ysize)
+        except error:
+            pass
+        finally:
+            self.group_win.noutrefresh()
 
-        self.info_win.clear()
+    def show_entries(self, g_highlight, e_highlight, root, cur_win, offset):
         if root.children:
-            if entries:
+            try:
+                entries = root.children[g_highlight].entries
+                if entries:
+                    if cur_win == 1:
+                        h_color = 5
+                        n_color = 4
+                    else:
+                        h_color = 6
+                        n_color = 1
+
+                    self.entry_win.clear()
+                    ysize = self.entry_win.getmaxyx()[0]
+                    if len(entries) <= ysize-3:
+                        num = len(entries)
+                    else:
+                        num = ysize-3
+                        
+                    for i in range(num):
+                        if e_highlight == i+offset:
+                            self.entry_win.addnstr(i, 0, entries[i+offset].title, ysize,
+                                                   color_pair(h_color))
+                        else:
+                            self.entry_win.addnstr(i, 0, entries[i+offset].title, ysize,
+                                                   color_pair(n_color))
+                    self.entry_win.addnstr(ysize-2, 0, str(e_highlight+1)+' of '+str(len(entries)),
+                                           ysize)
+            except error:
+                pass
+            finally:
+                self.entry_win.noutrefresh()
+
+            try:
+                self.info_win.clear()
                 entry = entries[e_highlight]
                 self.info_win.addnstr(0,0, entry.title, ysize, A_BOLD)
                 self.info_win.addnstr(1,0, "Group: "+entry.group.title, ysize)
@@ -1447,7 +1209,10 @@ class App(object):
                     if date.today() > entry.expire.date():
                         self.info_win.addnstr(7,22, ' (expired)', ysize)
                 self.info_win.addnstr(8,0, "Comment: "+entry.comment, ysize)
-        self.info_win.noutrefresh()
+            except error:
+                pass
+            finally:
+                self.info_win.noutrefresh()
         doupdate()
         
 if __name__ == '__main__':
