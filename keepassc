@@ -10,7 +10,6 @@ under the terms of the GNU General Public License as published by the
 Free Software Foundation, either version 3 of the License, or at your 
 option) any later version.
 
-
 keepassc is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
@@ -31,13 +30,40 @@ from sys import exit, argv
 
 from kppy import *
 
+__doc__ = '''This program gives you access to your KeePass 1.x or 
+          KeePassX databases through a nice curses interface.
+
+          It is completely controllable with the keyboard.
+
+         '''
+
 class App(object):
+    '''This class represents the whole application.'''
     def __init__(self):
+        '''The __init__-method. 
+
+        It just initializes some variables and settings and changes
+        the working directory to /var/empty to prevent coredumps as
+        normal user.
+
+        '''
+
         self.stdscr = initscr()
+        self.group_win = newwin(self.ysize-1, int(self.xsize/3), 
+                                1, 0)
+        self.entry_win = newwin(int(2*(self.ysize-1)/3), 
+                                int(2*self.xsize/3), 
+                                1, int(self.xsize/3))
+        self.info_win = newwin(int((self.ysize-1)/3),
+                               int(2*self.xsize/3),
+                               int(2*(self.ysize-1)/3),
+                               int(self.xsize/3))
         curs_set(0)
         cbreak()
         noecho()
         self.stdscr.keypad(1)
+        self.group_win.keypad(1)
+        self.entry_win.keypad(1)
         start_color()
         use_default_colors()
         init_pair(1, -1, -1)
@@ -47,25 +73,67 @@ class App(object):
         init_pair(5, 0, 6)
         init_pair(6, 0, 7)
         self.stdscr.bkgd(1)
+        self.group_win.bkgd(1)
+        self.entry_win.bkgd(1)
+        self.info_win.bkgd(1)
+        self.stdscr.timeout(20000)
         self.ysize, self.xsize = self.stdscr.getmaxyx()
+
 
         self.loginname = getlogin()
         self.hostname = gethostname()
         self.cur_dir = getcwd()
-        chdir('/var/empty')
-
         self.primary = Popen(['xsel', '-pi'], stdin = PIPE)
         self.clipboard = Popen(['xsel', '-bi'], stdin = PIPE)
         self.db = None
 
+        chdir('/var/empty')
+    
+    def resize_all(self):
+        self.ysize, self.xsize = self.stdscr.getmaxyx()
+        self.group_win.resize(self.ysize-1, int(self.xsize/3))
+        self.entry_win.resize(int(2*(self.ysize-1)/3),
+                              int(2*self.xsize/3))
+        self.info_win.resize(int((self.ysize-1)/3),
+                             int(self.xsize/3)-2)
+        self.group_win.mvwin(1,0)
+        self.entry_win.mvwin(1, int(self.ysize/3))
+        self.info_win.mvwin(int(2*(self.ysize-1)/3),
+                            int(self.ysize/3))
+
+    def any_key(self):
+        '''If any key is needed.'''
+
+        while True:
+            e = self.stdscr.getch()
+            if e == -1:
+                self.clipboard.communicate(''.encode())
+                self.primary.communicate(''.encode())
+            elif e == 4:
+                self.clipboard.communicate(''.encode())
+                self.primary.communicate(''.encode())
+                if self.db is not None:
+                    self.db_close()
+                self.close()
+            elif c == KEY_RESIZE:
+                self.resize_all()
+            else:
+                break
+
     def draw_text(self, *misc):
+        '''This method is a wrapper to display some text on stdscr.
+
+        misc is a list that should consist of 3-tuples which holds
+        text to display.
+        (1st element: y-coordinate, 2nd: x-coordinate, 3rd: text)
+        '''
+
         try:
             self.stdscr.clear()
             self.stdscr.addnstr(0,0, self.loginname+'@'+self.hostname+':', 
                                self.ysize, color_pair(2))
             self.stdscr.addnstr(0, len(self.loginname+'@'+self.hostname+':'),
                                self.cur_dir, self.ysize)
-
             for i,j,k in misc:
                 self.stdscr.addnstr(i,j, k, self.ysize)
         except error:
@@ -73,7 +141,15 @@ class App(object):
         finally:
             self.stdscr.refresh()
 
-    def get_string(self, edit, std):
+    def get_string(self, edit = '', std = ''):
+        '''This method is used to get user input.
+
+        edit is the string to edit and std is text
+        which should be displayed in front of edit.
+        (std edit)
+
+        '''
+
         offset = len(std)
         e = ''
         while e != NL:
@@ -87,13 +163,13 @@ class App(object):
             elif e == 4:
                 self.clipboard.communicate(''.encode())
                 self.primary.communicate(''.encode())
-                if not self.db is None:
+                if self.db is not None:
                     self.db_close()
                 self.close()
             elif e == '':
                 pass
-            elif e == KEY_RESIZE:
-                self.ysize, self.xsize = self.stdscr.getmaxyx()
+            elif c == KEY_RESIZE:
+                self.resize_all()
             else:
                 edit += chr(e)
 
@@ -102,6 +178,15 @@ class App(object):
         return edit
 
     def get_password(self, std, needed = True):
+        '''This method is used to get a password.
+
+        The pasword will not be displayed during typing.
+
+        std is a string that should be displayed. If needed is True it
+        is not possible to return an emptry string.
+
+        '''
+
         self.draw_text((1,0, std))
 
         password = ''
@@ -120,9 +205,20 @@ class App(object):
             elif e == 4:
                 self.clipboard.communicate(''.encode())
                 self.primary.communicate(''.encode())
-                if not self.db is None:
+                if self.db is not None:
                     self.db_close()
                 self.close()
+            elif c == KEY_RESIZE:
+                self.ysize, self.xsize = self.stdscr.getmaxyx()
+                self.group_win.resize(self.ysize-1, int(self.xsize/3))
+                self.entry_win.resize(int(2*(self.ysize-1)/3),
+                                      int(2*self.xsize/3))
+                self.info_win.resize(int((self.ysize-1)/3),
+                                     int(self.xsize/3)-2)
+                self.group_win.mvwin(1,0)
+                self.entry_win.mvwin(1, int(self.ysize/3))
+                self.info_win.mvwin(int(2*(self.ysize-1)/3),
+                                    int(self.ysize/3))
             else:
                 password += chr(e)
                 if ord(password[-1]) == NL:
@@ -130,6 +226,12 @@ class App(object):
         return password
 
     def get_exp_date(self, *exp):
+        '''This method is used to get an expiration date for entries.
+
+        exp is used to display an actual expiration date.
+
+        '''
+
         edit = ''
         e = KEY_BACKSPACE
         while e != NL:
@@ -143,23 +245,26 @@ class App(object):
             elif e == 4:
                 self.clipboard.communicate(''.encode())
                 self.primary.communicate(''.encode())
-                if not self.db is None:
+                if self.db is not None:
                     self.db_close()
                 self.close()
+            elif c == KEY_RESIZE:
+                self.resize_all()
             elif len(edit) < 4 and e >= 48 and e <= 57:
                 edit += chr(e)
+            self.draw_text((1,0, 'Special date 2999-12-28 means that the '
+                                 'expires never.'),
+                           (3,0, 'Year: '),
+                           (3,6, edit))
             if exp:
-                self.draw_text((1,0, 'Special date 2999-12-28 means that the '
-                                     'expires never.'),
-                               (2,0, 'Actual expiration date: '+str(exp[0])+
-                                     '-'+str(exp[1])+'-'+str(exp[2])),
-                               (3,0, 'Year: '),
-                               (3,6, edit))
-            else:
-                self.draw_text((1,0, 'Special date 2999-12-28 means that the '
-                                     'expires never.'),
-                               (3,0, 'Year: '),
-                               (3,6, edit))
+                try:
+                    self.stdscr.addnstr(2,0, 'Actual expiration date: '+
+                                        str(exp[0])+'-'+str(exp[1])+'-'+
+                                        str(exp[2]), self.ysize)
+                except error:
+                    pass
+                finally:
+                    self.stdscr.refresh()
             e = self.stdscr.getch()
         y = int(edit)
             
@@ -176,31 +281,33 @@ class App(object):
             elif e == 4:
                 self.clipboard.communicate(''.encode())
                 self.primary.communicate(''.encode())
-                if not self.db is None:
+                if self.db is not None:
                     self.db_close()
                 self.close()
+            elif c == KEY_RESIZE:
+                self.resize_all()
             elif len(edit) < 2 and e >= 48 and e <= 57:
                 edit += chr(e)
+            self.draw_text((1,0, 'Special date 2999-12-28 means that the '
+                                 'expires never.'),
+                           (3,0, 'Year: '+str(y)),
+                           (4,0, 'Month: '),
+                           (4,7, edit))
             if exp:
-                self.draw_text((1,0, 'Special date 2999-12-28 means that the '
-                                     'expires never.'),
-                               (2,0, 'Actual expiration date: '+str(exp[0])+
-                                     '-'+str(exp[1])+'-'+str(exp[2])),
-                               (3,0, 'Year: '+str(y)),
-                               (4,0, 'Month: '),
-                               (4,7, edit))
-            else:
-                self.draw_text((1,0, 'Special date 2999-12-28 means that the '
-                                     'expires never.'),
-                               (3,0, 'Year: '+str(y)),
-                               (4,0, 'Month: '),
-                               (4,7, edit))
+                try:
+                    self.stdscr.addnstr(2,0, 'Actual expiration date: '+
+                                        str(exp[0])+'-'+str(exp[1])+'-'+
+                                        str(exp[2]), self.ysize)
+                except error:
+                    pass
+                finally:
+                    self.stdscr.refresh()
             e = self.stdscr.getch()
 
             if e == NL and (int(edit) > 12 or int(edit) < 1):
                 self.draw_text((1,0, 'Month must be between 1 and 12. Press '
                                      'any key.'))
-                self.stdscr.getch()
+                self.any_key()
                 e = ''
         mon = int(edit)
 
@@ -217,27 +324,28 @@ class App(object):
             elif e == 4:
                 self.clipboard.communicate(''.encode())
                 self.primary.communicate(''.encode())
-                if not self.db is None:
+                if self.db is not None:
                     self.db_close()
                 self.close()
+            elif c == KEY_RESIZE:
+                self.resize_all()
             elif len(edit) < 2 and e >= 48 and e <= 57:
                 edit += chr(e)
+            self.draw_text((1,0, 'Special date 2999-12-28 means that the '
+                                 'expires never.'),
+                           (3,0, 'Year: '+str(y)),
+                           (4,0, 'Month: '+str(mon)),
+                           (5,0, 'Day: '),
+                           (5,5, edit))
             if exp:
-                self.draw_text((1,0, 'Special date 2999-12-28 means that the '
-                                     'expires never.'),
-                               (2,0, 'Actual expiration date: '+str(exp[0])+
-                                     '-'+str(exp[1])+'-'+str(exp[2])),
-                               (3,0, 'Year: '+str(y)),
-                               (4,0, 'Month: '+str(mon)),
-                               (5,0, 'Day: '),
-                               (5,5, edit))
-            else:
-                self.draw_text((1,0, 'Special date 2999-12-28 means that the '
-                                     'expires never.'),
-                               (3,0, 'Year: '+str(y)),
-                               (4,0, 'Month: '+str(mon)),
-                               (5,0, 'Day: '),
-                               (5,5, edit))
+                try:
+                    self.stdscr.addnstr(2,0, 'Actual expiration date: '+
+                                        str(exp[0])+'-'+str(exp[1])+'-'+
+                                        str(exp[2]), self.ysize)
+                except error:
+                    pass
+                finally:
+                    self.stdscr.refresh()
             e = self.stdscr.getch()
            
             if (e == NL and (mon == 1 or mon == 3 or 
@@ -246,25 +354,27 @@ class App(object):
                 (int(edit) > 31 or int(edit) < 0)):
                 self.draw_text((1,0, 'Day must be between 1 and 31. Press '
                                      'any key.'))
-                self.stdscr.getch()
+                self.any_key()
                 e = ''
             elif (e == NL and mon == 2 and
                   (int(edit) > 28 or int(edit) < 0)):
                 self.draw_text((1,0, 'Day must be between 1 and 28. Press '
                                      'any key.'))
-                self.stdscr.getch()
+                self.any_key()
                 e = ''
             elif (e == NL and (mon == 4 or mon == 6 or 
                   mon == 9 or mon == 11) and 
                   (int(edit) > 30 or int(edit) < 0)):
                 self.draw_text((1,0, 'Day must be between 1 and 30. Press '
                                      'any key.'))
-                self.stdscr.getch()
+                self.any_key()
                 e = ''
         d = int(edit)
         return y, mon, d
 
     def main_loop(self):
+        '''The main loop. The program alway return to this method.'''
+
         while True:
             self.draw_text((1,0, 'To open an existing database type \'o\','),
                            (2,0, 'to create a new one type \'n\'.'),
@@ -287,12 +397,16 @@ class App(object):
             elif c == -1:
                 self.clipboard.communicate(''.encode())
                 self.primary.communicate(''.encode())
+            elif c == KEY_RESIZE:
+                self.resize_all()
             elif c == ord('q') or c == 4:
-                if not self.db is None:
+                if self.db is not None:
                     self.db_close()
                 self.close()
 
     def open_db(self):
+        ''' This method opens a database.'''
+
         while True:
             filepath = self.browser()
             
@@ -309,33 +423,40 @@ class App(object):
                         self.draw_text((1,0, 'Database seems to be opened.'
                                              ' Open file in read-only mode?'
                                              ' [(y)/n]'))
-                        e = self.stdscr.getch()
+                        while True:
+                            e = self.stdscr.getch()
 
-                        if e == ord('n'):
-                            self.db = KPDB(self.cur_dir, password, False)
-                        elif e == -1:
-                            self.clipboard.communicate(''.encode())
-                            self.primary.communicate(''.encode())
-                        elif e == 4:
-                            self.clipboard.communicate(''.encode())
-                            self.primary.communicate(''.encode())
-                            if not self.db is None:
-                                self.db_close()
-                            self.close()
-                        else:
-                            self.db = KPDB(self.cur_dir, password, True)
+                            if e == ord('n'):
+                                self.db = KPDB(self.cur_dir, password, False)
+                                break
+                            elif e == -1:
+                                self.clipboard.communicate(''.encode())
+                                self.primary.communicate(''.encode())
+                            elif e == 4:
+                                self.clipboard.communicate(''.encode())
+                                self.primary.communicate(''.encode())
+                                if self.db is not None:
+                                    self.db_close()
+                                self.close()
+                            elif c == KEY_RESIZE:
+                                self.resize_all()
+                            else:
+                                self.db = KPDB(self.cur_dir, password, True)
+                                break
                     else:
                         self.db = KPDB(self.cur_dir, password, False)
                 except KPError as err:
                     self.draw_text((1,0, err.__str__()),
                                    (4,0, 'Press any key.'))
-                    self.stdscr.getch()
+                    self.any_key()
                     last = self.cur_dir.split('/')[-1]
                     self.cur_dir = self.cur_dir[:-len(last)-1]
-                    continue
-                break
+                else:
+                    break
 
     def get_filepath(self):
+        '''This method is used to get a filepath, e.g. for 'Save as' '''
+
         while True:
             filepath = self.browser(True)
             if filepath is False:
@@ -349,6 +470,12 @@ class App(object):
         return filepath
 
     def browser(self, mode_new = False):
+        '''A simple file browser.
+
+        mode_new is needed to get a filepath to a new database file.
+
+        '''
+
         kdb_file = None
         if self.cur_dir[-4:] == '.kdb':
             kdb_file = self.cur_dir.split('/')[-1]
@@ -360,7 +487,7 @@ class App(object):
         except OSError:
             self.draw_text((1,0, 'Was not able to read directory'),
                            (2,0, 'Press any key.'))
-            self.stdscr.getch()
+            self.any_key()
             last = self.cur_dir.split('/')[-1]
             self.cur_dir = self.cur_dir[:-len(last)-1]
             if self.cur_dir == '': self.cur_dir = '/';
@@ -436,7 +563,8 @@ class App(object):
             elif c == -1:
                 self.clipboard.communicate(''.encode())
                 self.primary.communicate(''.encode())
-                return False
+            elif c == KEY_RESIZE:
+                self.resize_all()
             elif c == ord('h') and mode_new is True:
                 nocbreak()
                 self.stdscr.keypad(0)
@@ -444,7 +572,12 @@ class App(object):
                 print('Navigate with arrow keys.')
                 print('\'o\' - choose directory')
                 print('\'e\' - abort')
-                input('Press any key')
+                try:
+                    input('Press any key')
+                except EOFError:
+                    if not self.db is None:
+                        self.db_close()
+                    exit()
                 self.stdscr = initscr()
                 curs_set(0)
                 cbreak()
@@ -464,18 +597,17 @@ class App(object):
                 self.group_win = newwin(self.ysize-1, int(self.xsize/3), 
                                         1, 0)
                 self.entry_win = newwin(int(2*(self.ysize-1)/3), 
-                                        int(2*self.xsize/3)-2, 
-                                        1, int(self.xsize/3)+2)
-                self.info_win = newwin(int((self.ysize-1)/3)-1,
-                                       int(2*self.xsize/3)-2,
-                                       int(2*(self.ysize-1)/3)+1,
-                                       int(self.xsize/3)+2)
+                                        int(2*self.xsize/3), 
+                                        1, int(self.xsize/3))
+                self.info_win = newwin(int((self.ysize-1)/3),
+                                       int(2*self.xsize/3),
+                                       int(2*(self.ysize-1)/3),
+                                       int(self.xsize/3))
                 self.group_win.keypad(1)
                 self.entry_win.keypad(1)
                 self.group_win.bkgd(1)
                 self.entry_win.bkgd(1)
                 self.info_win.bkgd(1)
-                self.group_win.timeout(20000)
                 self.stdscr.timeout(20000)
 
                 return False
@@ -486,7 +618,12 @@ class App(object):
                 print('Navigate with arrow keys.')
                 print('\'q\' - close program')
                 print('\'e\' - abort')
-                input('Press any key')
+                try:
+                    input('Press any key')
+                except EOFError:
+                    if not self.db is None:
+                        self.db_close()
+                    exit()
                 self.stdscr = initscr()
                 curs_set(0)
                 cbreak()
@@ -501,11 +638,28 @@ class App(object):
                 init_pair(5, 0, 6)
                 init_pair(6, 0, 7)
                 self.stdscr.bkgd(1)
+                self.stdscr.timeout(20000)
                 self.ysize, self.xsize = self.stdscr.getmaxyx()
+
+                self.group_win = newwin(self.ysize-1, int(self.xsize/3), 
+                                        1, 0)
+                self.entry_win = newwin(int(2*(self.ysize-1)/3), 
+                                        int(2*self.xsize/3), 
+                                        1, int(self.xsize/3))
+                self.info_win = newwin(int((self.ysize-1)/3),
+                                       int(2*self.xsize/3),
+                                       int(2*(self.ysize-1)/3),
+                                       int(self.xsize/3))
+                self.group_win.keypad(1)
+                self.entry_win.keypad(1)
+                self.group_win.bkgd(1)
+                self.entry_win.bkgd(1)
+                self.info_win.bkgd(1)
+                self.stdscr.timeout(20000)
 
                 return False
             elif (c == ord('q') or c == 4) and mode_new is not True:
-                if not self.db is None:
+                if self.db is not None:
                     self.db_close()
                 self.close()
             elif c == ord('e'):
@@ -519,6 +673,8 @@ class App(object):
                     return self.cur_dir
 
     def show_dir(self, highlight, dir_cont):
+        '''List a directory with highlighting.'''
+
         for i in range(len(dir_cont)):
             if i == highlight:
                 if isdir(self.cur_dir+'/'+dir_cont[i]):
@@ -545,12 +701,16 @@ class App(object):
         self.stdscr.refresh()
 
     def close(self):
+        '''Close the program correctly.'''
+
         nocbreak()
         self.stdscr.keypad(0)
         endwin()
         exit()
 
     def save(self, cur_dir):
+        '''Save the database. cur_dir is the current directory.'''
+        
         try:
             if cur_dir is False:
                 self.db.save()
@@ -559,35 +719,21 @@ class App(object):
         except KPError as err:
             self.draw_text((1,0, err.__str__()),
                            (4,0, 'Press any key.'))
-            self.stdscr.getch()
-
+            self.any_key()
             return False
 
     def db_close(self):
+        '''Close the database correctly.'''
         try:
             self.db.close()
         except KPError as err:
             self.draw_text((1,0, err.__str__()),
                            (4,0, 'Press any key.'))
-            self.stdscr.getch()
+            self.any_key()
+        self.db = None
 
     def db_browser(self):
-        self.group_win = newwin(self.ysize-1, int(self.xsize/3), 
-                                1, 0)
-        self.entry_win = newwin(int(2*(self.ysize-1)/3), 
-                                int(2*self.xsize/3)-2, 
-                                1, int(self.xsize/3)+2)
-        self.info_win = newwin(int((self.ysize-1)/3)-1,
-                               int(2*self.xsize/3)-2,
-                               int(2*(self.ysize-1)/3)+1,
-                               int(self.xsize/3)+2)
-        self.group_win.keypad(1)
-        self.entry_win.keypad(1)
-        self.group_win.bkgd(1)
-        self.entry_win.bkgd(1)
-        self.info_win.bkgd(1)
-        self.group_win.timeout(20000)
-        self.stdscr.timeout(20000)
+        '''The database browser.'''
 
         changed = False
         cur_root = self.db._root_group
@@ -602,7 +748,7 @@ class App(object):
                           e_offset)
 
         while True:
-            c = self.group_win.getch()
+            c = self.stdscr.getch()
             
             if c == ord('\t'):
                 if cur_win == 0:
@@ -635,7 +781,12 @@ class App(object):
                 print('Navigate with arrow keys')
                 print('Type \'return\' to enter subgroups')
                 print('Type \'backspace\' to go back')
-                input('Press any key.')
+                try:
+                    input('Press any key.')
+                except EOFError:
+                    if not self.db is None:
+                        self.db_close()
+                    exit()
                 self.stdscr = initscr()
                 curs_set(0)
                 cbreak()
@@ -657,7 +808,7 @@ class App(object):
                 self.entry_win = newwin(int(2*(self.ysize-1)/3), 
                                         int(2*self.xsize/3), 
                                         1, int(self.xsize/3))
-                self.info_win = newwin(int((self.ysize-1)/3),
+                self.info_win = newwin(int((self.ysize-1)/3)-1,
                                        int(2*self.xsize/3),
                                        int(2*(self.ysize-1)/3),
                                        int(self.xsize/3))
@@ -666,7 +817,6 @@ class App(object):
                 self.group_win.bkgd(1)
                 self.entry_win.bkgd(1)
                 self.info_win.bkgd(1)
-                self.group_win.timeout(20000)
                 self.stdscr.timeout(20000)
 
                 self.show_groups(g_highlight, cur_root, cur_win, g_offset)
@@ -676,15 +826,30 @@ class App(object):
             elif c == ord('e'):
                 if changed is True:
                     self.draw_text((1,0, 'File has changed. Save? [(y)/n]'))
-                    e = self.stdscr.getch()
-                    if not e == ord('n'):
-                        if self.db.filepath is None:
-                            filepath = self.get_filepath()
-                            if filepath is not False:
-                                self.cur_dir = filepath
-                                self.save(self.cur_dir)
+                    while True:
+                        e = self.stdscr.getch()
+                        if e == 4:
+                            self.clipboard.communicate(''.encode())
+                            self.primary.communicate(''.encode())
+                            if self.db is not None:
+                                self.db_close()
+                            self.close()
+                        elif e == -1:
+                            self.clipboard.communicate(''.encode())
+                            self.primary.communicate(''.encode())
+                        elif c == KEY_RESIZE:
+                            self.resize_all()
+                        elif e == ord('n'):
+                            break
                         else:
-                            self.save(False)
+                            if self.db.filepath is None:
+                                filepath = self.get_filepath()
+                                if filepath is not False:
+                                    self.cur_dir = filepath
+                                    self.save(self.cur_dir)
+                            else:
+                                self.save(False)
+                            break
                 self.db_close()
                 self.clipboard.communicate(''.encode())
                 self.primary.communicate(''.encode())
@@ -695,26 +860,41 @@ class App(object):
                 self.entry_win.noutrefresh()
                 self.info_win.noutrefresh()
                 doupdate()
-                self.stdscr.timeout(-1)
                 break
             elif c == ord('q') or c == 4:
                 self.clipboard.communicate(''.encode())
                 self.primary.communicate(''.encode())
                 if changed is True:
                     self.draw_text((1,0, 'File has changed. Save? [(y)/n]'))
-                    e = self.stdscr.getch()
-                    if not e == ord('n'):
-                        if self.db.filepath is None:
-                            filepath = self.get_filepath()
-                            if filepath is not False:
-                                self.cur_dir = filepath
-                                self.save(self.cur_dir)
+                    while True:
+                        e = self.stdscr.getch()
+                        if e == 4:
+                            self.clipboard.communicate(''.encode())
+                            self.primary.communicate(''.encode())
+                            if self.db is not None:
+                                self.db_close()
+                            self.close()
+                        elif e == -1:
+                            self.clipboard.communicate(''.encode())
+                            self.primary.communicate(''.encode())
+                        elif c == KEY_RESIZE:
+                            self.resize_all()
+                        elif e == ord('n'):
+                            break
                         else:
-                            self.save(False)
+                            if self.db.filepath is None:
+                                filepath = self.get_filepath()
+                                if filepath is not False:
+                                    self.cur_dir = filepath
+                                    self.save(self.cur_dir)
+                            else:
+                                self.save(False)
+                            break
                 self.db_close()
                 self.close()
             elif c == ord('c'):
-                p = cur_root.children[g_highlight].entries[e_highlight].password
+                p = (cur_root.children[g_highlight].entries[e_highlight]
+                     .password)
                 self.clipboard.communicate(p.encode())
                 self.primary.communicate(p.encode())
             elif c == -1:
@@ -723,40 +903,40 @@ class App(object):
             elif c == ord('s'):
                 if self.db.filepath is None:
                     filepath = self.get_filepath()
-                    if filepath is False:
-                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                          e_offset)
-                        continue
-                    self.cur_dir = filepath
-                if self.save(self.cur_dir) is False:
-                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
-                    continue
+                    if filepath is not False:
+                        self.cur_dir = filepath
+                if self.save(self.cur_dir) is not False:
+                    changed = False
                 self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                   e_offset)
-                changed = False
             elif c == ord('S'):
                 filepath = self.get_filepath()
-                if filepath is False:
-                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
-                    continue
-                if self.db.filepath is None:
-                    self.cur_dir = filepath
-                if isfile(filepath):
-                    self.draw_text((1,0, 'File exists. Overwrite? [y/(n)]'))
-                    c = self.stdscr.getch()
-                    if c != ord('y'):
-                        continue
-                if self.save(filepath) is False:
-                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
-                    continue
+                if filepath is not False:
+                    if self.db.filepath is None:
+                        self.cur_dir = filepath
+                    if isfile(filepath):
+                        self.draw_text((1,0, 
+                                        'File exists. Overwrite? [y/(n)]'))
+                        while True:
+                            c = self.stdscr.getch()
+                            if c == ord('y'):
+                                if self.save(filepath) is not False:
+                                    changed = False
+                                break
+                            elif c == 4:
+                                self.clipboard.communicate(''.encode())
+                                self.primary.communicate(''.encode())
+                                if self.db is not None:
+                                    self.db_close()
+                                self.close()
+                            elif c == -1:
+                                self.clipboard.communicate(''.encode())
+                                self.primary.communicate(''.encode())
+                            elif c == KEY_RESIZE:
+                                self.resize_all()
+                            else:
+                                break
                 self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                   e_offset)
@@ -767,21 +947,17 @@ class App(object):
 
                 if self.db.filepath is None:
                     filepath = self.get_filepath()
-                    if filepath is False:
-                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                          e_offset)
-                        continue
-                    else:
+                    if filepath is not False:
                         self.cur_dir = filepath
-                if self.save(self.cur_dir) is False:
-                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                    self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                      e_offset)
-                    continue
-                self.db_close()
-                self.close()
+                if self.save(self.cur_dir) is not False:
+                    self.db_close()
+                    self.close()
+                self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
+                                  e_offset)
             elif c == ord('l'):
+                self.clipboard.communicate(''.encode())
+                self.primary.communicate(''.encode())
                 self.db.lock()
                 while True:
                     password = self.get_password('Password: ')
@@ -789,9 +965,9 @@ class App(object):
                     try:
                         self.db.unlock(password)
                     except KPError as err:
-                        self.draw_text((1,0, err._str__()),
+                        self.draw_text((1,0, err.__str__()),
                                        (4,0, 'Press any key.'))
-                        self.stdscr.getch()
+                        self.any_key()
                     else:
                         cur_root = self.db._root_group
                         self.show_groups(g_highlight, cur_root, cur_win, g_offset)
@@ -805,9 +981,14 @@ class App(object):
                 
                 if password == confirm:
                     self.db.masterkey = password
+                    changed = True
                 else:
-                    self.stdscr.addstr(3,0, 'Passwords didn\'t match. Press any key.')
-                    self.stdscr.getch()
+                    try:
+                        self.stdscr.addstr(3,0, 'Passwords didn\'t match. '
+                                                'Press any key.')
+                    except error:
+                        pass
+                    self.any_key()
 
                 self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
@@ -823,7 +1004,7 @@ class App(object):
                 except KPError as err:
                     self.draw_text((1,0, err.__str__()),
                                    (4,0, 'Press any key.'))
-                    self.stdscr.getch()
+                    self.any_key()
                 else:
                     changed = True
                 self.show_groups(g_highlight, cur_root, cur_win, g_offset)
@@ -838,7 +1019,7 @@ class App(object):
                     except KPError as err:
                         self.draw_text((1,0, err.__str__()),
                                        (4,0, 'Press any key.'))
-                        self.stdscr.getch()
+                        self.any_key()
                     else:
                         changed = True
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
@@ -848,7 +1029,7 @@ class App(object):
                 if cur_root.children:
                     draw_text((1,0, 'At least one of the following attributes '
                                     'must be given. Press any key'))
-                    self.stdscr.getch()
+                    self.any_key()
                     title = self.get_string('', 'Title: ')
                     url = self.get_string('', 'URL: ')
                     username = self.get_string('', 'Username: ')
@@ -862,20 +1043,33 @@ class App(object):
                         self.draw_text((1,0, 'Passwords didn\'t match. Will '
                                              'not set this attribute. Press '
                                              'any key.'))
-                        self.stdscr.getch()
+                        self.any_key()
                         password = ''
                     comment = self.get_string('', 'Comment: ')
                     
                     self.draw_text((1,0, 'Set expiration date? [y/(n)]'))
-                    e = self.stdscr.getch()
+                    while True:
+                        e = self.stdscr.getch()
 
-                    if e == ord('y'):
-                        y, mon, d = self.get_exp_date()
-                    else:
-                        y = 2999
-                        mon = 12
-                        d = 28
-
+                        if e == ord('y'):
+                            y, mon, d = self.get_exp_date()
+                            break
+                        elif e == 4:
+                            self.primary.communicate(''.encode())
+                            self.clipboard.communicate(''.encode())
+                            if self.db is not None:
+                                self.db_close()
+                            self.close()
+                        elif e == -1:
+                            self.primary.communicate(''.encode())
+                            self.clipboard.communicate(''.encode())
+                        elif c == KEY_RESIZE:
+                            self.resize_all()
+                        else:
+                            y = 2999
+                            mon = 12
+                            d = 28
+                            break
                     try:
                         cur_root.children[g_highlight].create_entry(title, 1, 
                                                                     url, 
@@ -883,10 +1077,11 @@ class App(object):
                                                                     password,
                                                                     comment,
                                                                     y, mon, d)
+                        changed = True
                     except KPError as err:
                         draw_text((1,0, err.__str__()),
                                   (4,0, 'Press any key.'))
-                        self.stdscr.getch()
+                        self.any_key()
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     self.show_entries(g_highlight, e_highlight, cur_root, 
                                       cur_win, e_offset)
@@ -895,22 +1090,39 @@ class App(object):
                     title = cur_root.children[g_highlight].title
                     self.draw_text((1,0, 'Really delete group '+title+'? '
                                          '[y/(n)]'))
-                    e = self.stdscr.getch()
-                    if e = ord('y'):
-                        try:
-                            cur_root.children[g_highlight].remove_group()
-                        except KPError as err:
-                            draw_text((1,0, err.__str__()),
-                                      (4,0, 'Press any key.'))
-                            self.stdscr.getch()
-                        else:
-                            if not cur_root.children:
-                                cur_root = cur_root.parent
-                            changed = True
+                    while True:
+                        e = self.stdscr.getch()
+                        if e == ord('y'):
+                            try:
+                                cur_root.children[g_highlight].remove_group()
+                            except KPError as err:
+                                draw_text((1,0, err.__str__()),
+                                          (4,0, 'Press any key.'))
+                                self.any_key()
+                            else:
+                                if not cur_root.children:
+                                    cur_root = cur_root.parent
+                                changed = True
 
-                            if g_highlight >= len(cur_root.children) and g_highlight != 0:
-                                g_highlight -= 1
-                            e_highlight = 0
+                                if (g_highlight >= len(cur_root.children) and 
+                                    g_highlight != 0):
+                                    g_highlight -= 1
+                                e_highlight = 0
+                            finally:
+                                break
+                        elif e == 4:
+                            self.clipboard.communicate(''.encode())
+                            self.primary.communicate(''.encode())
+                            if self.db is not None:
+                                self.db_close()
+                            self.close()
+                        elif e == -1:
+                            self.clipboard.communicate(''.encode())
+                            self.primary.communicate(''.encode())
+                        elif c == KEY_RESIZE:
+                            self.resize_all()
+                        else:
+                            break
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     self.show_entries(g_highlight, e_highlight, cur_root, 
                                       cur_win, e_offset)
@@ -920,23 +1132,39 @@ class App(object):
                     title = (cur_root.children[g_highlight]
                              .entries[e_highlight].title)
                     draw_text((1,0, 'Really delete entry'+title+'? [y/(n)]'))
-                    e = self.stdscr.getch()
-                    if e == ord('y'):
-                        try:
-                            (cur_root.children[g_highlight]
-                             .entries[e_highlight].remove_entry())
-                        except KPError as err:
-                            draw_text((1,0, err.__str__()),
-                                      (4,0, 'Press any key.'))
-                            self.stdscr.getch()
+                    while True:
+                        e = self.stdscr.getch()
+                        if e == ord('y'):
+                            try:
+                                (cur_root.children[g_highlight]
+                                 .entries[e_highlight].remove_entry())
+                            except KPError as err:
+                                draw_text((1,0, err.__str__()),
+                                          (4,0, 'Press any key.'))
+                                self.any_key()
+                            else:
+                                changed = True
+                                if not cur_root.children[g_highlight].entries:
+                                    cur_win = 0
+                                entries = cur_root.children[g_highlight].entries
+                                if (e_highlight >= len(entries) and
+                                    e_highlight != 0):
+                                    e_highlight -= 1
+                            finally:
+                                break
+                        elif e == 4:
+                            self.clipboard.communicate(''.encode())
+                            self.primary.communicate(''.encode())
+                            if self.db is not None:
+                                self.db_close()
+                            self.close()
+                        elif e == -1:
+                            self.clipboard.communicate(''.encode())
+                            self.primary.communicate(''.encode())
+                        elif c == KEY_RESIZE:
+                            self.resize_all()
                         else:
-                            changed = True
-                            if not cur_root.children[g_highlight].entries:
-                                cur_win = 0
-                            entries = cur_root.children[g_highlight].entries
-                            if (e_highlight >= len(entries) and
-                                e_highlight != 0):
-                                e_highlight -= 1
+                            break
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     self.show_entries(g_highlight, e_highlight, cur_root, 
                                       cur_win, e_offset)
@@ -965,7 +1193,6 @@ class App(object):
                     else:
                         continue
                     edit = self.get_string(edit, std)
-                    self.draw_text()
                     changed = True
 
                     if c == ord('t'):
@@ -994,9 +1221,12 @@ class App(object):
                         entries[e_highlight].set_password(password)
                         changed = True
                     else:
-                        self.stdscr.addstr(3,0, 'Passwords didn\'t match. Press any key.')
-                        self.stdscr.getch()
-
+                        try:
+                            self.stdscr.addstr(3,0, 'Passwords didn\'t match. '
+                                                    'Press any key.')
+                        except error:
+                            pass
+                        self.any_key()
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                       e_offset)
@@ -1076,19 +1306,7 @@ class App(object):
                     self.show_entries(g_highlight, e_highlight, cur_root, 
                                       cur_win, e_offset)
             elif c == KEY_RESIZE:
-                self.ysize, self.xsize = self.stdscr.getmaxyx()
-                self.group_win.resize(self.ysize-1, int(self.xsize/3))
-                self.entry_win.resize(2*int((self.ysize-1)/3),
-                                      2*int(self.xsize/3)-2)
-                self.info_win.resize(int((self.ysize-1)/3)-1,
-                                     int(self.xsize/3)-2)
-                self.group_win.mvwin(1,0)
-                self.entry_win.mvwin(1, int(self.ysize/3)+2)
-                self.info_win.mvwin(2*int((self.ysize-1)/3)+1,
-                                    int(self.ysize/3)+2)
-                self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                  e_offset)
+                self.resize_all()
             elif c == NL:
                 if cur_root.children[g_highlight].children:
                     cur_root = cur_root.children[g_highlight]
@@ -1175,12 +1393,12 @@ class App(object):
                         
                     for i in range(num):
                         if e_highlight == i+offset:
-                            self.entry_win.addnstr(i, 0, entries[i+offset].title, ysize,
+                            self.entry_win.addnstr(i, 2, entries[i+offset].title, ysize,
                                                    color_pair(h_color))
                         else:
-                            self.entry_win.addnstr(i, 0, entries[i+offset].title, ysize,
+                            self.entry_win.addnstr(i, 2, entries[i+offset].title, ysize,
                                                    color_pair(n_color))
-                    self.entry_win.addnstr(ysize-2, 0, str(e_highlight+1)+' of '+str(len(entries)),
+                    self.entry_win.addnstr(ysize-2, 2, str(e_highlight+1)+' of '+str(len(entries)),
                                            ysize)
             except error:
                 pass
@@ -1190,25 +1408,25 @@ class App(object):
             try:
                 self.info_win.clear()
                 entry = entries[e_highlight]
-                self.info_win.addnstr(0,0, entry.title, ysize, A_BOLD)
-                self.info_win.addnstr(1,0, "Group: "+entry.group.title, ysize)
-                self.info_win.addnstr(2,0, "Username: "+entry.username, ysize)
-                self.info_win.addnstr(3,0, "URL: "+entry.url, ysize)
-                self.info_win.addnstr(4,0, "Creation: "+entry.creation.__str__()[:10],
+                self.info_win.addnstr(2,0, entry.title, ysize, A_BOLD)
+                self.info_win.addnstr(3,0, "Group: "+entry.group.title, ysize)
+                self.info_win.addnstr(4,0, "Username: "+entry.username, ysize)
+                self.info_win.addnstr(5,0, "URL: "+entry.url, ysize)
+                self.info_win.addnstr(6,0, "Creation: "+entry.creation.__str__()[:10],
                                       ysize)
-                self.info_win.addnstr(5,0, "Access: "+entry.last_access.__str__()[:10],
+                self.info_win.addnstr(7,0, "Access: "+entry.last_access.__str__()[:10],
                                       ysize)
-                self.info_win.addnstr(6,0, "Modification: "+entry.last_mod.__str__()[:10],
+                self.info_win.addnstr(8,0, "Modification: "+entry.last_mod.__str__()[:10],
                                       ysize)
                 if entry.expire.__str__()[:19] == '2999-12-28 23:59:59':
-                    self.info_win.addnstr(7,0, "Expiration: Never",
+                    self.info_win.addnstr(9,0, "Expiration: Never",
                                           ysize)
                 else:
-                    self.info_win.addnstr(7,0, "Expiration: "+entry.expire.__str__()[:10],
+                    self.info_win.addnstr(9,0, "Expiration: "+entry.expire.__str__()[:10],
                                           ysize)
                     if date.today() > entry.expire.date():
-                        self.info_win.addnstr(7,22, ' (expired)', ysize)
-                self.info_win.addnstr(8,0, "Comment: "+entry.comment, ysize)
+                        self.info_win.addnstr(9,22, ' (expired)', ysize)
+                self.info_win.addnstr(10,0, "Comment: "+entry.comment, ysize)
             except error:
                 pass
             finally:
