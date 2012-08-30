@@ -3,10 +3,13 @@ KeePassC v.1.0
 
 * License: GPL v3 or later
 * Author: Karsten-Kai König <kkoenig@posteo.de>
-* Stable download:
-* Website:
-* Bug tracker:
-* Git:
+* Stable download: http://download.savannah.gnu.org/releases/keepassc/
+* Website: http://www.nongnu.org/keepassc
+* Bug tracker: https://savannah.nongnu.org/bugs/?group=keepassc&func=additem
+* Git: 
+** Savannah: git://git.sv.gnu.org/keepassc.git
+** Gitorious: git://gitorious.org/keepassc/keepassc.git
+** Github: git://github.com/raymontag/keepassc.git
 
 Features:
 ---------
@@ -31,13 +34,13 @@ Dependencies:
 -------------
 
 * Python 3
-* kppy
-* xsel
+* kppy http://www.nongnu.org/kppy
+* xsel http://www.vergenet.net/~conrad/software/xsel/
 * A POSIX-compatible operating system
 
 Copyright (C) 2012 Karsten-Kai König <kkoenig@posteo.de>
 
-LeePassC is free software: you can redistribute it and/or modify it under the terms
+KeePassC is free software: you can redistribute it and/or modify it under the terms
 of the GNU General Public License as published by the Free Software Foundation,
 either version 3 of the License, or at your option) any later version.
 
