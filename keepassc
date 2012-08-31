@@ -21,7 +21,7 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 
 from curses import *
 from _curses import error
-from curses.ascii import NL
+from curses.ascii import NL, DEL
 from datetime import date
 from os import *
 from os.path import isdir, isfile
@@ -151,9 +151,9 @@ class App(object):
         offset = len(std)
         e = ''
         while e != NL:
-            if e == KEY_BACKSPACE and len(edit) != 0:
+            if e == KEY_BACKSPACE or e == DEL and len(edit) != 0:
                 edit = edit[:-1]
-            elif e == KEY_BACKSPACE:
+            elif e == KEY_BACKSPACE or e == DEL:
                 pass
             elif e == -1:
                 Popen(['xsel', '-pc'])
@@ -191,9 +191,9 @@ class App(object):
         e = ''
         while e != NL or (len(password) == 0 and needed is True):
             e = self.stdscr.getch()
-            if e == KEY_BACKSPACE and len(password) != 0:
+            if e == KEY_BACKSPACE or e == DEL and len(password) != 0:
                 password = password[:-1]
-            elif e == KEY_BACKSPACE:
+            elif e == KEY_BACKSPACE or e == DEL:
                 pass
             elif e == '':
                 pass
@@ -235,7 +235,7 @@ class App(object):
         while e != NL:
             if e == KEY_BACKSPACE and len(edit) != 0:
                 edit = edit[:-1]
-            elif e == KEY_BACKSPACE:
+            elif e == KEY_BACKSPACE or e == DEL:
                 pass
             elif e == -1:
                 Popen(['xsel', '-pc'])
@@ -269,9 +269,9 @@ class App(object):
         edit = ''
         e = KEY_BACKSPACE
         while e != NL:
-            if e == KEY_BACKSPACE and len(edit) != 0:
+            if e == KEY_BACKSPACE or e == DEL and len(edit) != 0:
                 edit = edit[:-1]
-            elif e == KEY_BACKSPACE:
+            elif e == KEY_BACKSPACE or e == DEL:
                 pass
             elif e == -1:
                 Popen(['xsel', '-pc'])
@@ -312,9 +312,9 @@ class App(object):
         edit = ''
         e = KEY_BACKSPACE
         while e != NL:
-            if e == KEY_BACKSPACE and len(edit) != 0:
+            if e == KEY_BACKSPACE  or e == DEL and len(edit) != 0:
                 edit = edit[:-1]
-            elif e == KEY_BACKSPACE:
+            elif e == KEY_BACKSPACE or e == DEL:
                 pass
             elif e == -1:
                 Popen(['xsel', '-pc'])
@@ -1340,7 +1340,7 @@ class App(object):
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                     self.show_entries(g_highlight, e_highlight, cur_root, 
                                       cur_win, e_offset)
-            elif c == KEY_BACKSPACE:
+            elif c == KEY_BACKSPACE or c == DEL:
                 if not cur_root is self.db._root_group:
                     cur_root = cur_root.parent
                     g_highlight = 0
