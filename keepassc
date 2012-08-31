@@ -1232,7 +1232,7 @@ class App(object):
             elif c == ord('p'):
                 if cur_root.children:
                     entries = cur_root.children[g_highlight].entries
-                    if entries:
+                    if not entries:
                         continue
                     password = self.get_password('Password: ')
                     confirm = self.get_password('Confirm: ')
