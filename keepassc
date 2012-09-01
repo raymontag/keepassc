@@ -378,7 +378,8 @@ class App(object):
         while True:
             self.draw_text((1,0, 'To open an existing database type \'o\','),
                            (2,0, 'to create a new one type \'n\'.'),
-                           (4,0, 'Type \'q\' to quit.'))
+                           (3,0, 'Type \'F1\' for help'),
+                           (5,0, 'Type \'q\' to quit.'))
             c = self.stdscr.getch()
 
             if c == ord('o'):
@@ -500,24 +501,24 @@ class App(object):
 
         while True:
             c = self.stdscr.getch()
-            if c == KEY_DOWN:
+            if c == KEY_DOWN or c == ord('j'):
                 if highlight >= len(dir_cont)-1:
                     continue
                 highlight += 1
                 self.show_dir(highlight, dir_cont)
-            elif c == KEY_UP:
+            elif c == KEY_UP or c == ord('k'):
                 if highlight <= 0:
                     continue
                 highlight -= 1
                 self.show_dir(highlight, dir_cont)
-            elif c == KEY_LEFT:
+            elif c == KEY_LEFT or c == ord('h'):
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last)-1]
                 if self.cur_dir == '': self.cur_dir = '/';
                 if kdb_file is not None:
                     self.cur_dir += '/'+kdb_file
                 return False
-            elif c == NL or c == KEY_RIGHT:
+            elif c == NL or c == KEY_RIGHT or c == ord('l'):
                 if dir_cont[highlight] == '..':
                     last = self.cur_dir.split('/')[-1]
                     self.cur_dir = self.cur_dir[:-len(last)-1]
@@ -544,7 +545,7 @@ class App(object):
                 Popen(['xsel', '-bc'])
             elif c == KEY_RESIZE:
                 self.resize_all()
-            elif c == ord('h') and mode_new is True:
+            elif c == KEY_F1 and mode_new is True:
                 nocbreak()
                 self.stdscr.keypad(0)
                 endwin()
@@ -592,7 +593,7 @@ class App(object):
                 self.stdscr.timeout(20000)
 
                 return False
-            elif c == ord('h'):
+            elif c == KEY_F1:
                 nocbreak()
                 self.stdscr.keypad(0)
                 endwin()
@@ -783,7 +784,7 @@ class App(object):
                 else:
                     c = KEY_LEFT
 
-            if c == ord('h'):
+            if c == KEY_F1:
                 nocbreak()
                 self.stdscr.keypad(0)
                 endwin()
@@ -807,7 +808,7 @@ class App(object):
                 print('\'C\' - edit comment')
                 print('\'E\' - edit expiration date')
                 print('\'L\' - lock db')
-                print('Navigate with arrow keys')
+                print('Navigate with arrow keys or h/j/k/l like in vim')
                 print('Type \'return\' to enter subgroups')
                 print('Type \'backspace\' to go back')
                 try:
@@ -1018,8 +1019,41 @@ class App(object):
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                   e_offset)
             elif c == ord('L'):
+                if changed is True:
+                    self.draw_text((1,0, 'File has changed. Save? [(y)/n]'))
+                    while True:
+                        e = self.stdscr.getch()
+                        if e == 4:
+                            Popen(['xsel', '-pc'])
+                            Popen(['xsel', '-bc'])
+                            if self.db is not None:
+                                self.db_close()
+                            self.close()
+                        elif e == -1:
+                            Popen(['xsel', '-pc'])
+                            Popen(['xsel', '-bc'])
+                        elif e == KEY_RESIZE:
+                            self.resize_all()
+                        elif e == ord('n'):
+                            break
+                        else:
+                            if self.db.filepath is None:
+                                filepath = self.get_filepath()
+                                if filepath is not False:
+                                    self.cur_dir = filepath
+                                    self.save(self.cur_dir)
+                                    changed = False
+                            else:
+                                self.save(False)
+                                changed = False
+                            break
                 Popen(['xsel', '-pc'])
                 Popen(['xsel', '-bc'])
+                if self.db.filepath is None:
+                    self.draw_text((1,0, 'Can only lock an existing db!'),
+                                   (4,0, 'Press any key.'))
+                    self.any_key()
+                    continue
                 self.db.lock()
                 while True:
                     password = self.get_password('Password: ')
@@ -1310,7 +1344,7 @@ class App(object):
                                       cur_win,
                                       e_offset)
             # Navigation
-            elif c == KEY_DOWN:
+            elif c == KEY_DOWN or c == ord('j'):
                 if cur_win == 0:
                     if g_highlight >= len(cur_root.children)-1:
                         continue
@@ -1335,7 +1369,7 @@ class App(object):
                     e_highlight += 1
                     self.show_entries(g_highlight, e_highlight, cur_root,
                                       cur_win, e_offset)
-            elif c == KEY_UP:
+            elif c == KEY_UP or c == ord('k'):
                 if cur_win == 0:
                     if g_highlight <= 0:
                         continue
@@ -1359,12 +1393,12 @@ class App(object):
                     e_highlight -= 1
                     self.show_entries(g_highlight, e_highlight, cur_root,
                                       cur_win,  e_offset)
-            elif c == KEY_LEFT:
+            elif c == KEY_LEFT or c == ord('h'):
                 cur_win = 0
                 self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                   e_offset)
-            elif c == KEY_RIGHT:
+            elif c == KEY_RIGHT or c == ord('l'):
                 if cur_root.children[g_highlight].entries:
                     cur_win = 1
                     self.show_groups(g_highlight, cur_root, cur_win, g_offset)
@@ -1518,7 +1552,7 @@ if __name__ == '__main__':
             print('Warning: This will annul a security concept of keepassc')
     elif len(argv) > 1:
         print('Usage: \'keepassc\'')
-        print('Type \'h\' while running the program to get help.')
+        print('Type \'F1\' while running the program to get help.')
     else:
         app = App()
         wrapper(app.main_loop())
