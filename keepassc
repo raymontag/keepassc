@@ -793,6 +793,8 @@ class App(object):
                 print('\'s\' - save db')
                 print('\'S\' - save db with alternative filepath')
                 print('\'c\' - copy password of current entry')
+                print('\'b\' - copy username of current entry')
+                print('\'o\' - open URL of entry in standard webbrowser')
                 print('\'P\' - edit db password')
                 print('\'g\' - create group')
                 print('\'G\' - create subgroup')
@@ -805,7 +807,6 @@ class App(object):
                 print('\'C\' - edit comment')
                 print('\'E\' - edit expiration date')
                 print('\'L\' - lock db')
-                print('\'o\' - open URL of entry in standard webbrowser')
                 print('Navigate with arrow keys')
                 print('Type \'return\' to enter subgroups')
                 print('Type \'backspace\' to go back')
@@ -922,12 +923,31 @@ class App(object):
                 self.db_close()
                 self.close()
             elif c == ord('c'):
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
-                p = (cur_root.children[g_highlight].entries[e_highlight]
-                     .password)
-                Popen(['xsel', '-pi'], stdin = PIPE).communicate(p.encode())
-                Popen(['xsel', '-bi'], stdin = PIPE).communicate(p.encode())
+                if cur_root.children[g_highlight].entries:
+                    entry = cur_root.children[g_highlight].entries[e_highlight]
+                    if entry.password is not None:
+                        Popen(['xsel', '-pc'])
+                        Popen(['xsel', '-bc'])
+                        p = (cur_root.children[g_highlight]
+                             .entries[e_highlight]
+                             .password)
+                        (Popen(['xsel', '-pi'], stdin = PIPE)
+                         .communicate(p.encode()))
+                        (Popen(['xsel', '-bi'], stdin = PIPE)
+                         .communicate(p.encode()))
+            elif c == ord('b'):
+                if cur_root.children[g_highlight].entries:
+                    entry = cur_root.children[g_highlight].entries[e_highlight]
+                    if entry.username is not None:
+                        Popen(['xsel', '-pc'])
+                        Popen(['xsel', '-bc'])
+                        p = (cur_root.children[g_highlight]
+                             .entries[e_highlight]
+                             .username)
+                        (Popen(['xsel', '-pi'], stdin = PIPE)
+                         .communicate(p.encode()))
+                        (Popen(['xsel', '-bi'], stdin = PIPE)
+                         .communicate(p.encode()))
             elif c == ord('o'):
                 if cur_root.children[g_highlight].entries:
                     entry = cur_root.children[g_highlight].entries[e_highlight]
