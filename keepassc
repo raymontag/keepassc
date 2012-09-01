@@ -19,6 +19,7 @@ You should have received a copy of the GNU General Public License along
 with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
+import webbrowser
 from curses import *
 from _curses import error
 from curses.ascii import NL, DEL
@@ -804,6 +805,7 @@ class App(object):
                 print('\'C\' - edit comment')
                 print('\'E\' - edit expiration date')
                 print('\'L\' - lock db')
+                print('\'o\' - open URL of entry in standard webbrowser')
                 print('Navigate with arrow keys')
                 print('Type \'return\' to enter subgroups')
                 print('Type \'backspace\' to go back')
@@ -926,6 +928,11 @@ class App(object):
                      .password)
                 Popen(['xsel', '-pi'], stdin = PIPE).communicate(p.encode())
                 Popen(['xsel', '-bi'], stdin = PIPE).communicate(p.encode())
+            elif c == ord('o'):
+                if cur_root.children[g_highlight].entries:
+                    entry = cur_root.children[g_highlight].entries[e_highlight]
+                    if entry.url != '':
+                        webbrowser.open(entry.url)
             elif c == -1:
                 Popen(['xsel', '-pc'])
                 Popen(['xsel', '-bc'])
