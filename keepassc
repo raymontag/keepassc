@@ -25,7 +25,7 @@ from _curses import error
 from curses.ascii import NL, DEL
 from datetime import date
 from os import *
-from os.path import isdir, isfile
+from os.path import isdir, isfile, expanduser
 from pwd import getpwuid
 from socket import gethostname
 from subprocess import Popen, PIPE
@@ -372,6 +372,32 @@ class App(object):
         d = int(edit)
         return y, mon, d
 
+    def ask_for_nav(self):
+        '''Ask for navigation.'''
+
+        self.draw_text((1,0, 'If you want to use the file browser, type \'1\''),
+                       (2,0, 'If you want to type a direct path, type \'2\''))
+        e = ''
+        while e != NL:
+            if e == -1:
+                Popen(['xsel', '-pc'])
+                Popen(['xsel', '-bc'])
+            elif e == 4:
+                Popen(['xsel', '-pc'])
+                Popen(['xsel', '-bc'])
+                if self.db is not None:
+                    self.db_close()
+                self.close()
+            elif e == '':
+                pass
+            elif e == KEY_RESIZE:
+                self.resize_all()
+            elif not 49 <= e <= 50:
+                pass
+            else:
+                return int(chr(e))
+            e = self.stdscr.getch()
+
     def main_loop(self, *kdb_file):
         '''The main loop. The program alway return to this method.'''
 
@@ -410,44 +436,131 @@ class App(object):
     def open_db(self):
         ''' This method opens a database.'''
 
-        hidden = True
-        while True:
-            filepath = self.browser(hidden = hidden)
-            
-            if filepath is False:
-                continue
-            elif filepath == ord('e'):
-                return False
-            elif filepath == ord('H'):
-                if hidden is True:
-                    hidden = False
+        nav = self.ask_for_nav()
+        if nav == 2:
+            while True:
+                filepath = self.get_direct_filepath()
+                if filepath[-4:] != '.kdb' or isdir(filepath):
+                    self.draw_text((1,0, 'Need path to a kdb-file!'),
+                                   (3,0, 'Press any key'))
+                    self.any_key()
+                    continue
                 else:
-                    hidden = True
-            else:
-                self.cur_dir = filepath
-                if self.open_file() is True:
-                    break
+                    self.cur_dir = filepath
+                    if self.open_file() is True:
+                        break
+        else:
+            hidden = True
+            while True:
+                filepath = self.browser(hidden = hidden)
+                
+                if filepath is False:
+                    continue
+                elif filepath == ord('e'):
+                    return False
+                elif filepath == ord('H'):
+                    if hidden is True:
+                        hidden = False
+                    else:
+                        hidden = True
+                else:
+                    self.cur_dir = filepath
+                    if self.open_file() is True:
+                        break
 
     def get_filepath(self):
         '''This method is used to get a filepath, e.g. for 'Save as' '''
 
-        hidden = True
-        while True:
-            filepath = self.browser(True, hidden)
-            if filepath is False:
-                continue
-            elif filepath == ord('e'):
-                return False
-            elif filepath == ord('H'):
-                if hidden is True:
-                    hidden = False
+        nav = self.ask_for_nav()
+        if nav == 2:
+            while True:
+                filepath = self.get_direct_filepath()
+                if filepath[:-4] != '.kdb' or isdir(filepath):
+                    self.draw_text((1,0, 'Need path to a kdb-file!'),
+                                   (3,0, 'Press any key'))
+                    self.any_key()
+                    continue
                 else:
-                    hidden = True
+                    return filepath
+        else:
+            hidden = True
+            while True:
+                filepath = self.browser(True, hidden)
+                if filepath is False:
+                    continue
+                elif filepath == ord('e'):
+                    return False
+                elif filepath == ord('H'):
+                    if hidden is True:
+                        hidden = False
+                    else:
+                        hidden = True
+                else:
+                    break
+            filename = self.get_string('', 'Filename: ')
+            filepath += '/'+filename+'.kdb'
+            return filepath
+
+    def get_direct_filepath(self):
+        '''Get a direct filepath.'''
+
+        e = ''
+        edit = ''
+        while e != NL:
+            if e == KEY_BACKSPACE or e == DEL and len(edit) != 0:
+                edit = edit[:-1]
+            elif e == KEY_BACKSPACE or e == DEL:
+                pass
+            elif e == -1:
+                Popen(['xsel', '-pc'])
+                Popen(['xsel', '-bc'])
+            elif e == 4:
+                Popen(['xsel', '-pc'])
+                Popen(['xsel', '-bc'])
+                if self.db is not None:
+                    self.db_close()
+                self.close()
+            elif e == '':
+                pass
+            elif e == KEY_RESIZE:
+                self.resize_all()
+            elif e == ord('~'):
+                edit += expanduser('~/')
+            elif e == ord('\t'):
+                last = edit.split('/')[-1]
+                cur_dir = edit[:-len(last)-1]
+                try:
+                    dir_cont = listdir(cur_dir)
+                except OSError:
+                    pass
+                else:
+                    index = 0
+                    while True:
+                        rem = []
+                        for i in dir_cont:
+                            if len(i) > index and len(last) > index:
+                                if i[index] == last[index]:
+                                    rem.append(i)
+                            else:
+                                rem = []
+                                break
+                        if len(rem) == 1:
+                            last = rem[0]
+                            break
+                        elif len(rem) == 0:
+                            break
+                        else:
+                            dir_cont = rem
+                            index += 1
+                    edit = cur_dir+'/'+last
+                    if isdir(edit):
+                        edit += '/'
             else:
-                break
-        filename = self.get_string('', 'Filename: ')
-        filepath += '/'+filename+'.kdb'
-        return filepath
+                edit += chr(e)
+
+            self.draw_text((1,0, 'Filepath: '), (1,10, edit))
+            e = self.stdscr.getch()
+        return edit
 
     def browser(self, mode_new = False, hidden = True):
         '''A simple file browser.
