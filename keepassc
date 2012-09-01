@@ -408,13 +408,19 @@ class App(object):
     def open_db(self):
         ''' This method opens a database.'''
 
+        hidden = True
         while True:
-            filepath = self.browser()
+            filepath = self.browser(hidden = hidden)
             
             if filepath is False:
                 continue
             elif filepath == ord('e'):
                 return False
+            elif filepath == ord('H'):
+                if hidden is True:
+                    hidden = False
+                else:
+                    hidden = True
             else:
                 self.cur_dir = filepath
                 if self.open_file() is True:
@@ -423,19 +429,25 @@ class App(object):
     def get_filepath(self):
         '''This method is used to get a filepath, e.g. for 'Save as' '''
 
+        hidden = True
         while True:
-            filepath = self.browser(True)
+            filepath = self.browser(True, hidden)
             if filepath is False:
                 continue
             elif filepath == ord('e'):
                 return False
+            elif filepath == ord('H'):
+                if hidden is True:
+                    hidden = False
+                else:
+                    hidden = True
             else:
                 break
         filename = self.get_string('', 'Filename: ')
         filepath += '/'+filename+'.kdb'
         return filepath
 
-    def browser(self, mode_new = False):
+    def browser(self, mode_new = False, hidden = True):
         '''A simple file browser.
 
         mode_new is needed to get a filepath to a new database file.
@@ -462,7 +474,7 @@ class App(object):
         rem = []
         for i in dir_cont:
             if ((not isdir(self.cur_dir+'/'+i) and not i[-4:] == '.kdb') or
-                i[0] == '.'):
+                (i[0] == '.' and hidden is True)):
                 rem.append(i)
         for i in rem:
             dir_cont.remove(i)
@@ -538,6 +550,7 @@ class App(object):
                 print('Navigate with arrow keys.')
                 print('\'o\' - choose directory')
                 print('\'e\' - abort')
+                print('\'H\' - show/hide hidden files')
                 try:
                     input('Press any key')
                 except EOFError:
@@ -585,6 +598,7 @@ class App(object):
                 print('Navigate with arrow keys.')
                 print('\'q\' - close program')
                 print('\'e\' - abort')
+                print('\'H\' - show/hide hidden files')
                 try:
                     input('Press any key')
                 except EOFError:
@@ -625,6 +639,8 @@ class App(object):
                 self.stdscr.timeout(20000)
 
                 return False
+            elif c == ord('H'):
+                return c
             elif c == 4:
                 if self.db is not None:
                     self.db_close()
