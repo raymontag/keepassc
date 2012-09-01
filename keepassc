@@ -25,6 +25,7 @@ from curses.ascii import NL, DEL
 from datetime import date
 from os import *
 from os.path import isdir, isfile
+from pwd import getpwuid
 from socket import gethostname
 from subprocess import Popen, PIPE
 from sys import exit, argv
@@ -80,7 +81,7 @@ class App(object):
         self.info_win.bkgd(1)
         self.stdscr.timeout(20000)
 
-        self.loginname = getlogin()
+        self.loginname = getpwuid(geteuid())[0]
         self.hostname = gethostname()
         self.cur_dir = getcwd()
         self.db = None
@@ -786,7 +787,7 @@ class App(object):
                 print('\'U\' - edit URL')
                 print('\'C\' - edit comment')
                 print('\'E\' - edit expiration date')
-                print('\'l\' - lock db')
+                print('\'L\' - lock db')
                 print('Navigate with arrow keys')
                 print('Type \'return\' to enter subgroups')
                 print('Type \'backspace\' to go back')
@@ -973,7 +974,7 @@ class App(object):
                 self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                   e_offset)
-            elif c == ord('l'):
+            elif c == ord('L'):
                 Popen(['xsel', '-pc'])
                 Popen(['xsel', '-bc'])
                 self.db.lock()
