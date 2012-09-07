@@ -22,7 +22,7 @@ from distutils.core import setup
 
 setup( 
      name = "keepassc", 
-     version = "1.0", 
+     version = "1.1", 
      author = "Karsten-Kai König", 
      author_email = "kkoenig@posteo.de",
      url = "",
