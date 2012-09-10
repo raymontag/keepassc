@@ -422,6 +422,8 @@ class App(object):
                 pass
             elif e == KEY_RESIZE:
                 self.resize_all()
+            elif e == ord('e'):
+                return e
             elif not ((lf is True and 49 <= e <= 51) or
                 (lf is False and 49 <= e <= 50)):
                 pass
@@ -455,7 +457,18 @@ class App(object):
                 self.cur_dir = self.cur_dir[:-len(last)-1]
             elif c == ord('n'):
                 self.db = KPDB(new = True)
+                while True:
+                    password = self.get_password('Password: ')
+                    confirm = self.get_password('Confirm: ')
+                    if password == confirm:
+                        self.db_masterkey = password
+                        break
+                    else:
+                        self.draw_text((1,0, 'Passwords didn\' match!'),
+                                       (3,0, 'Press any key'))
+                        self.any_key()
                 self.db.masterkey = self.get_password('Password: ')
+                self.last_file = ''
                 self.db_browser()
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last)-1]
@@ -490,6 +503,8 @@ class App(object):
         elif nav == 3:
             self.cur_dir = self.last_file
             if self.open_file() is not True:
+                return False
+        elif nav == ord('e'):
                 return False
         else:
             hidden = True
@@ -927,11 +942,12 @@ class App(object):
     def db_browser(self):
         '''The database browser.'''
 
-        if not isdir(expanduser('~/.config')):
-            mkdir(expanduser('~/.config'))
-        handler = open(expanduser('~/.config/keepassc'), 'w')
-        handler.write(self.cur_dir)
-        handler.close()
+        if self.cur_dir[-4:] == '.kdb':
+            if not isdir(expanduser('~/.config')):
+                mkdir(expanduser('~/.config'))
+            handler = open(expanduser('~/.config/keepassc'), 'w')
+            handler.write(self.cur_dir)
+            handler.close()
         
         changed = False
         cur_root = self.db._root_group
