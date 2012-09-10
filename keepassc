@@ -528,7 +528,7 @@ class App(object):
                 edit += expanduser('~/')
             elif e == ord('\t'):
                 last = edit.split('/')[-1]
-                cur_dir = edit[:-len(last)-1]
+                cur_dir = edit[:-len(last)]
                 try:
                     dir_cont = listdir(cur_dir)
                 except OSError:
@@ -552,7 +552,7 @@ class App(object):
                         else:
                             dir_cont = rem
                             index += 1
-                    edit = cur_dir+'/'+last
+                    edit = cur_dir+last
                     if isdir(edit):
                         edit += '/'
             else:
