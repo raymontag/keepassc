@@ -24,7 +24,7 @@ from curses import *
 from _curses import error
 from curses.ascii import NL, DEL
 from datetime import date
-from os import *
+from os import chdir, getcwd, geteuid, listdir
 from os.path import isdir, isfile, expanduser
 from pwd import getpwuid
 from socket import gethostname
@@ -105,7 +105,10 @@ class App(object):
         '''If any key is needed.'''
 
         while True:
-            e = self.stdscr.getch()
+            try:
+                e = self.stdscr.getch()
+            except KeyboardInterrupt:
+                e = 4
             if e == -1:
                 Popen(['xsel', '-pc'])
                 Popen(['xsel', '-bc'])
@@ -174,7 +177,10 @@ class App(object):
                 edit += chr(e)
 
             self.draw_text((1,0,std),(1,offset, edit))
-            e = self.stdscr.getch()
+            try:
+                e = self.stdscr.getch()
+            except KeyboardInterrupt:
+                e = 4
         return edit
 
     def get_password(self, std, needed = True):
@@ -192,7 +198,10 @@ class App(object):
         password = ''
         e = ''
         while e != NL or (len(password) == 0 and needed is True):
-            e = self.stdscr.getch()
+            try:
+                e = self.stdscr.getch()
+            except KeyboardInterrupt:
+                e = 4
             if e == KEY_BACKSPACE or e == DEL and len(password) != 0:
                 password = password[:-1]
             elif e == KEY_BACKSPACE or e == DEL:
@@ -265,7 +274,10 @@ class App(object):
                     pass
                 finally:
                     self.stdscr.refresh()
-            e = self.stdscr.getch()
+            try:
+                e = self.stdscr.getch()
+            except KeyboardInterrupt:
+                e = 4
         y = int(edit)
             
         edit = ''
@@ -302,7 +314,10 @@ class App(object):
                     pass
                 finally:
                     self.stdscr.refresh()
-            e = self.stdscr.getch()
+            try:
+                e = self.stdscr.getch()
+            except KeyboardInterrupt:
+                e = 4
 
             if e == NL and (int(edit) > 12 or int(edit) < 1):
                 self.draw_text((1,0, 'Month must be between 1 and 12. Press '
@@ -346,7 +361,10 @@ class App(object):
                     pass
                 finally:
                     self.stdscr.refresh()
-            e = self.stdscr.getch()
+            try:
+                e = self.stdscr.getch()
+            except KeyboardInterrupt:
+                e = 4
            
             if (e == NL and (mon == 1 or mon == 3 or 
                 mon == 5 or mon == 7 or mon == 8 or 
@@ -375,8 +393,20 @@ class App(object):
     def ask_for_nav(self):
         '''Ask for navigation.'''
 
-        self.draw_text((1,0, 'If you want to use the file browser, type \'1\''),
-                       (2,0, 'If you want to type a direct path, type \'2\''))
+        try:
+            handler = open(expanduser('~/.config/keepassc'), 'r')
+            self.last_file = handler.readline()
+            handler.close()
+        except:
+            self.draw_text((1,0, 'If you want to use the file browser, type \'1\''),
+                           (2,0, 'If you want to type a direct path, type \'2\''))
+            self.last_file = ''
+            lf = False
+        else:
+            self.draw_text((1,0, 'If you want to use the file browser, type \'1\''),
+                           (2,0, 'If you want to type a direct path, type \'2\''),
+                           (3,0, 'If you want to open '+self.last_file+', type \'3\''))
+            lf = True
         e = ''
         while e != NL:
             if e == -1:
@@ -392,11 +422,15 @@ class App(object):
                 pass
             elif e == KEY_RESIZE:
                 self.resize_all()
-            elif not 49 <= e <= 50:
+            elif not ((lf is True and 49 <= e <= 51) or
+                (lf is False and 49 <= e <= 50)):
                 pass
             else:
                 return int(chr(e))
-            e = self.stdscr.getch()
+            try:
+                e = self.stdscr.getch()
+            except KeyboardInterrupt:
+                e = 4
 
     def main_loop(self, *kdb_file):
         '''The main loop. The program alway return to this method.'''
@@ -404,9 +438,13 @@ class App(object):
         while True:
             self.draw_text((1,0, 'To open an existing database type \'o\','),
                            (2,0, 'to create a new one type \'n\'.'),
-                           (3,0, 'Type \'F1\' for help'),
+                           (3,0, 'Type \'F1\' for help inside the file '
+                                 'or database browser.'),
                            (5,0, 'Type \'q\' to quit.'))
-            c = self.stdscr.getch()
+            try:
+                c = self.stdscr.getch()
+            except KeyboardInterrupt:
+                c = 4
 
             if c == ord('o'):
                 ret = self.open_db()
@@ -444,16 +482,19 @@ class App(object):
                     self.draw_text((1,0, 'Need path to a kdb-file!'),
                                    (3,0, 'Press any key'))
                     self.any_key()
-                    continue
+                    return False
                 else:
                     self.cur_dir = filepath
                     if self.open_file() is True:
                         break
+        elif nav == 3:
+            self.cur_dir = self.last_file
+            if self.open_file() is not True:
+                return False
         else:
             hidden = True
             while True:
                 filepath = self.browser(hidden = hidden)
-                
                 if filepath is False:
                     continue
                 elif filepath == ord('e'):
@@ -505,7 +546,7 @@ class App(object):
         '''Get a direct filepath.'''
 
         e = ''
-        edit = ''
+        edit = self.last_file
         while e != NL:
             if e == KEY_BACKSPACE or e == DEL and len(edit) != 0:
                 edit = edit[:-1]
@@ -559,7 +600,10 @@ class App(object):
                 edit += chr(e)
 
             self.draw_text((1,0, 'Filepath: '), (1,10, edit))
-            e = self.stdscr.getch()
+            try:
+                e = self.stdscr.getch()
+            except KeyboardInterrupt:
+                e = 4
         return edit
 
     def browser(self, mode_new = False, hidden = True):
@@ -613,7 +657,10 @@ class App(object):
         self.show_dir(highlight, dir_cont)
 
         while True:
-            c = self.stdscr.getch()
+            try:
+                c = self.stdscr.getch()
+            except KeyboardInterrupt:
+                c = 4
             if c == KEY_DOWN or c == ord('j'):
                 if highlight >= len(dir_cont)-1:
                     continue
@@ -810,7 +857,10 @@ class App(object):
                                      ' Open file in read-only mode?'
                                      ' [(y)/n]'))
                 while True:
-                    e = self.stdscr.getch()
+                    try:
+                        e = self.stdscr.getch()
+                    except KeyboardInterrupt:
+                        e = 4
 
                     if e == ord('n'):
                         self.db = KPDB(self.cur_dir, password, False)
@@ -864,6 +914,7 @@ class App(object):
 
     def db_close(self):
         '''Close the database correctly.'''
+
         if self.db.filepath is not None:
             try:
                 self.db.close()
@@ -876,6 +927,12 @@ class App(object):
     def db_browser(self):
         '''The database browser.'''
 
+        if not isdir(expanduser('~/.config')):
+            mkdir(expanduser('~/.config'))
+        handler = open(expanduser('~/.config/keepassc'), 'w')
+        handler.write(self.cur_dir)
+        handler.close()
+        
         changed = False
         cur_root = self.db._root_group
         cur_win = 0
@@ -889,7 +946,10 @@ class App(object):
                           e_offset)
 
         while True:
-            c = self.stdscr.getch()
+            try:
+                c = self.stdscr.getch()
+            except KeyboardInterrupt:
+                c = 4
             
             if c == ord('\t'):
                 if cur_win == 0:
@@ -971,7 +1031,10 @@ class App(object):
                 if changed is True:
                     self.draw_text((1,0, 'File has changed. Save? [(y)/n]'))
                     while True:
-                        e = self.stdscr.getch()
+                        try:
+                            e = self.stdscr.getch()
+                        except KeyboardInterrupt:
+                            e = 4
                         if e == 4:
                             Popen(['xsel', '-pc'])
                             Popen(['xsel', '-bc'])
@@ -1011,7 +1074,10 @@ class App(object):
                 if changed is True:
                     self.draw_text((1,0, 'File has changed. Save? [(y)/n]'))
                     while True:
-                        e = self.stdscr.getch()
+                        try:
+                            e = self.stdscr.getch()
+                        except KeyboardInterrupt:
+                            e = 4
                         if e == 4:
                             Popen(['xsel', '-pc'])
                             Popen(['xsel', '-bc'])
@@ -1089,7 +1155,10 @@ class App(object):
                         self.draw_text((1,0, 
                                         'File exists. Overwrite? [y/(n)]'))
                         while True:
-                            c = self.stdscr.getch()
+                            try:
+                                c = self.stdscr.getch()
+                            except KeyboardInterrupt:
+                                c = 4
                             if c == ord('y'):
                                 if self.save(filepath) is not False:
                                     changed = False
@@ -1135,7 +1204,10 @@ class App(object):
                 if changed is True:
                     self.draw_text((1,0, 'File has changed. Save? [(y)/n]'))
                     while True:
-                        e = self.stdscr.getch()
+                        try:
+                            e = self.stdscr.getch()
+                        except KeyboardInterrupt:
+                            e = 4
                         if e == 4:
                             Popen(['xsel', '-pc'])
                             Popen(['xsel', '-bc'])
@@ -1258,7 +1330,10 @@ class App(object):
                     
                     self.draw_text((1,0, 'Set expiration date? [y/(n)]'))
                     while True:
-                        e = self.stdscr.getch()
+                        try:
+                            e = self.stdscr.getch()
+                        except KeyboardInterrupt:
+                            e = 4
 
                         if e == ord('y'):
                             y, mon, d = self.get_exp_date()
@@ -1300,7 +1375,10 @@ class App(object):
                     self.draw_text((1,0, 'Really delete group '+title+'? '
                                          '[y/(n)]'))
                     while True:
-                        e = self.stdscr.getch()
+                        try:
+                            e = self.stdscr.getch()
+                        except KeyboardInterrupt:
+                            e = 4
                         if e == ord('y'):
                             try:
                                 cur_root.children[g_highlight].remove_group()
@@ -1344,7 +1422,10 @@ class App(object):
                     self.draw_text((1,0, 
                                     'Really delete entry '+title+'? [y/(n)]'))
                     while True:
-                        e = self.stdscr.getch()
+                        try:
+                            e = self.stdscr.getch()
+                        except KeyboardInterrupt:
+                            e = 4
                         if e == ord('y'):
                             try:
                                 (cur_root.children[g_highlight]
@@ -1653,10 +1734,10 @@ class App(object):
         doupdate()
         
 if __name__ == '__main__':
-    if getuid() == 0 and len(argv) < 2:
+    if geteuid() == 0 and len(argv) < 2:
         print('If you really want to execute this program as root user type \'keepassc --asroot\'')
         print('Warning: This will annul a security concept of keepassc')
-    elif getuid() == 0 and len(argv) > 1:
+    elif geteuid() == 0 and len(argv) > 1:
         if argv[1] == '--asroot':
             app = App()
             app.main_loop()
