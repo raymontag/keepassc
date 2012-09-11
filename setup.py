@@ -29,6 +29,10 @@ setup(
      download_url = "",
      description = "A password manager that is fully compatible to KeePass v.1.x and KeePassX",
      scripts = ['keepassc'],
-     data_files = ['COPYING'],
+     classifiers = [
+        'Operating System :: POSIX',
+        'License :: OSI Approved :: GNU Lesser General Public License v3 or later (GPLv3+)',
+        'Development Status :: 5 - Production/Stable',
+        'Environment :: Console :: Curses'],
      license = "GPL v3 or later"
      )
