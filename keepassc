@@ -110,11 +110,11 @@ class App(object):
             except KeyboardInterrupt:
                 e = 4
             if e == -1:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
             elif e == 4:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 if self.db is not None:
                     self.db_close()
                 self.close()
@@ -161,11 +161,11 @@ class App(object):
             elif e == KEY_BACKSPACE or e == DEL:
                 pass
             elif e == -1:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
             elif e == 4:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 if self.db is not None:
                     self.db_close()
                 self.close()
@@ -209,11 +209,11 @@ class App(object):
             elif e == '':
                 pass
             elif e == -1:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
             elif e == 4:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 if self.db is not None:
                     self.db_close()
                 self.close()
@@ -249,11 +249,11 @@ class App(object):
             elif e == KEY_BACKSPACE or e == DEL:
                 pass
             elif e == -1:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
             elif e == 4:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 if self.db is not None:
                     self.db_close()
                 self.close()
@@ -288,11 +288,11 @@ class App(object):
             elif e == KEY_BACKSPACE or e == DEL:
                 pass
             elif e == -1:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
             elif e == 4:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 if self.db is not None:
                     self.db_close()
                 self.close()
@@ -334,11 +334,11 @@ class App(object):
             elif e == KEY_BACKSPACE or e == DEL:
                 pass
             elif e == -1:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
             elif e == 4:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 if self.db is not None:
                     self.db_close()
                 self.close()
@@ -410,11 +410,11 @@ class App(object):
         e = ''
         while e != NL:
             if e == -1:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
             elif e == 4:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 if self.db is not None:
                     self.db_close()
                 self.close()
@@ -473,13 +473,13 @@ class App(object):
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last)-1]
             elif c == -1:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
             elif c == KEY_RESIZE:
                 self.resize_all()
             elif c == ord('q') or c == 4:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 if self.db is not None:
                     self.db_close()
                 self.close()
@@ -568,11 +568,11 @@ class App(object):
             elif e == KEY_BACKSPACE or e == DEL:
                 pass
             elif e == -1:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
             elif e == 4:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 if self.db is not None:
                     self.db_close()
                 self.close()
@@ -716,8 +716,8 @@ class App(object):
                             self.cur_dir += '/'+kdb_file
                         return False
             elif c == -1:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
             elif c == KEY_RESIZE:
                 self.resize_all()
             elif c == KEY_F1 and mode_new is True:
@@ -881,11 +881,11 @@ class App(object):
                         self.db = KPDB(self.cur_dir, password, False)
                         break
                     elif e == -1:
-                        Popen(['xsel', '-pc'])
-                        Popen(['xsel', '-bc'])
+                        Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                        Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                     elif e == 4:
-                        Popen(['xsel', '-pc'])
-                        Popen(['xsel', '-bc'])
+                        Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                        Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                         if self.db is not None:
                             self.db_close()
                         self.close()
@@ -1052,14 +1052,14 @@ class App(object):
                         except KeyboardInterrupt:
                             e = 4
                         if e == 4:
-                            Popen(['xsel', '-pc'])
-                            Popen(['xsel', '-bc'])
+                            Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                            Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                             if self.db is not None:
                                 self.db_close()
                             self.close()
                         elif e == -1:
-                            Popen(['xsel', '-pc'])
-                            Popen(['xsel', '-bc'])
+                            Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                            Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                         elif e == KEY_RESIZE:
                             self.resize_all()
                         elif e == ord('n'):
@@ -1074,8 +1074,8 @@ class App(object):
                                 self.save(False)
                             break
                 self.db_close()
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 self.group_win.clear()
                 self.entry_win.clear()
                 self.info_win.clear()
@@ -1085,8 +1085,8 @@ class App(object):
                 doupdate()
                 break
             elif c == ord('q') or c == 4:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 if changed is True:
                     self.draw_text((1,0, 'File has changed. Save? [(y)/n]'))
                     while True:
@@ -1095,14 +1095,14 @@ class App(object):
                         except KeyboardInterrupt:
                             e = 4
                         if e == 4:
-                            Popen(['xsel', '-pc'])
-                            Popen(['xsel', '-bc'])
+                            Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                            Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                             if self.db is not None:
                                 self.db_close()
                             self.close()
                         elif e == -1:
-                            Popen(['xsel', '-pc'])
-                            Popen(['xsel', '-bc'])
+                            Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                            Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                         elif e == KEY_RESIZE:
                             self.resize_all()
                         elif e == ord('n'):
@@ -1122,36 +1122,36 @@ class App(object):
                 if cur_root.children[g_highlight].entries:
                     entry = cur_root.children[g_highlight].entries[e_highlight]
                     if entry.password is not None:
-                        Popen(['xsel', '-pc'])
-                        Popen(['xsel', '-bc'])
+                        Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                        Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                         p = (cur_root.children[g_highlight]
                              .entries[e_highlight]
                              .password)
-                        (Popen(['xsel', '-pi'], stdin = PIPE)
-                         .communicate(p.encode()))
-                        (Popen(['xsel', '-bi'], stdin = PIPE)
-                         .communicate(p.encode()))
+                        (Popen(['xsel', '-pi'], stdin = PIPE, stderr = PIPE,
+                         stdout = PIPE).communicate(p.encode()))
+                        (Popen(['xsel', '-bi'], stdin = PIPE, stderr = PIPE,
+                         stdout = PIPE).communicate(p.encode()))
             elif c == ord('b'):
                 if cur_root.children[g_highlight].entries:
                     entry = cur_root.children[g_highlight].entries[e_highlight]
                     if entry.username is not None:
-                        Popen(['xsel', '-pc'])
-                        Popen(['xsel', '-bc'])
+                        Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                        Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                         p = (cur_root.children[g_highlight]
                              .entries[e_highlight]
                              .username)
-                        (Popen(['xsel', '-pi'], stdin = PIPE)
-                         .communicate(p.encode()))
-                        (Popen(['xsel', '-bi'], stdin = PIPE)
-                         .communicate(p.encode()))
+                        (Popen(['xsel', '-pi'], stdin = PIPE, stderr = PIPE,
+                         stdout = PIPE).communicate(p.encode()))
+                        (Popen(['xsel', '-bi'], stdin = PIPE, stderr = PIPE,
+                         stdout = PIPE).communicate(p.encode()))
             elif c == ord('o'):
                 if cur_root.children[g_highlight].entries:
                     entry = cur_root.children[g_highlight].entries[e_highlight]
                     if entry.url != '':
                         webbrowser.open(entry.url)
             elif c == -1:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
             elif c == ord('s'):
                 if self.db.filepath is None:
                     filepath = self.get_filepath()
@@ -1180,14 +1180,14 @@ class App(object):
                                     changed = False
                                 break
                             elif c == 4:
-                                Popen(['xsel', '-pc'])
-                                Popen(['xsel', '-bc'])
+                                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                                 if self.db is not None:
                                     self.db_close()
                                 self.close()
                             elif c == -1:
-                                Popen(['xsel', '-pc'])
-                                Popen(['xsel', '-bc'])
+                                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                             elif c == KEY_RESIZE:
                                 self.resize_all()
                             else:
@@ -1200,8 +1200,8 @@ class App(object):
                                   e_offset)
                 changed = False
             elif c == ord('x'):
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
 
                 if self.db.filepath is None:
                     filepath = self.get_filepath()
@@ -1225,14 +1225,14 @@ class App(object):
                         except KeyboardInterrupt:
                             e = 4
                         if e == 4:
-                            Popen(['xsel', '-pc'])
-                            Popen(['xsel', '-bc'])
+                            Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                            Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                             if self.db is not None:
                                 self.db_close()
                             self.close()
                         elif e == -1:
-                            Popen(['xsel', '-pc'])
-                            Popen(['xsel', '-bc'])
+                            Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                            Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                         elif e == KEY_RESIZE:
                             self.resize_all()
                         elif e == ord('n'):
@@ -1248,8 +1248,8 @@ class App(object):
                                 self.save(False)
                                 changed = False
                             break
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 if self.db.filepath is None:
                     self.draw_text((1,0, 'Can only lock an existing db!'),
                                    (4,0, 'Press any key.'))
@@ -1355,14 +1355,14 @@ class App(object):
                             y, mon, d = self.get_exp_date()
                             break
                         elif e == 4:
-                            Popen(['xsel', '-pc'])
-                            Popen(['xsel', '-bc'])
+                            Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                            Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                             if self.db is not None:
                                 self.db_close()
                             self.close()
                         elif e == -1:
-                            Popen(['xsel', '-pc'])
-                            Popen(['xsel', '-bc'])
+                            Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                            Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                         elif e == KEY_RESIZE:
                             self.resize_all()
                         else:
@@ -1415,14 +1415,14 @@ class App(object):
                             finally:
                                 break
                         elif e == 4:
-                            Popen(['xsel', '-pc'])
-                            Popen(['xsel', '-bc'])
+                            Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                            Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                             if self.db is not None:
                                 self.db_close()
                             self.close()
                         elif e == -1:
-                            Popen(['xsel', '-pc'])
-                            Popen(['xsel', '-bc'])
+                            Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                            Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                         elif e == KEY_RESIZE:
                             self.resize_all()
                         else:
@@ -1461,14 +1461,14 @@ class App(object):
                             finally:
                                 break
                         elif e == 4:
-                            Popen(['xsel', '-pc'])
-                            Popen(['xsel', '-bc'])
+                            Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                            Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                             if self.db is not None:
                                 self.db_close()
                             self.close()
                         elif e == -1:
-                            Popen(['xsel', '-pc'])
-                            Popen(['xsel', '-bc'])
+                            Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                            Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                         elif e == KEY_RESIZE:
                             self.resize_all()
                         else:
