@@ -82,6 +82,14 @@ class App(object):
         self.info_win.bkgd(1)
         self.stdscr.timeout(20000)
 
+        try:
+            handler = open(expanduser('~/.config/keepassc'), 'r')
+            self.last_file = handler.readline()
+        except:
+            self.last_file = None
+        finally:
+            handler.close()
+
         self.loginname = getpwuid(geteuid())[0]
         self.hostname = gethostname()
         self.cur_dir = getcwd()
@@ -393,14 +401,9 @@ class App(object):
     def ask_for_nav(self):
         '''Ask for navigation.'''
 
-        try:
-            handler = open(expanduser('~/.config/keepassc'), 'r')
-            self.last_file = handler.readline()
-            handler.close()
-        except:
+        if self.last_file is None:
             self.draw_text((1,0, 'If you want to use the file browser, type \'1\''),
                            (2,0, 'If you want to type a direct path, type \'2\''))
-            self.last_file = ''
             lf = False
         else:
             self.draw_text((1,0, 'If you want to use the file browser, type \'1\''),
@@ -434,6 +437,38 @@ class App(object):
             except KeyboardInterrupt:
                 e = 4
 
+    def ask_for_auth(self):
+        '''Ask for authentication.'''
+
+        self.draw_text((1,0, 'If you want to use a password, type \'1\''),
+                       (2,0, 'If you want to use a keyfile, type \'2\''),
+                       (3,0, 'If you want to use both, type \'3\''))
+        e = ''
+        while e != NL:
+            if e == -1:
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
+            elif e == 4:
+                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
+                if self.db is not None:
+                    self.db_close()
+                self.close()
+            elif e == '':
+                pass
+            elif e == KEY_RESIZE:
+                self.resize_all()
+            elif e == ord('e'):
+                return e
+            elif not 49 <= e <= 51:
+                pass
+            else:
+                return int(chr(e))
+            try:
+                e = self.stdscr.getch()
+            except KeyboardInterrupt:
+                e = 4
+
     def main_loop(self, *kdb_file):
         '''The main loop. The program alway return to this method.'''
 
@@ -456,19 +491,30 @@ class App(object):
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last)-1]
             elif c == ord('n'):
+                auth = self.ask_for_auth()
                 self.db = KPDB(new = True)
-                while True:
-                    password = self.get_password('Password: ')
-                    confirm = self.get_password('Confirm: ')
-                    if password == confirm:
-                        self.db_masterkey = password
+                if auth == 1 or auth == 3:
+                    while True:
+                        password = self.get_password('Password: ')
+                        confirm = self.get_password('Confirm: ')
+                        if password == confirm:
+                            self.db.password = password
+                            break
+                        else:
+                            self.draw_text((1,0, 'Passwords didn\' match!'),
+                                           (3,0, 'Press any key'))
+                            self.any_key()
+                    if auth != 3: self.db.keyfile = None;
+                if auth == 2 or auth == 3:
+                    while True:
+                        self.db.keyfile = self.get_direct_filepath()
+                        if not isfile(self.db.keyfile):
+                            self.draw_text((1,0, 'That\' not a file!'),
+                                           (3,0, 'Press any key'))
+                            self.any_key()
+                            continue
                         break
-                    else:
-                        self.draw_text((1,0, 'Passwords didn\' match!'),
-                                       (3,0, 'Press any key'))
-                        self.any_key()
-                self.db.masterkey = self.get_password('Password: ')
-                self.last_file = ''
+                    if auth != 3: self.db.password = None;
                 self.db_browser()
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last)-1]
@@ -561,7 +607,10 @@ class App(object):
         '''Get a direct filepath.'''
 
         e = ''
-        edit = self.last_file
+        if self.last_file is not None:
+            edit = self.last_file
+        else:
+            edit = ''
         while e != NL:
             if e == KEY_BACKSPACE or e == DEL and len(edit) != 0:
                 edit = edit[:-1]
@@ -865,7 +914,20 @@ class App(object):
         self.stdscr.refresh()
 
     def open_file(self):
-        password = self.get_password('Password: ')
+        auth = self.ask_for_auth()
+        if auth == 1 or auth == 3:
+            password = self.get_password('Password: ')
+            if auth != 3: keyfile = None;
+        if auth == 2 or auth == 3:
+            while True:
+                keyfile = self.get_direct_filepath()
+                if not isfile(keyfile):
+                    self.draw_text((1,0, 'That\'s not a file'),
+                                   (3,0, 'Press any key.'))
+                    self.any_key()
+                    continue
+                break
+            if auth != 3: password = None
         try:
             if isfile(self.cur_dir+'.lock'):
                 self.draw_text((1,0, 'Database seems to be opened.'
@@ -878,7 +940,7 @@ class App(object):
                         e = 4
 
                     if e == ord('n'):
-                        self.db = KPDB(self.cur_dir, password, False)
+                        self.db = KPDB(self.cur_dir, password, keyfile, False)
                         break
                     elif e == -1:
                         Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
@@ -892,10 +954,10 @@ class App(object):
                     elif e == KEY_RESIZE:
                         self.resize_all()
                     else:
-                        self.db = KPDB(self.cur_dir, password, True)
+                        self.db = KPDB(self.cur_dir, password, keyfile, True)
                         break
             else:
-                self.db = KPDB(self.cur_dir, password, False)
+                self.db = KPDB(self.cur_dir, password, keyfile, False)
             return True
         except KPError as err:
             self.draw_text((1,0, err.__str__()),
@@ -1269,26 +1331,39 @@ class App(object):
                         self.any_key()
                     else:
                         cur_root = self.db._root_group
-                        self.show_groups(g_highlight, cur_root, cur_win, g_offset)
-                        self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
-                                          e_offset, hide)
+                        self.show_groups(g_highlight, cur_root, cur_win, 
+                                         g_offset)
+                        self.show_entries(g_highlight, e_highlight, cur_root, 
+                                          cur_win, e_offset, hide)
                         break
             # DB editing
             elif c == ord('P'):
-                password = self.get_password('New Password: ')
-                confirm = self.get_password('Confirm: ')
-                
-                if password == confirm:
-                    self.db.masterkey = password
-                    changed = True
-                else:
-                    try:
-                        self.stdscr.addstr(3,0, 'Passwords didn\'t match. '
-                                                'Press any key.')
-                    except:
-                        pass
-                    self.any_key()
-
+                auth = self.ask_for_auth()
+                if auth == 1 or auth == 3:
+                    password = self.get_password('New Password: ')
+                    confirm = self.get_password('Confirm: ')
+                    
+                    if password == confirm:
+                        self.db.password = password
+                        changed = True
+                    else:
+                        try:
+                            self.stdscr.addstr(3,0, 'Passwords didn\'t match. '
+                                                    'Press any key.')
+                        except:
+                            pass
+                        self.any_key()
+                    if auth != 3: self.db.keyfile = None;
+                if auth == 2 or auth == 3:
+                    while True:
+                        self.db.keyfile = self.get_direct_filepath()
+                        if not isfile(self.db.keyfile):
+                            self.draw_text((1,0,"That's not a file!"),
+                                           (3,0,'Press any key.'))
+                            self.any_key()
+                            continue
+                        break
+                    if auth != 3: self.db.password = None;
                 self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                   e_offset, hide)
