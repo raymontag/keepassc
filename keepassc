@@ -459,7 +459,7 @@ class App(object):
             elif e == KEY_RESIZE:
                 self.resize_all()
             elif e == ord('e'):
-                return e
+                return False
             elif not 49 <= e <= 51:
                 pass
             else:
@@ -491,6 +491,8 @@ class App(object):
                 self.cur_dir = self.cur_dir[:-len(last)-1]
             elif c == ord('n'):
                 auth = self.ask_for_auth()
+                if auth is False:
+                    continue
                 self.db = KPDB(new = True)
                 if auth == 2 or auth == 3:
                     while True:
@@ -501,7 +503,7 @@ class App(object):
                             self.any_key()
                             continue
                         break
-                    if ret = False: continue;
+                    if ret == False: continue;
                     self.db.keyfile = ret
                     if auth != 3: self.db.password = None;
                 if auth == 1 or auth == 3:
@@ -549,7 +551,7 @@ class App(object):
                         break
         elif nav == 3:
             self.cur_dir = self.last_file
-            if self.open_file() is not True:
+            if self.open_file() is False:
                 return False
         elif nav == ord('e'):
                 return False
@@ -568,7 +570,8 @@ class App(object):
         if nav == 2:
             while True:
                 filepath = self.get_direct_filepath()
-                if filepath[:-4] != '.kdb' or isdir(filepath):
+                if ((filepath[-4:] != '.kdb' or isdir(filepath)) and 
+                    keyfile is False):
                     self.draw_text((1,0, 'Need path to a kdb-file!'),
                                    (3,0, 'Press any key'))
                     self.any_key()
@@ -582,8 +585,9 @@ class App(object):
                 filepath = self.browser(True)
                 if filepath is False:
                     return False
-                filename = self.get_string('', 'Filename: ')
-                filepath += '/'+filename+'.kdb'
+                if filepath[-4:] != '.kdb':
+                    filename = self.get_string('', 'Filename: ')
+                    filepath += '/'+filename+'.kdb'
             return filepath
 
     def get_direct_filepath(self):
@@ -664,6 +668,7 @@ class App(object):
         if self.cur_dir[-4:] == '.kdb':
             kdb_file = self.cur_dir.split('/')[-1]
             self.cur_dir = self.cur_dir[:-len(kdb_file)-1]
+            kdb_file = self.cur_dir+'/'+kdb_file
 
         hidden = True
         highlight = 0
@@ -737,11 +742,14 @@ class App(object):
                     highlight = 0
                 else:
                     if mode_new is False:
-                        return self.cur_dir+'/'+dir_cont[highlight]
+                        ret = self.cur_dir+'/'+dir_cont[highlight]
+                        if kdb_file is not None:
+                            self.cur_dir = kdb_file
+                        return ret
                     else:
                         ret = self.cur_dir+'/'+dir_cont[highlight]
                         if kdb_file is not None:
-                            self.cur_dir += '/'+kdb_file
+                            self.cur_dir = kdb_file
                         return ret
             elif c == -1:
                 Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
@@ -858,7 +866,7 @@ class App(object):
             elif c == ord('o') and mode_new is True:
                 if kdb_file is not None:
                     ret = self.cur_dir
-                    self.cur_dir += '/'+kdb_file
+                    self.cur_dir = kdb_file
                     return ret
                 else:
                     return self.cur_dir
@@ -893,12 +901,14 @@ class App(object):
 
     def open_file(self):
         auth = self.ask_for_auth()
+        if auth is False:
+            return False
         if auth == 1 or auth == 3:
             password = self.get_password('Password: ')
             if auth != 3: keyfile = None;
         if auth == 2 or auth == 3:
             while True:
-                keyfile = self.get_direct_filepath()
+                keyfile = self.get_filepath(False, True)
                 if not isfile(keyfile):
                     self.draw_text((1,0, 'That\'s not a file'),
                                    (3,0, 'Press any key.'))
@@ -955,7 +965,8 @@ class App(object):
 
     def save(self, cur_dir):
         '''Save the database. cur_dir is the current directory.'''
-        
+        self.draw_text((1,0,'Do not interrupt or '
+                            'your file will break!'))
         try:
             if cur_dir is False:
                 self.db.save()
@@ -1299,10 +1310,24 @@ class App(object):
                     continue
                 self.db.lock()
                 while True:
-                    password = self.get_password('Password: ')
-
+                    auth = self.ask_for_auth()
+                    if auth is False:
+                        continue
+                    if auth == 1 or auth == 3:
+                        password = self.get_password('Password: ')
+                        if auth != 3: keyfile = None;
+                    if auth == 2 or auth == 3:
+                        while True:
+                            keyfile = self.get_direct_filepath()
+                            if not isfile(keyfile):
+                                self.draw_text((1,0, 'That\'s not a file'),
+                                               (3,0, 'Press any key.'))
+                                self.any_key()
+                                continue
+                            break
+                        if auth != 3: password = None
                     try:
-                        self.db.unlock(password)
+                        self.db.unlock(password, keyfile)
                     except KPError as err:
                         self.draw_text((1,0, err.__str__()),
                                        (4,0, 'Press any key.'))
@@ -1317,6 +1342,11 @@ class App(object):
             # DB editing
             elif c == ord('P'):
                 auth = self.ask_for_auth()
+                if auth is False:
+                    self.show_groups(g_highlight, cur_root, cur_win, g_offset)
+                    self.show_entries(g_highlight, e_highlight, cur_root, 
+                                      cur_win, e_offset, hide)
+                    continue
                 if auth == 2 or auth == 3:
                     while True:
                         ret = self.get_filepath(False, True)
