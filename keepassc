@@ -398,10 +398,10 @@ class App(object):
         d = int(edit)
         return y, mon, d
 
-    def ask_for_nav(self):
+    def ask_for_nav(self, ask_for_lf = True):
         '''Ask for navigation.'''
 
-        if self.last_file is None:
+        if self.last_file is None or ask_for_lf is False:
             self.draw_text((1,0, 'If you want to use the file browser, type \'1\''),
                            (2,0, 'If you want to type a direct path, type \'2\''))
             lf = False
@@ -484,8 +484,7 @@ class App(object):
                 c = 4
 
             if c == ord('o'):
-                ret = self.open_db()
-                if ret is False:
+                if self.open_db() is False:
                     continue
                 self.db_browser()
                 last = self.cur_dir.split('/')[-1]
@@ -493,6 +492,18 @@ class App(object):
             elif c == ord('n'):
                 auth = self.ask_for_auth()
                 self.db = KPDB(new = True)
+                if auth == 2 or auth == 3:
+                    while True:
+                        ret = self.get_filepath(False, True)
+                        if not isfile(self.db.keyfile):
+                            self.draw_text((1,0, 'That\' not a file!'),
+                                           (3,0, 'Press any key'))
+                            self.any_key()
+                            continue
+                        break
+                    if ret = False: continue;
+                    self.db.keyfile = ret
+                    if auth != 3: self.db.password = None;
                 if auth == 1 or auth == 3:
                     while True:
                         password = self.get_password('Password: ')
@@ -505,16 +516,6 @@ class App(object):
                                            (3,0, 'Press any key'))
                             self.any_key()
                     if auth != 3: self.db.keyfile = None;
-                if auth == 2 or auth == 3:
-                    while True:
-                        self.db.keyfile = self.get_direct_filepath()
-                        if not isfile(self.db.keyfile):
-                            self.draw_text((1,0, 'That\' not a file!'),
-                                           (3,0, 'Press any key'))
-                            self.any_key()
-                            continue
-                        break
-                    if auth != 3: self.db.password = None;
                 self.db_browser()
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last)-1]
@@ -553,27 +554,17 @@ class App(object):
         elif nav == ord('e'):
                 return False
         else:
-            hidden = True
-            while True:
-                filepath = self.browser(hidden = hidden)
-                if filepath is False:
-                    continue
-                elif filepath == ord('e'):
-                    return False
-                elif filepath == ord('H'):
-                    if hidden is True:
-                        hidden = False
-                    else:
-                        hidden = True
-                else:
-                    self.cur_dir = filepath
-                    if self.open_file() is True:
-                        break
+            filepath = self.browser()
+            if filepath is False:
+                return False
+            self.cur_dir = filepath
+            if self.open_file() is False:
+                return False
 
-    def get_filepath(self):
+    def get_filepath(self, ask_for_lf = True, keyfile = False):
         '''This method is used to get a filepath, e.g. for 'Save as' '''
 
-        nav = self.ask_for_nav()
+        nav = self.ask_for_nav(ask_for_lf)
         if nav == 2:
             while True:
                 filepath = self.get_direct_filepath()
@@ -585,22 +576,14 @@ class App(object):
                 else:
                     return filepath
         else:
-            hidden = True
-            while True:
-                filepath = self.browser(True, hidden)
+            if keyfile is True:
+                filepath = self.browser(False, keyfile)
+            else:
+                filepath = self.browser(True)
                 if filepath is False:
-                    continue
-                elif filepath == ord('e'):
                     return False
-                elif filepath == ord('H'):
-                    if hidden is True:
-                        hidden = False
-                    else:
-                        hidden = True
-                else:
-                    break
-            filename = self.get_string('', 'Filename: ')
-            filepath += '/'+filename+'.kdb'
+                filename = self.get_string('', 'Filename: ')
+                filepath += '/'+filename+'.kdb'
             return filepath
 
     def get_direct_filepath(self):
@@ -670,7 +653,7 @@ class App(object):
                 e = 4
         return edit
 
-    def browser(self, mode_new = False, hidden = True):
+    def browser(self, mode_new = False, keyfile = False):
         '''A simple file browser.
 
         mode_new is needed to get a filepath to a new database file.
@@ -682,45 +665,46 @@ class App(object):
             kdb_file = self.cur_dir.split('/')[-1]
             self.cur_dir = self.cur_dir[:-len(kdb_file)-1]
 
-        self.draw_text()
-        try:
-            dir_cont = listdir(self.cur_dir)
-        except OSError:
-            self.draw_text((1,0, 'Was not able to read directory'),
-                           (2,0, 'Press any key.'))
-            self.any_key()
-            last = self.cur_dir.split('/')[-1]
-            self.cur_dir = self.cur_dir[:-len(last)-1]
-            if self.cur_dir == '': self.cur_dir = '/';
-            return False
-            
-        rem = []
-        for i in dir_cont:
-            if ((not isdir(self.cur_dir+'/'+i) and not i[-4:] == '.kdb') or
-                (i[0] == '.' and hidden is True)):
-                rem.append(i)
-        for i in rem:
-            dir_cont.remove(i)
-        
-        dirs = []
-        files = []
-        for i in dir_cont:
-            if isdir(self.cur_dir+'/'+i):
-                dirs.append(i)
-            else:
-                files.append(i)
-        dirs.sort()
-        files.sort()
-
-        dir_cont = []
-        dir_cont.extend(dirs)
-        dir_cont.extend(files)
-        if not self.cur_dir == '/': dir_cont.insert(0, '..');
-
+        hidden = True
         highlight = 0
-        self.show_dir(highlight, dir_cont)
-
         while True:
+            self.draw_text()
+            try:
+                dir_cont = listdir(self.cur_dir)
+            except OSError:
+                self.draw_text((1,0, 'Was not able to read directory'),
+                               (2,0, 'Press any key.'))
+                self.any_key()
+                last = self.cur_dir.split('/')[-1]
+                self.cur_dir = self.cur_dir[:-len(last)-1]
+                if self.cur_dir == '': self.cur_dir = '/';
+                return False
+                
+            rem = []
+            for i in dir_cont:
+                if ((not isdir(self.cur_dir+'/'+i) and not i[-4:] == '.kdb'
+                     and keyfile is False) or 
+                    (i[0] == '.' and hidden is True)):
+                    rem.append(i)
+            for i in rem:
+                dir_cont.remove(i)
+            
+            dirs = []
+            files = []
+            for i in dir_cont:
+                if isdir(self.cur_dir+'/'+i):
+                    dirs.append(i)
+                else:
+                    files.append(i)
+            dirs.sort()
+            files.sort()
+
+            dir_cont = []
+            dir_cont.extend(dirs)
+            dir_cont.extend(files)
+            if not self.cur_dir == '/': dir_cont.insert(0, '..');
+
+            self.show_dir(highlight, dir_cont)
             try:
                 c = self.stdscr.getch()
             except KeyboardInterrupt:
@@ -739,31 +723,26 @@ class App(object):
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last)-1]
                 if self.cur_dir == '': self.cur_dir = '/';
-                if kdb_file is not None:
-                    self.cur_dir += '/'+kdb_file
-                return False
+                highlight = 0
             elif c == NL or c == KEY_RIGHT or c == ord('l'):
                 if dir_cont[highlight] == '..':
                     last = self.cur_dir.split('/')[-1]
                     self.cur_dir = self.cur_dir[:-len(last)-1]
                     if self.cur_dir == '': self.cur_dir = '/';
-                    if kdb_file is not None:
-                        self.cur_dir += '/'+kdb_file
-                    return False
+                    highlight = 0
                 elif isdir(self.cur_dir+'/'+dir_cont[highlight]):
                     self.cur_dir = self.cur_dir+'/'+dir_cont[highlight]
                     if self.cur_dir[:2] == '//':
                         self.cur_dir = self.cur_dir[1:]
-                    if kdb_file is not None:
-                        self.cur_dir += '/'+kdb_file
-                    return False
+                    highlight = 0
                 else:
                     if mode_new is False:
                         return self.cur_dir+'/'+dir_cont[highlight]
                     else:
+                        ret = self.cur_dir+'/'+dir_cont[highlight]
                         if kdb_file is not None:
                             self.cur_dir += '/'+kdb_file
-                        return False
+                        return ret
             elif c == -1:
                 Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
                 Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
@@ -815,8 +794,6 @@ class App(object):
                 self.entry_win.bkgd(1)
                 self.info_win.bkgd(1)
                 self.stdscr.timeout(20000)
-
-                return False
             elif c == KEY_F1:
                 nocbreak()
                 self.stdscr.keypad(0)
@@ -863,10 +840,11 @@ class App(object):
                 self.entry_win.bkgd(1)
                 self.info_win.bkgd(1)
                 self.stdscr.timeout(20000)
-
-                return False
             elif c == ord('H'):
-                return c
+                if hidden == True:
+                    hidden = False
+                else:
+                    hidden = True
             elif c == 4:
                 if self.db is not None:
                     self.db_close()
@@ -876,7 +854,7 @@ class App(object):
                     self.db_close()
                 self.close()
             elif c == ord('e'):
-                return c
+                return False
             elif c == ord('o') and mode_new is True:
                 if kdb_file is not None:
                     ret = self.cur_dir
@@ -1227,7 +1205,7 @@ class App(object):
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                   e_offset, hide)
             elif c == ord('S'):
-                filepath = self.get_filepath()
+                filepath = self.get_filepath(False)
                 if filepath is not False:
                     if self.db.filepath is None:
                         self.cur_dir = filepath
@@ -1339,6 +1317,19 @@ class App(object):
             # DB editing
             elif c == ord('P'):
                 auth = self.ask_for_auth()
+                if auth == 2 or auth == 3:
+                    while True:
+                        ret = self.get_filepath(False, True)
+                        if not isfile(ret):
+                            self.draw_text((1,0,"That's not a file!"),
+                                           (3,0,'Press any key.'))
+                            self.any_key()
+                            continue
+                        break
+                    if ret is False: continue;
+                    self.db.keyfile = ret
+                    changed = True
+                    if auth != 3: self.db.password = None;
                 if auth == 1 or auth == 3:
                     password = self.get_password('New Password: ')
                     confirm = self.get_password('Confirm: ')
@@ -1354,16 +1345,6 @@ class App(object):
                             pass
                         self.any_key()
                     if auth != 3: self.db.keyfile = None;
-                if auth == 2 or auth == 3:
-                    while True:
-                        self.db.keyfile = self.get_direct_filepath()
-                        if not isfile(self.db.keyfile):
-                            self.draw_text((1,0,"That's not a file!"),
-                                           (3,0,'Press any key.'))
-                            self.any_key()
-                            continue
-                        break
-                    if auth != 3: self.db.password = None;
                 self.show_groups(g_highlight, cur_root, cur_win, g_offset)
                 self.show_entries(g_highlight, e_highlight, cur_root, cur_win,
                                   e_offset, hide)
