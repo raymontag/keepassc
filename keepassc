@@ -602,6 +602,9 @@ class App(object):
         '''Get a direct filepath.'''
 
         e = ''
+        show = 0
+        rem = []
+        cur_dir = ''
         if self.last_file is not None:
             edit = self.last_file
         else:
@@ -609,6 +612,9 @@ class App(object):
         while e != NL:
             if e == KEY_BACKSPACE or e == DEL and len(edit) != 0:
                 edit = edit[:-1]
+                show = 0
+                rem = []
+                cur_dir = ''
             elif e == KEY_BACKSPACE or e == DEL:
                 pass
             elif e == -1:
@@ -626,36 +632,36 @@ class App(object):
                 self.resize_all()
             elif e == ord('~'):
                 edit += expanduser('~/')
+                show = 0
+                rem = []
+                cur_dir = ''
             elif e == ord('\t'):
-                last = edit.split('/')[-1]
-                cur_dir = edit[:-len(last)]
+                if cur_dir == '':
+                    last = edit.split('/')[-1]
+                    cur_dir = edit[:-len(last)]
                 try:
                     dir_cont = listdir(cur_dir)
                 except OSError:
                     pass
                 else:
-                    index = 0
-                    while True:
-                        rem = []
+                    if len(rem) == 0:
                         for i in dir_cont:
-                            if len(i) > index and len(last) > index:
-                                if i[index] == last[index]:
-                                    rem.append(i)
-                            else:
-                                rem = []
-                                break
-                        if len(rem) == 1:
-                            last = rem[0]
-                            break
-                        elif len(rem) == 0:
-                            break
-                        else:
-                            dir_cont = rem
-                            index += 1
-                    edit = cur_dir+last
+                            if i[:len(last)] == last:
+                                rem.append(i)
+                    if len(rem) > 0:
+                        edit = cur_dir+rem[show]
+                    else:
+                        edit = cur_dir+last
+                    if show+1 >= len(rem):
+                        show = 0
+                    else:
+                        show += 1
                     if isdir(edit):
                         edit += '/'
             else:
+                show = 0
+                rem = []
+                cur_dir = ''
                 edit += chr(e)
 
             self.draw_text((1,0, 'Filepath: '), (1,10, edit))
