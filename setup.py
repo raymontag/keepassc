@@ -22,11 +22,11 @@ from distutils.core import setup
 
 setup( 
      name = "keepassc", 
-     version = "1.2", 
+     version = "1.3", 
      author = "Karsten-Kai König", 
      author_email = "kkoenig@posteo.de",
-     url = "",
-     download_url = "",
+     url = "www.nongnu.org/keepassc",
+     download_url = "http://download-mirror.savannah.gnu.org/releases/keepassc/",
      description = "A password manager that is fully compatible to KeePass v.1.x and KeePassX",
      scripts = ['keepassc'],
      classifiers = [
