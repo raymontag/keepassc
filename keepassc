@@ -1056,7 +1056,7 @@ class App(object):
                 print('\'S\' - save db with alternative filepath')
                 print('\'c\' - copy password of current entry')
                 print('\'b\' - copy username of current entry')
-                print('\'h\' - show password of current entry')
+                print('\'H\' - show password of current entry')
                 print('\'o\' - open URL of entry in standard webbrowser')
                 print('\'P\' - edit db password')
                 print('\'g\' - create group')
