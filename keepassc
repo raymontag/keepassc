@@ -1775,7 +1775,6 @@ class App(object):
                                    color_pair(n_color))
             if root.children:
                 groups = root.children
-                groups = sorted(groups, key=lambda group: group.title.lower()) 
                 if len(groups) <= ysize-3:
                     num = len(groups)
                 else:
@@ -1810,7 +1809,6 @@ class App(object):
             self.entry_win.clear()
             if root.children:
                 entries = root.children[g_highlight].entries
-                entries = sorted(entries, key=lambda entry: entry.title.lower())
                 if entries:
                     if cur_win == 1:
                         h_color = 5
