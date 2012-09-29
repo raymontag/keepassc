@@ -1,0 +1,29 @@
+.TH KeePassC v.1.3
+.SH NAME
+KeePassC \- KeePassC is a curses-based password manager compatible to KeePass v.1.x and KeePassX
+.SH SYNOPSIS
+keepassc [--asroot] [filepath to .kdb-file]
+.SH DESCRIPTION
+KeePassC is a password manager fully compatible to KeePass v.1.x and KeePassX. That is, your password database is fully encrypted with AES.
+.PP
+KeePassC is written in Python 3 and comes with a curses-interface. It is completely controlled with the keyboard.
+.PP
+Actually KeePassC provides everything to read and edit the password databases but it lacks a password generator which will follow in a later release.
+.SH OPTIONS
+.TP
+\ --asroot
+Using the program as root user, what is not recommend because it makes core dumps easy.
+.PP
+It's possible to parse a filepath to a .kdb-file to open it directly.
+.SH USAGE
+For a short introduction have a look at http://www.nongnu.org/keepassc/docu.html.
+.PP
+You can get help at any time by pressing F1 in the file or database browser.
+.SH AUTHOR
+Karsten-Kai König <kkoenig@posteo.de>
+.SH LICENSE
+ KeePassC is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or at your option) any later version.
+.PP
+KeePassC is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+.PP
+You should have received a copy of the GNU General Public License along with KeePassC. If not, see <http://www.gnu.org/licenses/ >. 
