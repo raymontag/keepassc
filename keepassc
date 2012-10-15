@@ -1076,6 +1076,7 @@ class App(object):
                 print('\'U\' - edit URL')
                 print('\'C\' - edit comment')
                 print('\'E\' - edit expiration date')
+                print('\'f\' - find entry by title')
                 print('\'L\' - lock db')
                 print('Navigate with arrow keys or h/j/k/l like in vim')
                 print('Type \'return\' to enter subgroups')
@@ -1498,6 +1499,10 @@ class App(object):
                         self.draw_text((1,0, err.__str__()),
                                        (4,0, 'Press any key.'))
                         self.any_key()
+                    groups = sorted(cur_root.children,
+                                    key = lambda group: group.title.lower())
+                    entries = sorted(groups[g_highlight].entries,
+                                     key = lambda entry: entry.title.lower())
                     self.show_groups(g_highlight, groups, cur_win, g_offset)
                     self.show_entries(e_highlight, entries, 
                                       cur_win, e_offset, hide)
@@ -1543,6 +1548,10 @@ class App(object):
                             self.resize_all()
                         else:
                             break
+                    groups = sorted(cur_root.children,
+                                    key = lambda group: group.title.lower())
+                    entries = sorted(groups[g_highlight].entries,
+                                     key = lambda entry: entry.title.lower())
                     self.show_groups(g_highlight, groups, cur_win, g_offset)
                     self.show_entries(e_highlight, entries, 
                                       cur_win, e_offset, hide)
@@ -1584,10 +1593,42 @@ class App(object):
                             self.resize_all()
                         else:
                             break
+                    if groups[g_highlight].entries:
+                        entries = sorted(groups[g_highlight].entries,
+                                         key = lambda entry: entry.title.lower())
                     self.show_groups(g_highlight, groups, cur_win, g_offset)
                     self.show_entries(e_highlight, entries, 
                                       cur_win, e_offset, hide)
-            # Edit attributes
+            elif c == ord('f'):
+                if self.db._entries:
+                    title = self.get_string('', 'Title: ')
+                    for i in self.db.groups:
+                        if i.id_ == 0:
+                            i.parent.children.remove(i)
+                            self.db.groups.remove(i)
+                            break
+                    self.db.create_group('Results')
+                    self.db.groups[-1].id_ = 0
+                    for i in self.db._entries:
+                        if title.lower() in i.title.lower():
+                            self.db.groups[-1].entries.append(i)
+                            cur_win = 1
+                    cur_root = self.db._root_group
+                    groups = sorted(cur_root.children,
+                                    key = lambda group: group.title.lower())
+                    for i in groups:
+                        if i.id_ == 0:
+                            groups.remove(i)
+                            groups.append(i)
+                    g_highlight = len(groups)-1
+                    if groups[-1].entries:
+                        entries = sorted(groups[-1].entries,
+                                         key = lambda entry: entry.title.lower())
+                    e_highlight = 0
+                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_entries(e_highlight, entries,
+                                      cur_win, e_offset, hide)
+                
             elif (c == ord('t') or c == ord('u') or c == ord('U') or 
                   c == ord('C')):
                 if groups:
@@ -1673,6 +1714,7 @@ class App(object):
                         not g_offset >= len(groups)-ysize+4):
                         g_offset += 1
                     g_highlight += 1
+                    e_offset = 0
                     e_highlight = 0
                     entries = sorted(groups[g_highlight].entries,
                                      key = lambda entry: entry.title.lower())
@@ -1698,6 +1740,7 @@ class App(object):
                         not g_offset <= 0):
                         g_offset -= 1
                     g_highlight -= 1
+                    e_offset = 0
                     e_highlight = 0
                     entries = sorted(groups[g_highlight].entries,
                                      key = lambda entry: entry.title.lower())
@@ -1752,6 +1795,10 @@ class App(object):
                     cur_root = cur_root.parent
                     groups = sorted(cur_root.children,
                                     key = lambda group: group.title.lower())
+                    for i in groups:
+                        if i.id_ == 0:
+                            groups.remove(i)
+                            groups.append(i)
                     if groups[g_highlight].entries:
                         entries = sorted(groups[g_highlight].entries,
                                          key = lambda entry: entry.title.lower())
