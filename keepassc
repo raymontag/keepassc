@@ -135,7 +135,7 @@ class App(object):
             else:
                 break
 
-    def draw_text(self, *misc):
+    def draw_text(self, changed, *misc):
         '''This method is a wrapper to display some text on stdscr.
 
         misc is a list that should consist of 3-tuples which holds
@@ -143,12 +143,16 @@ class App(object):
         (1st element: y-coordinate, 2nd: x-coordinate, 3rd: text)
         '''
 
+        if changed is True:
+            cur_dir = self.cur_dir+'*'
+        else:
+            cur_dir = self.cur_dir
         try:
             self.stdscr.clear()
             self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
                                color_pair(2))
             self.stdscr.addstr(0, len(self.loginname+'@'+self.hostname+':'),
-                               self.cur_dir)
+                               cur_dir)
             for i,j,k in misc:
                 self.stdscr.addstr(i,j, k)
         except:
@@ -188,7 +192,7 @@ class App(object):
             else:
                 edit += chr(e)
 
-            self.draw_text((1,0,std),(1,offset, edit))
+            self.draw_text(False, (1,0,std),(1,offset, edit))
             try:
                 e = self.stdscr.getch()
             except KeyboardInterrupt:
@@ -205,7 +209,7 @@ class App(object):
 
         '''
 
-        self.draw_text((1,0, std))
+        self.draw_text(False, (1,0, std))
 
         password = ''
         e = ''
@@ -273,7 +277,8 @@ class App(object):
                 self.resize_all()
             elif len(edit) < 4 and e >= 48 and e <= 57:
                 edit += chr(e)
-            self.draw_text((1,0, 'Special date 2999-12-28 means that the '
+            self.draw_text(False,
+                           (1,0, 'Special date 2999-12-28 means that the '
                                  'expires never.'),
                            (3,0, 'Year: '),
                            (3,6, edit))
@@ -312,7 +317,8 @@ class App(object):
                 self.resize_all()
             elif len(edit) < 2 and e >= 48 and e <= 57:
                 edit += chr(e)
-            self.draw_text((1,0, 'Special date 2999-12-28 means that the '
+            self.draw_text(False,
+                           (1,0, 'Special date 2999-12-28 means that the '
                                  'expires never.'),
                            (3,0, 'Year: '+str(y)),
                            (4,0, 'Month: '),
@@ -332,7 +338,8 @@ class App(object):
                 e = 4
 
             if e == NL and (int(edit) > 12 or int(edit) < 1):
-                self.draw_text((1,0, 'Month must be between 1 and 12. Press '
+                self.draw_text(False,
+                               (1,0, 'Month must be between 1 and 12. Press '
                                      'any key.'))
                 self.any_key()
                 e = ''
@@ -358,7 +365,8 @@ class App(object):
                 self.resize_all()
             elif len(edit) < 2 and e >= 48 and e <= 57:
                 edit += chr(e)
-            self.draw_text((1,0, 'Special date 2999-12-28 means that the '
+            self.draw_text(False,
+                           (1,0, 'Special date 2999-12-28 means that the '
                                  'expires never.'),
                            (3,0, 'Year: '+str(y)),
                            (4,0, 'Month: '+str(mon)),
@@ -382,20 +390,23 @@ class App(object):
                 mon == 5 or mon == 7 or mon == 8 or 
                 mon == 10 or mon == 12) and
                 (int(edit) > 31 or int(edit) < 0)):
-                self.draw_text((1,0, 'Day must be between 1 and 31. Press '
+                self.draw_text(False,
+                               (1,0, 'Day must be between 1 and 31. Press '
                                      'any key.'))
                 self.any_key()
                 e = ''
             elif (e == NL and mon == 2 and
                   (int(edit) > 28 or int(edit) < 0)):
-                self.draw_text((1,0, 'Day must be between 1 and 28. Press '
+                self.draw_text(False,
+                               (1,0, 'Day must be between 1 and 28. Press '
                                      'any key.'))
                 self.any_key()
                 e = ''
             elif (e == NL and (mon == 4 or mon == 6 or 
                   mon == 9 or mon == 11) and 
                   (int(edit) > 30 or int(edit) < 0)):
-                self.draw_text((1,0, 'Day must be between 1 and 30. Press '
+                self.draw_text(False,
+                               (1,0, 'Day must be between 1 and 30. Press '
                                      'any key.'))
                 self.any_key()
                 e = ''
@@ -406,11 +417,13 @@ class App(object):
         '''Ask for navigation.'''
 
         if self.last_file is None or ask_for_lf is False:
-            self.draw_text((1,0, 'If you want to use the file browser, type \'1\''),
+            self.draw_text(False,
+                           (1,0, 'If you want to use the file browser, type \'1\''),
                            (2,0, 'If you want to type a direct path, type \'2\''))
             lf = False
         else:
-            self.draw_text((1,0, 'If you want to use the file browser, type \'1\''),
+            self.draw_text(False,
+                           (1,0, 'If you want to use the file browser, type \'1\''),
                            (2,0, 'If you want to type a direct path, type \'2\''),
                            (3,0, 'If you want to open '+self.last_file+', type \'3\''))
             lf = True
@@ -444,7 +457,8 @@ class App(object):
     def ask_for_auth(self):
         '''Ask for authentication.'''
 
-        self.draw_text((1,0, 'If you want to use a password, type \'1\''),
+        self.draw_text(False,
+                       (1,0, 'If you want to use a password, type \'1\''),
                        (2,0, 'If you want to use a keyfile, type \'2\''),
                        (3,0, 'If you want to use both, type \'3\''))
         e = ''
@@ -483,7 +497,8 @@ class App(object):
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last)-1]
         while True:
-            self.draw_text((1,0, 'To open an existing database type \'o\','),
+            self.draw_text(False,
+                           (1,0, 'To open an existing database type \'o\','),
                            (2,0, 'to create a new one type \'n\'.'),
                            (3,0, 'Type \'F1\' for help inside the file '
                                  'or database browser.'),
@@ -508,7 +523,8 @@ class App(object):
                     while True:
                         ret = self.get_filepath(False, True)
                         if not isfile(self.db.keyfile):
-                            self.draw_text((1,0, 'That\' not a file!'),
+                            self.draw_text(False,
+                                           (1,0, 'That\' not a file!'),
                                            (3,0, 'Press any key'))
                             self.any_key()
                             continue
@@ -524,7 +540,8 @@ class App(object):
                             self.db.password = password
                             break
                         else:
-                            self.draw_text((1,0, 'Passwords didn\' match!'),
+                            self.draw_text(False,
+                                           (1,0, 'Passwords didn\' match!'),
                                            (3,0, 'Press any key'))
                             self.any_key()
                     if auth != 3: self.db.keyfile = None;
@@ -551,7 +568,8 @@ class App(object):
             while True:
                 filepath = self.get_direct_filepath()
                 if filepath[-4:] != '.kdb' or isdir(filepath):
-                    self.draw_text((1,0, 'Need path to a kdb-file!'),
+                    self.draw_text(False,
+                                   (1,0, 'Need path to a kdb-file!'),
                                    (3,0, 'Press any key'))
                     self.any_key()
                     return False
@@ -582,7 +600,8 @@ class App(object):
                 filepath = self.get_direct_filepath()
                 if ((filepath[-4:] != '.kdb' or isdir(filepath)) and 
                     keyfile is False):
-                    self.draw_text((1,0, 'Need path to a kdb-file!'),
+                    self.draw_text(False,
+                                   (1,0, 'Need path to a kdb-file!'),
                                    (3,0, 'Press any key'))
                     self.any_key()
                     continue
@@ -666,7 +685,8 @@ class App(object):
                 cur_dir = ''
                 edit += chr(e)
 
-            self.draw_text((1,0, 'Filepath: '), (1,10, edit))
+            self.draw_text(False,
+                           (1,0, 'Filepath: '), (1,10, edit))
             try:
                 e = self.stdscr.getch()
             except KeyboardInterrupt:
@@ -689,11 +709,12 @@ class App(object):
         hidden = True
         highlight = 0
         while True:
-            self.draw_text()
+            self.draw_text(False)
             try:
                 dir_cont = listdir(self.cur_dir)
             except OSError:
-                self.draw_text((1,0, 'Was not able to read directory'),
+                self.draw_text(False,
+                               (1,0, 'Was not able to read directory'),
                                (2,0, 'Press any key.'))
                 self.any_key()
                 last = self.cur_dir.split('/')[-1]
@@ -932,7 +953,8 @@ class App(object):
             while True:
                 keyfile = self.get_filepath(False, True)
                 if not isfile(keyfile):
-                    self.draw_text((1,0, 'That\'s not a file'),
+                    self.draw_text(False,
+                                   (1,0, 'That\'s not a file'),
                                    (3,0, 'Press any key.'))
                     self.any_key()
                     continue
@@ -940,7 +962,8 @@ class App(object):
             if auth != 3: password = None
         try:
             if isfile(self.cur_dir+'.lock'):
-                self.draw_text((1,0, 'Database seems to be opened.'
+                self.draw_text(False,
+                               (1,0, 'Database seems to be opened.'
                                      ' Open file in read-only mode?'
                                      ' [(y)/n]'))
                 while True:
@@ -970,7 +993,8 @@ class App(object):
                 self.db = KPDB(self.cur_dir, password, keyfile, False)
             return True
         except KPError as err:
-            self.draw_text((1,0, err.__str__()),
+            self.draw_text(False,
+                           (1,0, err.__str__()),
                            (4,0, 'Press any key.'))
             self.any_key()
             last = self.cur_dir.split('/')[-1]
@@ -987,7 +1011,8 @@ class App(object):
 
     def save(self, cur_dir):
         '''Save the database. cur_dir is the current directory.'''
-        self.draw_text((1,0,'Do not interrupt or '
+        self.draw_text(False,   
+                       (1,0,'Do not interrupt or '
                             'your file will break!'))
         try:
             if cur_dir is False:
@@ -995,7 +1020,8 @@ class App(object):
             else:
                 self.db.save(cur_dir)
         except KPError as err:
-            self.draw_text((1,0, err.__str__()),
+            self.draw_text(False,
+                           (1,0, err.__str__()),
                            (4,0, 'Press any key.'))
             self.any_key()
             return False
@@ -1007,7 +1033,8 @@ class App(object):
             try:
                 self.db.close()
             except KPError as err:
-                self.draw_text((1,0, err.__str__()),
+                self.draw_text(False,
+                               (1,0, err.__str__()),
                                (4,0, 'Press any key.'))
                 self.any_key()
         self.db = None
@@ -1035,8 +1062,7 @@ class App(object):
         if groups[g_highlight].entries:
             entries = sorted(groups[g_highlight].entries,
                              key = lambda entry: entry.title.lower())
-        self.draw_text()
-        self.show_groups(g_highlight, groups, cur_win, g_offset)
+        self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
         self.show_entries(e_highlight, entries, cur_win, 
                           e_offset, hide)
 
@@ -1122,14 +1148,14 @@ class App(object):
                 self.info_win.bkgd(1)
                 self.stdscr.timeout(20000)
 
-                self.draw_text()
-                self.show_groups(g_highlight, groups, cur_win, g_offset)
+                self.draw_text(changed)
+                self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                 self.show_entries(e_highlight, entries, cur_win,
                                   e_offset, hide)
             # File operations
             elif c == ord('e'):
                 if changed is True:
-                    self.draw_text((1,0, 'File has changed. Save? [(y)/n]'))
+                    self.draw_text(changed, (1,0, 'File has changed. Save? [(y)/n]'))
                     while True:
                         try:
                             e = self.stdscr.getch()
@@ -1172,7 +1198,7 @@ class App(object):
                 Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
                 Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 if changed is True:
-                    self.draw_text((1,0, 'File has changed. Save? [(y)/n]'))
+                    self.draw_text(changed, (1,0, 'File has changed. Save? [(y)/n]'))
                     while True:
                         try:
                             e = self.stdscr.getch()
@@ -1239,7 +1265,7 @@ class App(object):
                         self.cur_dir = filepath
                 if self.save(self.cur_dir) is not False:
                     changed = False
-                self.show_groups(g_highlight, groups, cur_win, g_offset)
+                self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                 self.show_entries(e_highlight, entries, cur_win,
                                   e_offset, hide)
             elif c == ord('S'):
@@ -1248,7 +1274,7 @@ class App(object):
                     if self.db.filepath is None:
                         self.cur_dir = filepath
                     if isfile(filepath):
-                        self.draw_text((1,0, 
+                        self.draw_text(changed, (1,0, 
                                         'File exists. Overwrite? [y/(n)]'))
                         while True:
                             try:
@@ -1275,7 +1301,7 @@ class App(object):
                     else:
                         if self.save(filepath) is not False:
                             changed = False
-                self.show_groups(g_highlight, groups, cur_win, g_offset)
+                self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                 self.show_entries(e_highlight, entries, cur_win,
                                   e_offset, hide)
                 changed = False
@@ -1293,12 +1319,13 @@ class App(object):
                 elif self.save(self.cur_dir) is not False:
                     self.db_close()
                     self.close()
-                self.show_groups(g_highlight, groups, cur_win, g_offset)
+                self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                 self.show_entries(e_highlight, entries, cur_win,
                                   e_offset, hide)
             elif c == ord('L'):
                 if changed is True:
-                    self.draw_text((1,0, 'File has changed. Save? [(y)/n]'))
+                    self.draw_text(changed,
+                                   (1,0, 'File has changed. Save? [(y)/n]'))
                     while True:
                         try:
                             e = self.stdscr.getch()
@@ -1331,7 +1358,8 @@ class App(object):
                 Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
                 Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 if self.db.filepath is None:
-                    self.draw_text((1,0, 'Can only lock an existing db!'),
+                    self.draw_text(changed,
+                                   (1,0, 'Can only lock an existing db!'),
                                    (4,0, 'Press any key.'))
                     self.any_key()
                     continue
@@ -1347,7 +1375,8 @@ class App(object):
                         while True:
                             keyfile = self.get_direct_filepath()
                             if not isfile(keyfile):
-                                self.draw_text((1,0, 'That\'s not a file'),
+                                self.draw_text(changed,
+                                               (1,0, 'That\'s not a file'),
                                                (3,0, 'Press any key.'))
                                 self.any_key()
                                 continue
@@ -1356,7 +1385,8 @@ class App(object):
                     try:
                         self.db.unlock(password, keyfile)
                     except KPError as err:
-                        self.draw_text((1,0, err.__str__()),
+                        self.draw_text(changed,
+                                       (1,0, err.__str__()),
                                        (4,0, 'Press any key.'))
                         self.any_key()
                     else:
@@ -1367,7 +1397,7 @@ class App(object):
                             entries = sorted(groups[g_highlight].entries,
                                              key = lambda entry: entry.title.lower())
                         self.show_groups(g_highlight, groups, cur_win, 
-                                         g_offset)
+                                         g_offset, changed)
                         self.show_entries(e_highlight, entries, 
                                           cur_win, e_offset, hide)
                         break
@@ -1375,7 +1405,7 @@ class App(object):
             elif c == ord('P'):
                 auth = self.ask_for_auth()
                 if auth is False:
-                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                     self.show_entries(e_highlight, entries, 
                                       cur_win, e_offset, hide)
                     continue
@@ -1383,7 +1413,8 @@ class App(object):
                     while True:
                         ret = self.get_filepath(False, True)
                         if not isfile(ret):
-                            self.draw_text((1,0,"That's not a file!"),
+                            self.draw_text(changed,
+                                           (1,0,"That's not a file!"),
                                            (3,0,'Press any key.'))
                             self.any_key()
                             continue
@@ -1407,7 +1438,7 @@ class App(object):
                             pass
                         self.any_key()
                     if auth != 3: self.db.keyfile = None;
-                self.show_groups(g_highlight, groups, cur_win, g_offset)
+                self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                 self.show_entries(e_highlight, entries, cur_win,
                                   e_offset, hide)
             elif c == ord('g'):
@@ -1419,12 +1450,13 @@ class App(object):
                     else:
                         self.db.create_group(edit, cur_root)
                 except KPError as err:
-                    self.draw_text((1,0, err.__str__()),
+                    self.draw_text(changed,
+                                   (1,0, err.__str__()),
                                    (4,0, 'Press any key.'))
                     self.any_key()
                 else:
                     changed = True
-                self.show_groups(g_highlight, groups, cur_win, g_offset)
+                self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                 self.show_entries(e_highlight, entries, cur_win,
                                   e_offset, hide)
             elif c == ord('G'):
@@ -1434,17 +1466,19 @@ class App(object):
                     try: 
                         self.db.create_group(edit, groups[g_highlight])
                     except KPError as err:
-                        self.draw_text((1,0, err.__str__()),
+                        self.draw_text(changed,
+                                       (1,0, err.__str__()),
                                        (4,0, 'Press any key.'))
                         self.any_key()
                     else:
                         changed = True
-                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                     self.show_entries(e_highlight, entries, cur_win,
                                       e_offset, hide)
             elif c == ord('y'):
                 if groups:
-                    self.draw_text((1,0, 'At least one of the following attributes '
+                    self.draw_text(changed,
+                                   (1,0, 'At least one of the following attributes '
                                     'must be given. Press any key'))
                     self.any_key()
                     title = self.get_string('', 'Title: ')
@@ -1457,14 +1491,16 @@ class App(object):
                         confirm = ''
 
                     if password != confirm:
-                        self.draw_text((1,0, 'Passwords didn\'t match. Will '
+                        self.draw_text(changed,
+                                       (1,0, 'Passwords didn\'t match. Will '
                                              'not set this attribute. Press '
                                              'any key.'))
                         self.any_key()
                         password = ''
                     comment = self.get_string('', 'Comment: ')
                     
-                    self.draw_text((1,0, 'Set expiration date? [y/(n)]'))
+                    self.draw_text(changed,
+                                   (1,0, 'Set expiration date? [y/(n)]'))
                     while True:
                         try:
                             e = self.stdscr.getch()
@@ -1496,20 +1532,22 @@ class App(object):
                                                          comment, y, mon, d)
                         changed = True
                     except KPError as err:
-                        self.draw_text((1,0, err.__str__()),
+                        self.draw_text(changed,
+                                       (1,0, err.__str__()),
                                        (4,0, 'Press any key.'))
                         self.any_key()
                     groups = sorted(cur_root.children,
                                     key = lambda group: group.title.lower())
                     entries = sorted(groups[g_highlight].entries,
                                      key = lambda entry: entry.title.lower())
-                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                     self.show_entries(e_highlight, entries, 
                                       cur_win, e_offset, hide)
             elif c == ord('d'):
                 if cur_win == 0 and groups:
                     title = groups[g_highlight].title
-                    self.draw_text((1,0, 'Really delete group '+title+'? '
+                    self.draw_text(changed,
+                                   (1,0, 'Really delete group '+title+'? '
                                          '[y/(n)]'))
                     while True:
                         try:
@@ -1520,7 +1558,8 @@ class App(object):
                             try:
                                 groups[g_highlight].remove_group()
                             except KPError as err:
-                                self.draw_text((1,0, err.__str__()),
+                                self.draw_text(changed,
+                                               (1,0, err.__str__()),
                                                (4,0, 'Press any key.'))
                                 self.any_key()
                             else:
@@ -1552,12 +1591,13 @@ class App(object):
                                     key = lambda group: group.title.lower())
                     entries = sorted(groups[g_highlight].entries,
                                      key = lambda entry: entry.title.lower())
-                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                     self.show_entries(e_highlight, entries, 
                                       cur_win, e_offset, hide)
                 elif cur_win == 1 and entries:
                     title = entries[e_highlight].title
-                    self.draw_text((1,0, 
+                    self.draw_text(changed,
+                                   (1,0, 
                                     'Really delete entry '+title+'? [y/(n)]'))
                     while True:
                         try:
@@ -1568,7 +1608,8 @@ class App(object):
                             try:
                                 entries[e_highlight].remove_entry()
                             except KPError as err:
-                                self.draw_text((1,0, err.__str__()),
+                                self.draw_text(changed,
+                                               (1,0, err.__str__()),
                                                (4,0, 'Press any key.'))
                                 self.any_key()
                             else:
@@ -1596,7 +1637,7 @@ class App(object):
                     if groups[g_highlight].entries:
                         entries = sorted(groups[g_highlight].entries,
                                          key = lambda entry: entry.title.lower())
-                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                     self.show_entries(e_highlight, entries, 
                                       cur_win, e_offset, hide)
             elif c == ord('f'):
@@ -1625,7 +1666,7 @@ class App(object):
                         entries = sorted(groups[-1].entries,
                                          key = lambda entry: entry.title.lower())
                     e_highlight = 0
-                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                     self.show_entries(e_highlight, entries,
                                       cur_win, e_offset, hide)
                 
@@ -1665,7 +1706,7 @@ class App(object):
                         entries[e_highlight].set_url(edit)
                     elif c == ord('C'):
                         entries[e_highlight].set_comment(edit)
-                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                     self.show_entries(e_highlight, entries, 
                                       cur_win, e_offset, hide)
             elif c == ord('p'):
@@ -1683,7 +1724,7 @@ class App(object):
                         except:
                             pass
                         self.any_key()
-                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                     self.show_entries(e_highlight, entries, cur_win,
                                       e_offset, hide)
             elif c == ord('E'):
@@ -1694,7 +1735,7 @@ class App(object):
                     entries[e_highlight].set_expire(y, mon, d, 
                                                     exp[3], exp[4], exp[5])
                     changed = True
-                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                     self.show_entries(e_highlight, entries, cur_win, e_offset,
                                       hide)
             # Navigation
@@ -1718,7 +1759,7 @@ class App(object):
                     e_highlight = 0
                     entries = sorted(groups[g_highlight].entries,
                                      key = lambda entry: entry.title.lower())
-                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                     self.show_entries(e_highlight, entries, 
                                       cur_win, e_offset, hide)
                 elif cur_win == 1:
@@ -1744,7 +1785,7 @@ class App(object):
                     e_highlight = 0
                     entries = sorted(groups[g_highlight].entries,
                                      key = lambda entry: entry.title.lower())
-                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                     self.show_entries(e_highlight, entries, 
                                       cur_win, e_offset, hide)
                 elif cur_win == 1:
@@ -1759,18 +1800,18 @@ class App(object):
                                       cur_win,  e_offset, hide)
             elif c == KEY_LEFT or c == ord('h'):
                 cur_win = 0
-                self.show_groups(g_highlight, groups, cur_win, g_offset)
+                self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                 self.show_entries(e_highlight, entries, cur_win,
                                   e_offset, hide)
             elif c == KEY_RIGHT or c == ord('l'):
                 if entries:
                     cur_win = 1
-                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                     self.show_entries(e_highlight, entries, 
                                       cur_win, e_offset, hide)
             elif c == KEY_RESIZE:
                 self.resize_all()
-                self.show_groups(g_highlight, groups, cur_win, g_offset)
+                self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                 self.show_entries(e_highlight, entries, cur_win,
                                   e_offset, hide)
             elif c == NL:
@@ -1784,7 +1825,7 @@ class App(object):
                     if groups[g_highlight].entries:
                         entries = sorted(groups[g_highlight].entries,
                                          key = lambda entry: entry.title.lower())
-                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                     self.show_entries(e_highlight, entries, 
                                       cur_win, e_offset, hide)
             elif c == KEY_BACKSPACE or c == DEL:
@@ -1802,11 +1843,12 @@ class App(object):
                     if groups[g_highlight].entries:
                         entries = sorted(groups[g_highlight].entries,
                                          key = lambda entry: entry.title.lower())
-                    self.show_groups(g_highlight, groups, cur_win, g_offset)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                     self.show_entries(e_highlight, entries,
                                       cur_win, e_offset, hide)
                     
-    def show_groups(self, highlight, groups, cur_win, offset):
+    def show_groups(self, highlight, groups, cur_win, offset, changed):
+        self.draw_text(changed)
         self.group_win.clear()
         parent = groups[highlight].parent
         if parent is  self.db._root_group:
