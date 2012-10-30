@@ -413,22 +413,44 @@ class App(object):
         d = int(edit)
         return y, mon, d
 
-    def ask_for_nav(self, ask_for_lf = True):
-        '''Ask for navigation.'''
+    def gen_menu(self, misc, *add):
+        '''A universal method to generate a menu.
 
-        if self.last_file is None or ask_for_lf is False:
-            self.draw_text(False,
-                           (1,0, 'If you want to use the file browser, type \'1\''),
-                           (2,0, 'If you want to type a direct path, type \'2\''))
-            lf = False
-        else:
-            self.draw_text(False,
-                           (1,0, 'If you want to use the file browser, type \'1\''),
-                           (2,0, 'If you want to type a direct path, type \'2\''),
-                           (3,0, 'If you want to open '+self.last_file+', type \'3\''))
-            lf = True
+        misc is a tupel of triples (y, x, 'text')
+
+        add are more tuples but the content should not be accessable
+
+        '''
+
+        if len(misc) == 0:
+            return False
+        highlight = 1
+        h_color = 6
+        n_color = 1
         e = ''
         while e != NL:
+            try:
+                self.stdscr.clear()
+                self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                   color_pair(2))
+                self.stdscr.addstr(0,
+                                   len(self.loginname+'@'+self.hostname+':'),
+                                   self.cur_dir)
+                for i,j,k in misc:
+                    if i == highlight:
+                        self.stdscr.addstr(i,j,k, color_pair(h_color))
+                    else:
+                        self.stdscr.addstr(i,j,k, color_pair(n_color))
+                for i,j,k in add:
+                    self.stdscr.addstr(i,j,k)
+            except:
+                pass
+            finally:
+                self.stdscr.refresh()
+            try:
+                e = self.stdscr.getch()
+            except KeyboardInterrupt:
+                e = 4
             if e == -1:
                 Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
                 Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
@@ -438,55 +460,17 @@ class App(object):
                 if self.db is not None:
                     self.db_close()
                 self.close()
-            elif e == '':
-                pass
             elif e == KEY_RESIZE:
                 self.resize_all()
-            elif e == ord('e'):
-                return e
-            elif not ((lf is True and 49 <= e <= 51) or
-                (lf is False and 49 <= e <= 50)):
-                pass
-            else:
-                return int(chr(e))
-            try:
-                e = self.stdscr.getch()
-            except KeyboardInterrupt:
-                e = 4
-
-    def ask_for_auth(self):
-        '''Ask for authentication.'''
-
-        self.draw_text(False,
-                       (1,0, 'If you want to use a password, type \'1\''),
-                       (2,0, 'If you want to use a keyfile, type \'2\''),
-                       (3,0, 'If you want to use both, type \'3\''))
-        e = ''
-        while e != NL:
-            if e == -1:
-                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
-                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
-            elif e == 4:
-                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
-                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
-                if self.db is not None:
-                    self.db_close()
-                self.close()
-            elif e == '':
-                pass
-            elif e == KEY_RESIZE:
-                self.resize_all()
-            elif e == ord('e'):
-                return False
-            elif not 49 <= e <= 51:
-                pass
-            else:
-                return int(chr(e))
-            try:
-                e = self.stdscr.getch()
-            except KeyboardInterrupt:
-                e = 4
-
+            elif e == NL:
+                return highlight
+            elif e == KEY_DOWN and highlight < len(misc):
+                highlight += 1
+            elif e == KEY_UP and highlight > 1:
+                highlight -= 1
+            elif 49 <= e <= 48 + len(misc): # ASCII(49) = 1 ...
+                return e - 48
+            
     def main_loop(self, kdb_file = None):
         '''The main loop. The program alway return to this method.'''
 
@@ -497,27 +481,24 @@ class App(object):
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last)-1]
         while True:
-            self.draw_text(False,
-                           (1,0, 'To open an existing database type \'o\','),
-                           (2,0, 'to create a new one type \'n\'.'),
-                           (3,0, 'Type \'F1\' for help inside the file '
-                                 'or database browser.'),
-                           (5,0, 'Type \'q\' to quit.'))
-            try:
-                c = self.stdscr.getch()
-            except KeyboardInterrupt:
-                c = 4
-
-            if c == ord('o'):
+            menu = self.gen_menu(((1,0, 'Open existing database (1)'),
+                                  (2,0, 'Create new database (2)'),
+                                  (3,0, 'Quit (3)')),
+                                  (5,0, 'Type \'F1\' for help inside the file '
+                                        'or database browser.'),
+                                  (6,0, 'Type \'F5\' to return to the '
+                                        'previous dialog'))
+            if menu == 1:
                 if self.open_db() is False:
                     continue
                 self.db_browser()
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last)-1]
-            elif c == ord('n'):
-                auth = self.ask_for_auth()
-                if auth is False:
-                    continue
+            elif menu == 2:
+                auth = self.gen_menu((
+                       (1,0, 'Use a password (1)'),
+                       (2,0, 'Use a keyfile (2)'),
+                       (3,0, 'Use both (3)')))
                 self.db = KPDB(new = True)
                 if auth == 2 or auth == 3:
                     while True:
@@ -548,12 +529,7 @@ class App(object):
                 self.db_browser()
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last)-1]
-            elif c == -1:
-                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
-                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
-            elif c == KEY_RESIZE:
-                self.resize_all()
-            elif c == ord('q') or c == 4:
+            elif menu == 3:
                 Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
                 Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
                 if self.db is not None:
@@ -563,7 +539,15 @@ class App(object):
     def open_db(self):
         ''' This method opens a database.'''
 
-        nav = self.ask_for_nav()
+        if self.last_file is None:
+            nav = self.gen_menu((
+                    (1,0, 'Use the file browser (1)'),
+                    (2,0, 'Type direct path (2)')))
+        else:
+            nav = self.gen_menu((
+                    (1,0, 'Use the file browser (1)'),
+                    (2,0, 'Type direct path (2)'),
+                    (3,0, 'Use '+self.last_file+' (3)')))
         if nav == 2:
             while True:
                 filepath = self.get_direct_filepath()
@@ -581,8 +565,6 @@ class App(object):
             self.cur_dir = self.last_file
             if self.open_file() is False:
                 return False
-        elif nav == ord('e'):
-                return False
         else:
             filepath = self.browser()
             if filepath is False:
@@ -594,7 +576,15 @@ class App(object):
     def get_filepath(self, ask_for_lf = True, keyfile = False):
         '''This method is used to get a filepath, e.g. for 'Save as' '''
 
-        nav = self.ask_for_nav(ask_for_lf)
+        if ask_for_lf is False or self.last_file is None:
+            nav = self.gen_menu((
+                        (1,0, 'Use the file browser (1)'),
+                        (2,0, 'Type direct path (2)')))
+        else:
+            nav = self.gen_menu((
+                    (1,0, 'Use the file browser (1)'),
+                    (2,0, 'Type direct path (2)'),
+                    (3,0, 'Use '+self.last_file+' (3)')))
         if nav == 2:
             while True:
                 filepath = self.get_direct_filepath()
@@ -943,9 +933,10 @@ class App(object):
         self.stdscr.refresh()
 
     def open_file(self):
-        auth = self.ask_for_auth()
-        if auth is False:
-            return False
+        auth = self.gen_menu((
+               (1,0, 'Use a password (1)'),
+               (2,0, 'Use a keyfile (2)'),
+               (3,0, 'Use both (3)')))
         if auth == 1 or auth == 3:
             password = self.get_password('Password: ')
             if auth != 3: keyfile = None;
@@ -1056,15 +1047,20 @@ class App(object):
         e_highlight = 0
         g_offset = 0
         e_offset = 0
-        cur_root = self.db._root_group
-        groups = sorted(cur_root.children,
+        self.cur_root = self.db._root_group
+        groups = sorted(self.cur_root.children,
                         key = lambda group: group.title.lower())
-        if groups[g_highlight].entries:
+        entries = []
+        if groups and groups[g_highlight].entries:
             entries = sorted(groups[g_highlight].entries,
                              key = lambda entry: entry.title.lower())
-        self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-        self.show_entries(e_highlight, entries, cur_win, 
-                          e_offset, hide)
+        else:
+            entries = []
+
+        self.show_groups(g_highlight, groups, cur_win, g_offset, 
+                         changed)
+        self.show_entries(e_highlight, entries, cur_win, e_offset,
+                          hide)
 
         while True:
             try:
@@ -1149,9 +1145,10 @@ class App(object):
                 self.stdscr.timeout(20000)
 
                 self.draw_text(changed)
-                self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                self.show_entries(e_highlight, entries, cur_win,
-                                  e_offset, hide)
+                self.show_groups(g_highlight, groups, cur_win, g_offset, 
+                                 changed)
+                self.show_entries(e_highlight, entries, cur_win, e_offset,
+                                  hide)
             # File operations
             elif c == ord('e'):
                 if changed is True:
@@ -1266,8 +1263,8 @@ class App(object):
                 if self.save(self.cur_dir) is not False:
                     changed = False
                 self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                self.show_entries(e_highlight, entries, cur_win,
-                                  e_offset, hide)
+                self.show_entries(e_highlight, entries, cur_win, e_offset,
+                                  hide)
             elif c == ord('S'):
                 filepath = self.get_filepath(False)
                 if filepath is not False:
@@ -1286,14 +1283,18 @@ class App(object):
                                     changed = False
                                 break
                             elif c == 4:
-                                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
-                                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
+                                Popen(['xsel', '-pc'], stderr = PIPE, 
+                                      stdout = PIPE)
+                                Popen(['xsel', '-bc'], stderr = PIPE, 
+                                      stdout = PIPE)
                                 if self.db is not None:
                                     self.db_close()
                                 self.close()
                             elif c == -1:
-                                Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
-                                Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
+                                Popen(['xsel', '-pc'], stderr = PIPE,
+                                      stdout = PIPE)
+                                Popen(['xsel', '-bc'], stderr = PIPE,
+                                      stdout = PIPE)
                             elif c == KEY_RESIZE:
                                 self.resize_all()
                             else:
@@ -1302,8 +1303,8 @@ class App(object):
                         if self.save(filepath) is not False:
                             changed = False
                 self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                self.show_entries(e_highlight, entries, cur_win,
-                                  e_offset, hide)
+                self.show_entries(e_highlight, entries, cur_win, e_offset,
+                                  hide)
                 changed = False
             elif c == ord('x'):
                 Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
@@ -1320,8 +1321,8 @@ class App(object):
                     self.db_close()
                     self.close()
                 self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                self.show_entries(e_highlight, entries, cur_win,
-                                  e_offset, hide)
+                self.show_entries(e_highlight, entries, cur_win, e_offset,
+                                  hide)
             elif c == ord('L'):
                 if changed is True:
                     self.draw_text(changed,
@@ -1365,7 +1366,10 @@ class App(object):
                     continue
                 self.db.lock()
                 while True:
-                    auth = self.ask_for_auth()
+                    auth = self.gen_menu((
+                           (1,0, 'Use a password (1)'),
+                           (2,0, 'Use a keyfile (2)'),
+                           (3,0, 'Use both (3)')))
                     if auth is False:
                         continue
                     if auth == 1 or auth == 3:
@@ -1390,24 +1394,31 @@ class App(object):
                                        (4,0, 'Press any key.'))
                         self.any_key()
                     else:
-                        cur_root = self.db._root_group
-                        groups = sorted(cur_root.children,
+                        self.cur_root = self.db._root_group
+                        groups = sorted(self.cur_root.children,
                                         key = lambda group: group.title.lower())
-                        if groups[g_highlight].entries:
+                        if groups and groups[g_highlight].entries:
                             entries = sorted(groups[g_highlight].entries,
-                                             key = lambda entry: entry.title.lower())
-                        self.show_groups(g_highlight, groups, cur_win, 
-                                         g_offset, changed)
-                        self.show_entries(e_highlight, entries, 
-                                          cur_win, e_offset, hide)
+                                             key = lambda entry: 
+                                             entry.title.lower())
+                        else:
+                            entries = []
+                        self.show_groups(g_highlight, groups, cur_win, g_offset,
+                                         changed)
+                        self.show_entries(e_highlight, entries, cur_win,
+                                          e_offset, hide)
                         break
             # DB editing
             elif c == ord('P'):
-                auth = self.ask_for_auth()
+                auth = self.gen_menu((
+                       (1,0, 'Use a password (1)'),
+                       (2,0, 'Use a keyfile (2)'),
+                       (3,0, 'Use both (3)')))
                 if auth is False:
-                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                    self.show_entries(e_highlight, entries, 
-                                      cur_win, e_offset, hide)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset,
+                                     changed)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
                     continue
                 if auth == 2 or auth == 3:
                     while True:
@@ -1439,16 +1450,20 @@ class App(object):
                         self.any_key()
                     if auth != 3: self.db.keyfile = None;
                 self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                self.show_entries(e_highlight, entries, cur_win,
-                                  e_offset, hide)
+                self.show_entries(e_highlight, entries, cur_win, e_offset,
+                                  hide)
             elif c == ord('g'):
                 edit = self.get_string('', 'Title: ')
+                if groups:
+                    old_group = groups[g_highlight]
+                else:
+                    old_group = None
 
                 try: 
-                    if cur_root is self.db._root_group:
+                    if self.cur_root is self.db._root_group:
                         self.db.create_group(edit)
                     else:
-                        self.db.create_group(edit, cur_root)
+                        self.db.create_group(edit, self.cur_root)
                 except KPError as err:
                     self.draw_text(changed,
                                    (1,0, err.__str__()),
@@ -1456,9 +1471,20 @@ class App(object):
                     self.any_key()
                 else:
                     changed = True
-                self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                self.show_entries(e_highlight, entries, cur_win,
-                                  e_offset, hide)
+                groups = sorted(self.cur_root.children,
+                                key = lambda group: group.title.lower())
+                if groups and groups[g_highlight].entries:
+                    entries = sorted(groups[g_highlight].entries,
+                                     key = lambda entry: entry.title.lower())
+                else:
+                    entries = []
+                if (groups and (groups[g_highlight] is not old_group) and
+                    old_group is not None):
+                    g_highlight = groups.index(old_group)
+                self.show_groups(g_highlight, groups, cur_win, g_offset,
+                                 changed)
+                self.show_entries(e_highlight, entries, cur_win, e_offset,
+                                  hide)
             elif c == ord('G'):
                 if groups:
                     edit = self.get_string('', 'Title: ')
@@ -1472,11 +1498,16 @@ class App(object):
                         self.any_key()
                     else:
                         changed = True
-                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, 
+                                     changed)
                     self.show_entries(e_highlight, entries, cur_win,
                                       e_offset, hide)
             elif c == ord('y'):
                 if groups:
+                    if entries:
+                        old_entry = entries[e_highlight]
+                    else:
+                        old_entry = None
                     self.draw_text(changed,
                                    (1,0, 'At least one of the following attributes '
                                     'must be given. Press any key'))
@@ -1536,13 +1567,17 @@ class App(object):
                                        (1,0, err.__str__()),
                                        (4,0, 'Press any key.'))
                         self.any_key()
-                    groups = sorted(cur_root.children,
+                    groups = sorted(self.cur_root.children,
                                     key = lambda group: group.title.lower())
                     entries = sorted(groups[g_highlight].entries,
                                      key = lambda entry: entry.title.lower())
-                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                    self.show_entries(e_highlight, entries, 
-                                      cur_win, e_offset, hide)
+                    if (entries and entries[e_highlight] is not old_entry and
+                        old_entry is not None):
+                        e_highlight = entries.index(old_entry)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, 
+                                     changed)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
             elif c == ord('d'):
                 if cur_win == 0 and groups:
                     title = groups[g_highlight].title
@@ -1564,8 +1599,8 @@ class App(object):
                                 self.any_key()
                             else:
                                 if (not groups and
-                                    cur_root is not self.db._root_group):
-                                    cur_root = cur_root.parent
+                                    self.cur_root is not self.db._root_group):
+                                    self.cur_root = self.cur_root.parent
                                 changed = True
 
                                 if (g_highlight >= len(groups) and 
@@ -1587,13 +1622,18 @@ class App(object):
                             self.resize_all()
                         else:
                             break
-                    groups = sorted(cur_root.children,
+                    groups = sorted(self.cur_root.children,
                                     key = lambda group: group.title.lower())
-                    entries = sorted(groups[g_highlight].entries,
-                                     key = lambda entry: entry.title.lower())
-                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                    self.show_entries(e_highlight, entries, 
-                                      cur_win, e_offset, hide)
+                    if groups and groups[g_highlight].entries:
+                        entries = sorted(groups[g_highlight].entries,
+                                         key = lambda entry: 
+                                         entry.title.lower())
+                    else:
+                        entries = []
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, 
+                                     changed)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
                 elif cur_win == 1 and entries:
                     title = entries[e_highlight].title
                     self.draw_text(changed,
@@ -1634,12 +1674,15 @@ class App(object):
                             self.resize_all()
                         else:
                             break
-                    if groups[g_highlight].entries:
+                    if groups and groups[g_highlight].entries:
                         entries = sorted(groups[g_highlight].entries,
                                          key = lambda entry: entry.title.lower())
-                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                    self.show_entries(e_highlight, entries, 
-                                      cur_win, e_offset, hide)
+                    else:
+                        entries = []
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, 
+                                     changed)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
             elif c == ord('f'):
                 if self.db._entries:
                     title = self.get_string('', 'Title: ')
@@ -1654,21 +1697,24 @@ class App(object):
                         if title.lower() in i.title.lower():
                             self.db.groups[-1].entries.append(i)
                             cur_win = 1
-                    cur_root = self.db._root_group
-                    groups = sorted(cur_root.children,
+                    self.cur_root = self.db._root_group
+                    groups = sorted(self.cur_root.children,
                                     key = lambda group: group.title.lower())
                     for i in groups:
                         if i.id_ == 0:
                             groups.remove(i)
                             groups.append(i)
                     g_highlight = len(groups)-1
-                    if groups[-1].entries:
+                    if groups and groups[-1].entries:
                         entries = sorted(groups[-1].entries,
                                          key = lambda entry: entry.title.lower())
+                    else:
+                        entries = []
                     e_highlight = 0
-                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                    self.show_entries(e_highlight, entries,
-                                      cur_win, e_offset, hide)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, 
+                                     changed)
+                    self.show_entries(e_highlight, entries, cur_win, 
+                                      e_offset, hide)
                 
             elif (c == ord('t') or c == ord('u') or c == ord('U') or 
                   c == ord('C')):
@@ -1706,9 +1752,10 @@ class App(object):
                         entries[e_highlight].set_url(edit)
                     elif c == ord('C'):
                         entries[e_highlight].set_comment(edit)
-                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                    self.show_entries(e_highlight, entries, 
-                                      cur_win, e_offset, hide)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, 
+                                     changed)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
             elif c == ord('p'):
                 if entries:
                     password = self.get_password('Password: ')
@@ -1724,9 +1771,11 @@ class App(object):
                         except:
                             pass
                         self.any_key()
-                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                    self.show_entries(e_highlight, entries, cur_win,
-                                      e_offset, hide)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, 
+                                     changed)
+                    if entries:
+                        self.show_entries(e_highlight, entries, cur_win,
+                                          e_offset, hide)
             elif c == ord('E'):
                 if entries:
                     exp = entries[e_highlight].expire.timetuple()
@@ -1735,17 +1784,18 @@ class App(object):
                     entries[e_highlight].set_expire(y, mon, d, 
                                                     exp[3], exp[4], exp[5])
                     changed = True
-                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                    self.show_entries(e_highlight, entries, cur_win, e_offset,
-                                      hide)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, 
+                                     changed)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
             # Navigation
             elif c == ord('H'):
                 if hide is True:
                     hide = False
                 else:
                     hide = True
-                self.show_entries(e_highlight, entries,
-                                  cur_win, e_offset, hide)
+                self.show_entries(e_highlight, entries, cur_win, e_offset,
+                                  hide)
             elif c == KEY_DOWN or c == ord('j'):
                 if cur_win == 0:
                     if g_highlight >= len(groups)-1:
@@ -1757,11 +1807,16 @@ class App(object):
                     g_highlight += 1
                     e_offset = 0
                     e_highlight = 0
-                    entries = sorted(groups[g_highlight].entries,
-                                     key = lambda entry: entry.title.lower())
-                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                    self.show_entries(e_highlight, entries, 
-                                      cur_win, e_offset, hide)
+                    if groups and groups[g_highlight].entries:
+                        entries = sorted(groups[g_highlight].entries,
+                                         key = lambda entry: 
+                                         entry.title.lower())
+                    else:
+                        entries = []
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, 
+                                     changed)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
                 elif cur_win == 1:
                     if e_highlight >= len(entries)-1:
                         continue
@@ -1770,24 +1825,29 @@ class App(object):
                         not e_offset >= len(entries)-ysize+3):
                         e_offset += 1
                     e_highlight += 1
-                    self.show_entries(e_highlight, entries,
-                                      cur_win, e_offset, hide)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
             elif c == KEY_UP or c == ord('k'):
                 if cur_win == 0:
                     if g_highlight <= 0:
                         continue
                     ysize = self.group_win.getmaxyx()[0]
-                    if (g_highlight <= len(cur_root.children)-ysize+3 and 
+                    if (g_highlight <= len(self.cur_root.children)-ysize+3 and 
                         not g_offset <= 0):
                         g_offset -= 1
                     g_highlight -= 1
                     e_offset = 0
                     e_highlight = 0
-                    entries = sorted(groups[g_highlight].entries,
-                                     key = lambda entry: entry.title.lower())
-                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                    self.show_entries(e_highlight, entries, 
-                                      cur_win, e_offset, hide)
+                    if groups and groups[g_highlight].entries:
+                        entries = sorted(groups[g_highlight].entries,
+                                         key = lambda entry: 
+                                         entry.title.lower())
+                    else:
+                        entries = []
+                    self.show_groups(g_highlight, groups, cur_win, g_offset,
+                                      changed)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
                 elif cur_win == 1:
                     if e_highlight <= 0:
                         continue
@@ -1796,61 +1856,70 @@ class App(object):
                         not e_offset <= 0:
                         e_offset -= 1
                     e_highlight -= 1
-                    self.show_entries(e_highlight, entries,
-                                      cur_win,  e_offset, hide)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
             elif c == KEY_LEFT or c == ord('h'):
                 cur_win = 0
                 self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                self.show_entries(e_highlight, entries, cur_win,
-                                  e_offset, hide)
+                self.show_entries(e_highlight, entries, cur_win, e_offset,
+                                  hide)
             elif c == KEY_RIGHT or c == ord('l'):
                 if entries:
                     cur_win = 1
-                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                    self.show_entries(e_highlight, entries, 
-                                      cur_win, e_offset, hide)
+                    self.show_groups(g_highlight, groups, cur_win, g_offset, 
+                                     changed)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
             elif c == KEY_RESIZE:
                 self.resize_all()
                 self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                self.show_entries(e_highlight, entries, cur_win,
-                                  e_offset, hide)
+                self.show_entries(e_highlight, entries, cur_win, e_offset,
+                                  hide)
             elif c == NL:
-                if groups[g_highlight].children:
+                if groups and groups[g_highlight].children:
                     g_highlight = 0
                     e_highlight = 0
                     cur_win = 0
-                    cur_root = groups[g_highlight]
-                    groups = sorted(cur_root.children,
+                    self.cur_root = groups[g_highlight]
+                    groups = sorted(self.cur_root.children,
                                     key = lambda group: group.title.lower())
-                    if groups[g_highlight].entries:
+                    if groups and groups[g_highlight].entries:
                         entries = sorted(groups[g_highlight].entries,
-                                         key = lambda entry: entry.title.lower())
-                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                    self.show_entries(e_highlight, entries, 
-                                      cur_win, e_offset, hide)
+                                         key = lambda entry: entry.title.lower(
+                                         ))
+                    else:
+                        entries = []
+                    self.show_groups(g_highlight, groups, cur_win, g_offset,
+                                     changed)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
             elif c == KEY_BACKSPACE or c == DEL:
-                if not cur_root is self.db._root_group:
+                if not self.cur_root is self.db._root_group:
                     g_highlight = 0
                     e_highlight = 0
                     cur_win = 0
-                    cur_root = cur_root.parent
-                    groups = sorted(cur_root.children,
+                    self.cur_root = self.cur_root.parent
+                    groups = sorted(self.cur_root.children,
                                     key = lambda group: group.title.lower())
                     for i in groups:
                         if i.id_ == 0:
                             groups.remove(i)
                             groups.append(i)
-                    if groups[g_highlight].entries:
+                    if groups and groups[g_highlight].entries:
                         entries = sorted(groups[g_highlight].entries,
-                                         key = lambda entry: entry.title.lower())
-                    self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
-                    self.show_entries(e_highlight, entries,
-                                      cur_win, e_offset, hide)
+                                         key = lambda entry: entry.title.lower(
+                                         ))
+                    else:
+                        entries = []
+                    self.show_groups(g_highlight, groups, cur_win, g_offset,
+                                     changed)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
                     
     def show_groups(self, highlight, groups, cur_win, offset, changed):
         self.draw_text(changed)
         self.group_win.clear()
-        parent = groups[highlight].parent
+        parent = self.cur_root
         if parent is  self.db._root_group:
             root_title = 'Parent: _ROOT_'
         else:
@@ -1892,7 +1961,7 @@ class App(object):
         except:
             pass
         finally:
-            self.group_win.noutrefresh()
+            self.group_win.refresh()
 
     def show_entries(self, e_highlight, entries, cur_win, offset,
                      hide):
