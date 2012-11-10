@@ -677,8 +677,7 @@ class App(object):
                 cur_dir = ''
                 edit += chr(e)
 
-            self.draw_text(False,
-                           (1,0, 'Filepath: '), (1,10, edit))
+            self.draw_text(False, (1,0, 'Filepath: '+edit))
             try:
                 e = self.stdscr.getch()
             except KeyboardInterrupt:

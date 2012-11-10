@@ -1,4 +1,4 @@
-KeePassC v.1.3
+KeePassC v.1.4
 ==============
 
 * License: GPL v3 or later
@@ -28,7 +28,7 @@ Usage:
 ------
 
 Start the program with 'keepassc'. To get help type 'F1' while KeePassC is executed and you will see usage
-information to the current window.
+information to the current window (not in main menu).
 
 Dependencies:
 -------------

@@ -19,10 +19,21 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 
 
 from distutils.core import setup
+from distutils.command.install import install
+from os import makedirs
+from os.path import isdir
+from shutil import copyfile
+
+class manpage_install(install):
+    def run(self):
+        install.run(self)
+        if not isdir('/usr/share/man/man1/'):
+            makedirs('/usr/share/man/man1/')
+        copyfile('keepassc.1', '/usr/share/man/man1/keepassc.1')
 
 setup( 
      name = "keepassc", 
-     version = "1.3", 
+     version = "1.4", 
      author = "Karsten-Kai König", 
      author_email = "kkoenig@posteo.de",
      url = "www.nongnu.org/keepassc",
@@ -34,5 +45,6 @@ setup(
         'License :: OSI Approved :: GNU Lesser General Public License v3 or later (GPLv3+)',
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console :: Curses'],
-     license = "GPL v3 or later"
+     license = "GPL v3 or later",
+     cmdclass={'install':manpage_install}
      )
