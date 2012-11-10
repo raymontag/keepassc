@@ -64,7 +64,7 @@ class App(object):
             curs_set(0)
         except:
             print('Invisible cursor not supported')
-        cbreak()
+        raw()
         noecho()
         self.stdscr.keypad(1)
         self.group_win.keypad(1)
@@ -143,6 +143,7 @@ class App(object):
         misc is a list that should consist of 3-tuples which holds            
         text to display.
         (1st element: y-coordinate, 2nd: x-coordinate, 3rd: text)
+
         '''
 
         if changed is True:
@@ -194,7 +195,7 @@ class App(object):
             else:
                 edit += chr(e)
 
-            self.draw_text(False, (1,0,std),(1,offset, edit))
+            self.draw_text(False, (1,0,std+edit))
             try:
                 e = self.stdscr.getch()
             except KeyboardInterrupt:
@@ -281,8 +282,7 @@ class App(object):
             self.draw_text(False,
                            (1,0, 'Special date 2999-12-28 means that the '
                                  'expires never.'),
-                           (3,0, 'Year: '),
-                           (3,6, edit))
+                           (3,0, 'Year: '+edit))
             if exp:
                 try:
                     self.stdscr.addstr(2,0, 'Actual expiration date: '+
@@ -322,8 +322,7 @@ class App(object):
                            (1,0, 'Special date 2999-12-28 means that the '
                                  'expires never.'),
                            (3,0, 'Year: '+str(y)),
-                           (4,0, 'Month: '),
-                           (4,7, edit))
+                           (4,0, 'Month: '+edit))
             if exp:
                 try:
                     self.stdscr.addstr(2,0, 'Actual expiration date: '+
@@ -371,8 +370,7 @@ class App(object):
                                  'expires never.'),
                            (3,0, 'Year: '+str(y)),
                            (4,0, 'Month: '+str(mon)),
-                           (5,0, 'Day: '),
-                           (5,5, edit))
+                           (5,0, 'Day: '+edit))
             if exp:
                 try:
                     self.stdscr.addstr(2,0, 'Actual expiration date: '+
@@ -786,7 +784,7 @@ class App(object):
             elif c == KEY_RESIZE:
                 self.resize_all()
             elif c == KEY_F1 and mode_new is True:
-                nocbreak()
+                noraw()
                 self.stdscr.keypad(0)
                 endwin()
                 print('Navigate with arrow keys.')
@@ -805,7 +803,7 @@ class App(object):
                     curs_set(0)
                 except:
                     print('Invisible cursor not supported')
-                cbreak()
+                raw()
                 noecho()
                 self.stdscr.keypad(1)
                 start_color()
@@ -835,7 +833,7 @@ class App(object):
                 self.info_win.bkgd(1)
                 self.stdscr.timeout(20000)
             elif c == KEY_F1:
-                nocbreak()
+                noraw()
                 self.stdscr.keypad(0)
                 endwin()
                 print('Navigate with arrow keys.')
@@ -853,7 +851,7 @@ class App(object):
                     curs_set(0)
                 except:
                     print('Invisible cursor not supported')
-                cbreak()
+                raw()
                 noecho()
                 self.stdscr.keypad(1)
                 start_color()
@@ -1003,7 +1001,7 @@ class App(object):
     def close(self):
         '''Close the program correctly.'''
 
-        nocbreak()
+        noraw()
         self.stdscr.keypad(0)
         endwin()
         exit()
@@ -1083,7 +1081,7 @@ class App(object):
                     c = KEY_LEFT
 
             if c == KEY_F1:
-                nocbreak()
+                noraw()
                 self.stdscr.keypad(0)
                 endwin()
                 print('\'e\' - go to main menu')
@@ -1122,7 +1120,7 @@ class App(object):
                     curs_set(0)
                 except:
                     print('Invisible cursor not supported')
-                cbreak()
+                raw()
                 noecho()
                 self.stdscr.keypad(1)
                 start_color()
@@ -1257,8 +1255,11 @@ class App(object):
             elif c == ord('o'):
                 if entries:
                     entry = entries[e_highlight]
-                    if entry.url != '':
-                        webbrowser.open(entry.url)
+                    url = entry.url
+                    if url != '':
+                        if url[:7] != 'http://' or url[:8] != 'https://':
+                            url = 'http://'+url
+                        webbrowser.open(url)
             elif c == -1:
                 self.del_clipboard()
             elif c == ord('s'):
