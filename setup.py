@@ -19,17 +19,6 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 
 
 from distutils.core import setup
-from distutils.command.install import install
-from os import makedirs
-from os.path import isdir
-from shutil import copyfile
-
-class manpage_install(install):
-    def run(self):
-        install.run(self)
-        if not isdir('/usr/share/man/man1/'):
-            makedirs('/usr/share/man/man1/')
-        copyfile('keepassc.1', '/usr/share/man/man1/keepassc.1')
 
 setup( 
      name = "keepassc", 
@@ -46,5 +35,5 @@ setup(
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console :: Curses'],
      license = "GPL v3 or later",
-     cmdclass={'install':manpage_install}
-     )
+     data_files = [('share/man/man1', ['keepassc.1'])],
+)
