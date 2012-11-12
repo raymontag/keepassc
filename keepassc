@@ -1256,7 +1256,7 @@ class App(object):
                     entry = entries[e_highlight]
                     url = entry.url
                     if url != '':
-                        if url[:7] != 'http://' or url[:8] != 'https://':
+                        if url[:7] != 'http://' and url[:8] != 'https://':
                             url = 'http://'+url
                         webbrowser.open(url)
             elif c == -1:
