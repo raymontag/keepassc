@@ -22,7 +22,7 @@ from distutils.core import setup
 
 setup( 
      name = "keepassc", 
-     version = "1.4", 
+     version = "1.4.1", 
      author = "Karsten-Kai König", 
      author_email = "kkoenig@posteo.de",
      url = "www.nongnu.org/keepassc",
