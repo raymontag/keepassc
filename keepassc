@@ -31,7 +31,7 @@ from os.path import isdir, isfile, expanduser, realpath
 from pwd import getpwuid
 from socket import gethostname
 from subprocess import Popen, PIPE
-from sys import exit
+from sys import exit, stdout
 
 from kppy import *
 
@@ -2051,25 +2051,27 @@ class App(object):
         finally:
             self.info_win.noutrefresh()
         doupdate()
-        
+
 if __name__ == '__main__':
-    parser = OptionParser('keepassc [options] [path to .kdb-file] [path to key-'
-                          'file]\npath to keyfile is only required if you use '
-                          '-e')
+    parser = OptionParser('keepassc [options] [path to .kdb-file] [path to '
+                          'key-file]\npath to keyfile is only required if '
+                          'you use -e or --entry')
     parser.add_option('--asroot', action='store_true', dest='asroot', 
-                      default=False, help='parse option to execute keepassc as '
-                                          ' root user')
+                      default=False, help='parse option to execute keepassc '
+                                          'as root user')
     parser.add_option('-e', '--entry', dest='entry', default='', help='print '
-                      'entry with parsed title\nYou will see a password prompt;'
-                      ' leave it blank if you only want to use a key-file\n'
-                      'Just type the entry title lower-case, it\'s '
-                      ' case-insensitive\n\n'
+                      'entry with parsed title\nYou will see a password '
+                      'prompt; leave it blank if you only want to use a '
+                      'key-file\nJust type a part of the entry title '
+                      'lower-case, it\'s case-insensitive and will search for '
+                      'matching string parts\n\n'
                       'WARNING: Your passwords will be displayed directly on '
                       'your command line!')
     (options, args) = parser.parse_args()
 
     if geteuid() == 0 and options.asroot is False:
-        print('If you really want to execute this program as root user type \'keepassc --asroot\'')
+        print('If you really want to execute this program as root user type '
+              '\'keepassc --asroot\'')
         print('Warning: This will annul a security concept of keepassc')
     elif options.entry != '' and len(args) == 0:
         print('Need a file path to print entry information')
@@ -2079,7 +2081,7 @@ if __name__ == '__main__':
             if password == '':
                 password = None
             if len(args) > 2:
-                keyfile = args[1]
+                keyfile = args[-1]
             else:
                 keyfile = None
             try:
@@ -2088,22 +2090,29 @@ if __name__ == '__main__':
                 print(err)
                 exit()
             for i in db._entries:
-                if i.title.lower() == options.entry.lower():
+                if options.entry.lower() in i.title.lower():
                     print('Title: '+i.title)
-                    if i.url is not None: print('URL: '+i.url)
-                    if i.username is not None: print('Username: '+i.username)
-                    if i.password is not None: print('Password: '+i.password)
-                    if i.creation is not None: print('Creation: '+i.creation.__str__())
-                    if i.last_access is not None: print('Access: '+i.last_access.__str__())
-                    if i.last_mod is not None: print('Modification: '+i.last_mod.__str__())
-                    if i.expire is not None: print('Expiration: '+i.expire.__str__())
-                    if i.comment is not None: print('Comment: '+i.comment)
-                    print('\n')
+                    if i.url is not None: stdout.write('URL: '+i.url+'\n')
+                    if i.username is not None: stdout.write('Username: '+
+                                                            i.username+'\n')
+                    if i.password is not None: stdout.write('Password: '+
+                                                            i.password+'\n')
+                    if i.creation is not None: stdout.write('Creation: '+
+                                                     i.creation.__str__()+'\n')
+                    if i.last_access is not None: stdout.write('Access: '+
+                                                        i.last_access.__str__()
+                                                        +'\n')
+                    if i.last_mod is not None: stdout.write('Modification: '+
+                                                     i.last_mod.__str__()+'\n')
+                    if i.expire is not None: stdout.write('Expiration: '+
+                                                   i.expire.__str__()+'\n')
+                    if i.comment is not None: stdout.write('Comment: '+
+                                                           i.comment+'\n\n')
+                    stdout.flush()
         elif len(args) > 0 and args[0][-4:] == '.kdb':
             filepath = realpath(expanduser(args[0]))
             app = App()
             wrapper(app.main_loop(filepath))
         else:
-            app = App()
-            wrapper(app.main_loop())
-
+            app = main.App()
+            wrapper(ain_loop())
