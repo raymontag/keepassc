@@ -70,7 +70,7 @@ class App(object):
         self.group_win.keypad(1)
         self.entry_win.keypad(1)
         start_color()
-        use_default_colors()
+        use_default_colors() #TODO: Set time in .config/keepassc
         init_pair(1, -1, -1)
         init_pair(2, 2, -1)
         init_pair(3, 0, 1)
@@ -81,15 +81,9 @@ class App(object):
         self.group_win.bkgd(1)
         self.entry_win.bkgd(1)
         self.info_win.bkgd(1)
-        self.stdscr.timeout(20000)
+        self.stdscr.timeout(20000) #TODO: Set time in .config/keepassc
 
-        try:
-            handler = open(expanduser('~/.config/keepassc'), 'r')
-            self.last_file = handler.readline()
-            handler.close()
-        except:
-            self.last_file = None
-
+        self.last_file = None
         self.loginname = getpwuid(geteuid())[0]
         self.hostname = gethostname()
         self.cur_dir = getcwd()
@@ -259,155 +253,184 @@ class App(object):
 
         '''
 
-        edit = ''
-        e = KEY_BACKSPACE
-        while e != NL:
-            if e == KEY_BACKSPACE and len(edit) != 0:
-                edit = edit[:-1]
-            elif e == KEY_BACKSPACE or e == DEL:
-                pass
-            elif e == -1:
-                self.del_clipboard()
-            elif e == 4:
-                self.del_clipboard()
-                if self.db is not None:
-                    self.db_close()
-                self.close()
-            elif e == KEY_RESIZE:
-                self.resize_all()
-            elif e == KEY_F5:
-                return False
-            elif len(edit) < 4 and e >= 48 and e <= 57:
-                edit += chr(e)
-            self.draw_text(False,
-                           (1,0, 'Special date 2999-12-28 means that the '
-                                 'expires never.'),
-                           (3,0, 'Year: '+edit))
-            if exp:
-                try:
-                    self.stdscr.addstr(2,0, 'Actual expiration date: '+
-                                        str(exp[0])+'-'+str(exp[1])+'-'+
-                                        str(exp[2]))
-                except:
-                    pass
-                finally:
-                    self.stdscr.refresh()
-            try:
-                e = self.stdscr.getch()
-            except KeyboardInterrupt:
-                e = 4
-        y = int(edit)
-            
-        edit = ''
-        e = KEY_BACKSPACE
-        while e != NL:
-            if e == KEY_BACKSPACE or e == DEL and len(edit) != 0:
-                edit = edit[:-1]
-            elif e == KEY_BACKSPACE or e == DEL:
-                pass
-            elif e == -1:
-                self.del_clipboard()
-            elif e == 4:
-                self.del_clipboard()
-                if self.db is not None:
-                    self.db_close()
-                self.close()
-            elif e == KEY_RESIZE:
-                self.resize_all()
-            elif e == KEY_F5:
-                return False
-            elif len(edit) < 2 and e >= 48 and e <= 57:
-                edit += chr(e)
-            self.draw_text(False,
-                           (1,0, 'Special date 2999-12-28 means that the '
-                                 'expires never.'),
-                           (3,0, 'Year: '+str(y)),
-                           (4,0, 'Month: '+edit))
-            if exp:
-                try:
-                    self.stdscr.addstr(2,0, 'Actual expiration date: '+
-                                        str(exp[0])+'-'+str(exp[1])+'-'+
-                                        str(exp[2]))
-                except:
-                    pass
-                finally:
-                    self.stdscr.refresh()
-            try:
-                e = self.stdscr.getch()
-            except KeyboardInterrupt:
-                e = 4
+        pass_y = False
+        pass_mon = False
+        goto_last = False
+        while True:
+            if pass_y is False:
+                edit = ''
+                e = KEY_BACKSPACE
+                while e != NL:
+                    if e == KEY_BACKSPACE and len(edit) != 0:
+                        edit = edit[:-1]
+                    elif e == KEY_BACKSPACE or e == DEL:
+                        pass
+                    elif e == -1:
+                        self.del_clipboard()
+                    elif e == 4:
+                        self.del_clipboard()
+                        if self.db is not None:
+                            self.db_close()
+                        self.close()
+                    elif e == KEY_RESIZE:
+                        self.resize_all()
+                    elif e == KEY_F5:
+                        return False
+                    elif len(edit) < 4 and e >= 48 and e <= 57:
+                        edit += chr(e)
+                    self.draw_text(False,
+                                   (1,0, 'Special date 2999-12-28 means that the '
+                                         'expires never.'),
+                                   (3,0, 'Year: '+edit))
+                    if exp:
+                        try:
+                            self.stdscr.addstr(2,0, 'Actual expiration date: '+
+                                                str(exp[0])+'-'+str(exp[1])+'-'+
+                                                str(exp[2]))
+                        except:
+                            pass
+                        finally:
+                            self.stdscr.refresh()
+                    try:
+                        e = self.stdscr.getch()
+                    except KeyboardInterrupt:
+                        e = 4
+                    if e == NL and edit == '':
+                        e = KEY_BACKSPACE
+                        continue
+                y = int(edit)
+                pass_y = True 
+                
+            if pass_mon is False:
+                edit = ''
+                e = KEY_BACKSPACE
+                while e != NL:
+                    if e == KEY_BACKSPACE or e == DEL and len(edit) != 0:
+                        edit = edit[:-1]
+                    elif e == KEY_BACKSPACE or e == DEL:
+                        pass
+                    elif e == -1:
+                        self.del_clipboard()
+                    elif e == 4:
+                        self.del_clipboard()
+                        if self.db is not None:
+                            self.db_close()
+                        self.close()
+                    elif e == KEY_RESIZE:
+                        self.resize_all()
+                    elif e == KEY_F5:
+                        pass_y = False
+                        goto_last = True
+                        break
+                    elif len(edit) < 2 and e >= 48 and e <= 57:
+                        edit += chr(e)
+                    self.draw_text(False,
+                                   (1,0, 'Special date 2999-12-28 means that the '
+                                         'expires never.'),
+                                   (3,0, 'Year: '+str(y)),
+                                   (4,0, 'Month: '+edit))
+                    if exp:
+                        try:
+                            self.stdscr.addstr(2,0, 'Actual expiration date: '+
+                                                str(exp[0])+'-'+str(exp[1])+'-'+
+                                                str(exp[2]))
+                        except:
+                            pass
+                        finally:
+                            self.stdscr.refresh()
+                    try:
+                        e = self.stdscr.getch()
+                    except KeyboardInterrupt:
+                        e = 4
 
-            if e == NL and (int(edit) > 12 or int(edit) < 1):
-                self.draw_text(False,
-                               (1,0, 'Month must be between 1 and 12. Press '
-                                     'any key.'))
-                self.any_key()
-                e = ''
-        mon = int(edit)
+                    if e == NL and edit == '':
+                        e = KEY_BACKSPACE
+                        continue
+                    elif e == NL and (int(edit) > 12 or int(edit) < 1):
+                        self.draw_text(False,
+                                       (1,0, 'Month must be between 1 and 12. Press '
+                                             'any key.'))
+                        self.any_key()
+                        e = ''
+                if goto_last is True:
+                    goto_last = False
+                    continue
+                mon = int(edit)
+                pass_mon = True
 
-        edit = ''
-        e = KEY_BACKSPACE
-        while e != NL:
-            if e == KEY_BACKSPACE  or e == DEL and len(edit) != 0:
-                edit = edit[:-1]
-            elif e == KEY_BACKSPACE or e == DEL:
-                pass
-            elif e == -1:
-                self.del_clipboard()
-            elif e == 4:
-                self.del_clipboard()
-                if self.db is not None:
-                    self.db_close()
-                self.close()
-            elif e == KEY_RESIZE:
-                self.resize_all()
-            elif e == KEY_F5:
-                return False
-            elif len(edit) < 2 and e >= 48 and e <= 57:
-                edit += chr(e)
-            self.draw_text(False,
-                           (1,0, 'Special date 2999-12-28 means that the '
-                                 'expires never.'),
-                           (3,0, 'Year: '+str(y)),
-                           (4,0, 'Month: '+str(mon)),
-                           (5,0, 'Day: '+edit))
-            if exp:
-                try:
-                    self.stdscr.addstr(2,0, 'Actual expiration date: '+
-                                        str(exp[0])+'-'+str(exp[1])+'-'+
-                                        str(exp[2]))
-                except:
+            edit = ''
+            e = KEY_BACKSPACE
+            while e != NL:
+                if e == KEY_BACKSPACE  or e == DEL and len(edit) != 0:
+                    edit = edit[:-1]
+                elif e == KEY_BACKSPACE or e == DEL:
                     pass
-                finally:
-                    self.stdscr.refresh()
-            try:
-                e = self.stdscr.getch()
-            except KeyboardInterrupt:
-                e = 4
-           
-            if (e == NL and (mon == 1 or mon == 3 or mon == 5 or mon == 7 or
-                mon == 8 or mon == 10 or mon == 12) and (int(edit) > 31 or
-                int(edit) < 0)):
+                elif e == -1:
+                    self.del_clipboard()
+                elif e == 4:
+                    self.del_clipboard()
+                    if self.db is not None:
+                        self.db_close()
+                    self.close()
+                elif e == KEY_RESIZE:
+                    self.resize_all()
+                elif e == KEY_F5:
+                    pass_mon = False
+                    goto_last = True
+                    break
+                elif len(edit) < 2 and e >= 48 and e <= 57:
+                    edit += chr(e)
                 self.draw_text(False,
-                               (1,0, 'Day must be between 1 and 31. Press '
-                                     'any key.'))
-                self.any_key()
-                e = ''
-            elif (e == NL and mon == 2 and (int(edit) > 28 or int(edit) < 0)):
-                self.draw_text(False,
-                               (1,0, 'Day must be between 1 and 28. Press '
-                                     'any key.'))
-                self.any_key()
-                e = ''
-            elif (e == NL and (mon == 4 or mon == 6 or mon == 9 or
-                  mon == 11) and (int(edit) > 30 or int(edit) < 0)):
-                self.draw_text(False,
-                               (1,0, 'Day must be between 1 and 30. Press '
-                                     'any key.'))
-                self.any_key()
-                e = ''
-        d = int(edit)
-        return y, mon, d
+                               (1,0, 'Special date 2999-12-28 means that the '
+                                     'expires never.'),
+                               (3,0, 'Year: '+str(y)),
+                               (4,0, 'Month: '+str(mon)),
+                               (5,0, 'Day: '+edit))
+                if exp:
+                    try:
+                        self.stdscr.addstr(2,0, 'Actual expiration date: '+
+                                            str(exp[0])+'-'+str(exp[1])+'-'+
+                                            str(exp[2]))
+                    except:
+                        pass
+                    finally:
+                        self.stdscr.refresh()
+                try:
+                    e = self.stdscr.getch()
+                except KeyboardInterrupt:
+                    e = 4
+               
+                if e == NL and edit == '':
+                    e = KEY_BACKSPACE
+                    continue
+                elif (e == NL and (mon == 1 or mon == 3 or mon == 5 or mon == 7 or
+                    mon == 8 or mon == 10 or mon == 12) and (int(edit) > 31 or
+                    int(edit) < 0)):
+                    self.draw_text(False,
+                                   (1,0, 'Day must be between 1 and 31. Press '
+                                         'any key.'))
+                    self.any_key()
+                    e = ''
+                elif (e == NL and mon == 2 and (int(edit) > 28 or int(edit) < 0)):
+                    self.draw_text(False,
+                                   (1,0, 'Day must be between 1 and 28. Press '
+                                         'any key.'))
+                    self.any_key()
+                    e = ''
+                elif (e == NL and (mon == 4 or mon == 6 or mon == 9 or
+                      mon == 11) and (int(edit) > 30 or int(edit) < 0)):
+                    self.draw_text(False,
+                                   (1,0, 'Day must be between 1 and 30. Press '
+                                         'any key.'))
+                    self.any_key()
+                    e = ''
+            if goto_last is True:
+                goto_last = False
+                pass_mon = False
+                continue
+            d = int(edit)
+            break
+        return (y,mon,d)
 
     def gen_menu(self, misc, *add):
         '''A universal method to generate a menu.
@@ -477,6 +500,13 @@ class App(object):
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last)-1]
         while True:
+            try:
+                handler = open(expanduser('~/.config/keepassc'), 'r')
+                self.last_file = handler.readline() #TODO: Read other configs
+            except:
+                self.last_file = None
+            finally:
+                handler.close()
             menu = self.gen_menu(((1,0, 'Open existing database (1)'),
                                   (2,0, 'Create new database (2)'),
                                   (3,0, 'Quit (3)')),
@@ -489,45 +519,59 @@ class App(object):
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last)-1]
             elif menu == 2:
-                auth = self.gen_menu((
-                       (1,0, 'Use a password (1)'),
-                       (2,0, 'Use a keyfile (2)'),
-                       (3,0, 'Use both (3)')))
-                self.db = KPDB(new = True)
-                if auth == 2 or auth == 3:
-                    while True:
-                        ret = self.get_filepath(False, True)
-                        if ret is False:
-                            break
-                        elif not isfile(self.db.keyfile):
-                            self.draw_text(False,
-                                           (1,0, 'That\' not a file!'),
-                                           (3,0, 'Press any key'))
-                            self.any_key()
-                            continue
+                while True:
+                    auth = self.gen_menu((
+                           (1,0, 'Use a password (1)'),
+                           (2,0, 'Use a keyfile (2)'),
+                           (3,0, 'Use both (3)')))
+                    self.db = KPDB(new = True)
+                    if auth is False:
                         break
-                    if ret is False: continue;
-                    self.db.keyfile = ret
-                    if auth != 3: self.db.password = None;
-                if auth == 1 or auth == 3:
-                    while True:
-                        password = self.get_password('Password: ')
-                        confirm = self.get_password('Confirm: ')
-                        if password == confirm:
-                            self.db.password = password
+                    if auth == 1 or auth == 3:
+                        while True:
+                            password = self.get_password('Password: ')
+                            if password is False:
+                                break
+                            confirm = self.get_password('Confirm: ')
+                            if confirm is False:
+                                break
+                            if password == confirm:
+                                self.db.password = password
+                                break
+                            else:
+                                self.draw_text(False,
+                                               (1,0, 'Passwords didn\' match!'),
+                                               (3,0, 'Press any key'))
+                                self.any_key()
+                        if auth != 3: 
+                            self.db.keyfile = None
+                    if password is False or confirm is False:
+                        continue
+                    if auth == 2 or auth == 3:
+                        while True:
+                            filepath = self.get_filepath(False, True)
+                            if filepath is False:
+                                break
+                            elif not isfile(filepath):
+                                self.draw_text(False,
+                                               (1,0, 'That\' not a file!'),
+                                               (3,0, 'Press any key'))
+                                self.any_key()
+                                continue
                             break
-                        else:
-                            self.draw_text(False,
-                                           (1,0, 'Passwords didn\' match!'),
-                                           (3,0, 'Press any key'))
-                            self.any_key()
-                    if auth != 3: self.db.keyfile = None;
-                if auth is not False:
-                    self.db_browser()
-                    last = self.cur_dir.split('/')[-1]
-                    self.cur_dir = self.cur_dir[:-len(last)-1]
-                else:
-                    self.db = None
+                        if filepath is False:
+                            continue
+                        self.db.keyfile = filepath
+                        if auth != 3: 
+                            self.db.password = None
+
+                    if auth is not False:
+                        self.db_browser()
+                        last = self.cur_dir.split('/')[-1]
+                        self.cur_dir = self.cur_dir[:-len(last)-1]
+                    else:
+                        self.db = None
+                    break
             elif menu == 3 or menu is False:
                 self.del_clipboard()
                 if self.db is not None:
@@ -537,41 +581,44 @@ class App(object):
     def open_db(self):
         ''' This method opens a database.'''
 
-        if self.last_file is None:
-            nav = self.gen_menu((
-                    (1,0, 'Use the file browser (1)'),
-                    (2,0, 'Type direct path (2)')))
-        else:
-            nav = self.gen_menu((
-                    (1,0, 'Use the file browser (1)'),
-                    (2,0, 'Type direct path (2)'),
-                    (3,0, 'Use '+self.last_file+' (3)')))
-        if nav == 2:
-            while True:
+        while True:
+            if self.last_file is None:
+                nav = self.gen_menu((
+                        (1,0, 'Use the file browser (1)'),
+                        (2,0, 'Type direct path (2)')))
+            else:
+                nav = self.gen_menu((
+                        (1,0, 'Use the file browser (1)'),
+                        (2,0, 'Type direct path (2)'),
+                        (3,0, 'Use '+self.last_file+' (3)')))
+            if nav == 1:
+                filepath = self.browser()
+                if filepath is False:
+                    continue
+                self.cur_dir = filepath
+                if self.open_file() is False:
+                    continue
+            elif nav == 2:
                 filepath = self.get_direct_filepath()
-                if filepath[-4:] != '.kdb' or isdir(filepath):
+                if filepath is False:
+                    continue
+                elif filepath[-4:] != '.kdb' or isdir(filepath):
                     self.draw_text(False,
                                    (1,0, 'Need path to a kdb-file!'),
                                    (3,0, 'Press any key'))
                     self.any_key()
-                    return False
+                    continue
                 else:
                     self.cur_dir = filepath
                     if self.open_file() is True:
                         break
-        elif nav == 3:
-            self.cur_dir = self.last_file
-            if self.open_file() is False:
+            elif nav == 3:
+                self.cur_dir = self.last_file
+                if self.open_file() is False:
+                    continue
+            else:
                 return False
-        elif nav is False:
-            return False
-        else:
-            filepath = self.browser()
-            if filepath is False:
-                return False
-            self.cur_dir = filepath
-            if self.open_file() is False:
-                return False
+            break
 
     def get_filepath(self, ask_for_lf = True, keyfile = False):
         '''This method is used to get a filepath, e.g. for 'Save as' '''
@@ -588,7 +635,9 @@ class App(object):
         if nav == 2:
             while True:
                 filepath = self.get_direct_filepath()
-                if ((filepath[-4:] != '.kdb' or isdir(filepath)) and 
+                if filepath is False:
+                    return False
+                elif ((filepath[-4:] != '.kdb' or isdir(filepath)) and 
                     keyfile is False):
                     self.draw_text(False,
                                    (1,0, 'Need path to a kdb-file!'),
@@ -936,26 +985,37 @@ class App(object):
         self.stdscr.refresh()
 
     def open_file(self):
-        auth = self.gen_menu((
-               (1,0, 'Use a password (1)'),
-               (2,0, 'Use a keyfile (2)'),
-               (3,0, 'Use both (3)')))
-        if auth is False:
-            return False
-        if auth == 1 or auth == 3:
-            password = self.get_password('Password: ')
-            if auth != 3: keyfile = None;
-        if auth == 2 or auth == 3:
-            while True:
-                keyfile = self.get_filepath(False, True)
-                if not isfile(keyfile):
-                    self.draw_text(False,
-                                   (1,0, 'That\'s not a file'),
-                                   (3,0, 'Press any key.'))
-                    self.any_key()
+        while True:
+            auth = self.gen_menu((
+                   (1,0, 'Use a password (1)'),
+                   (2,0, 'Use a keyfile (2)'),
+                   (3,0, 'Use both (3)')))
+            if auth is False:
+                return False
+            if auth == 1 or auth == 3:
+                password = self.get_password('Password: ')
+                if password is False:
                     continue
-                break
-            if auth != 3: password = None
+                if auth != 3: keyfile = None;
+            if auth == 2 or auth == 3:
+                # Ugly construct but works
+                # "if keyfile is False" stuff is needed to implement the
+                # return to previous screen stuff
+                while True:
+                    keyfile = self.get_filepath(False, True)
+                    if keyfile is False:
+                        break
+                    elif not isfile(keyfile):
+                        self.draw_text(False,
+                                       (1,0, 'That\'s not a file'),
+                                       (3,0, 'Press any key.'))
+                        self.any_key()
+                        continue
+                    break
+                if keyfile is False:
+                    continue
+                if auth != 3: password = None
+            break
         try:
             if isfile(self.cur_dir+'.lock'):
                 self.draw_text(False,
@@ -1259,6 +1319,9 @@ class App(object):
                         if url[:7] != 'http://' and url[:8] != 'https://':
                             url = 'http://'+url
                         webbrowser.open(url)
+                # To prevent the stuff webbrowser.open() writes
+                self.show_entries(e_highlight, entries, cur_win, e_offset,
+                                  hide)
             elif c == -1:
                 self.del_clipboard()
             elif c == ord('s'):
@@ -1369,17 +1432,23 @@ class App(object):
                         continue
                     if auth == 1 or auth == 3:
                         password = self.get_password('Password: ')
+                        if password is False:
+                            continue
                         if auth != 3: keyfile = None;
                     if auth == 2 or auth == 3:
                         while True:
                             keyfile = self.get_direct_filepath()
-                            if not isfile(keyfile):
+                            if keyfile is False:
+                                break
+                            elif not isfile(keyfile):
                                 self.draw_text(changed,
                                                (1,0, 'That\'s not a file'),
                                                (3,0, 'Press any key.'))
                                 self.any_key()
                                 continue
                             break
+                        if keyfile is False:
+                            continue
                         if auth != 3: password = None
                     try:
                         self.db.unlock(password, keyfile)
@@ -1405,87 +1474,60 @@ class App(object):
                         break
             # DB editing
             elif c == ord('P'):
-                auth = self.gen_menu((
-                       (1,0, 'Use a password (1)'),
-                       (2,0, 'Use a keyfile (2)'),
-                       (3,0, 'Use both (3)')))
-                if auth is False:
-                    self.show_groups(g_highlight, groups, cur_win, g_offset,
-                                     changed)
-                    self.show_entries(e_highlight, entries, cur_win,
-                                      e_offset, hide)
-                    continue
-                if auth == 2 or auth == 3:
-                    while True:
-                        ret = self.get_filepath(False, True)
-                        if not isfile(ret):
-                            self.draw_text(changed,
-                                           (1,0,"That's not a file!"),
-                                           (3,0,'Press any key.'))
-                            self.any_key()
+                while True:
+                    auth = self.gen_menu((
+                           (1,0, 'Use a password (1)'),
+                           (2,0, 'Use a keyfile (2)'),
+                           (3,0, 'Use both (3)')))
+                    if auth == 2 or auth == 3:
+                        while True:
+                            filepath = self.get_filepath(False, True)
+                            if not isfile(filepath):
+                                self.draw_text(changed,
+                                               (1,0,"That's not a file!"),
+                                               (3,0,'Press any key.'))
+                                self.any_key()
+                                continue
+                            break
+                        if filepath is False:
                             continue
-                        break
-                    if ret is False: continue;
-                    self.db.keyfile = ret
-                    changed = True
-                    if auth != 3: self.db.password = None;
-                if auth == 1 or auth == 3:
-                    password = self.get_password('New Password: ')
-                    confirm = self.get_password('Confirm: ')
-                    
-                    if password == confirm:
-                        self.db.password = password
+                        self.db.keyfile = ret
                         changed = True
-                    else:
-                        try:
-                            self.stdscr.addstr(3,0, 'Passwords didn\'t match. '
-                                                    'Press any key.')
-                        except:
-                            pass
-                        self.any_key()
-                    if auth != 3: self.db.keyfile = None;
+                        if auth != 3: self.db.password = None;
+                    if auth == 1 or auth == 3:
+                        password = self.get_password('New Password: ')
+                        if password is False:
+                            continue
+                        confirm = self.get_password('Confirm: ')
+                        if confirm is False:
+                            continue
+                        if password == confirm:
+                            self.db.password = password
+                            changed = True
+                        else:
+                            try:
+                                self.stdscr.addstr(3,0, 'Passwords didn\'t match. '
+                                                        'Press any key.')
+                            except:
+                                pass
+                            self.any_key()
+                        if auth != 3: self.db.keyfile = None;
                 self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                 self.show_entries(e_highlight, entries, cur_win, e_offset,
                                   hide)
             elif c == ord('g'):
                 edit = self.get_string('', 'Title: ')
-                if groups:
-                    old_group = groups[g_highlight]
-                else:
-                    old_group = None
-
-                try: 
-                    if self.cur_root is self.db._root_group:
-                        self.db.create_group(edit)
+                if edit is not False:
+                    if groups:
+                        old_group = groups[g_highlight]
                     else:
-                        self.db.create_group(edit, self.cur_root)
-                except KPError as err:
-                    self.draw_text(changed,
-                                   (1,0, err.__str__()),
-                                   (4,0, 'Press any key.'))
-                    self.any_key()
-                else:
-                    changed = True
-                groups = sorted(self.cur_root.children,
-                                key = lambda group: group.title.lower())
-                if groups and groups[g_highlight].entries:
-                    entries = sorted(groups[g_highlight].entries,
-                                     key = lambda entry: entry.title.lower())
-                else:
-                    entries = []
-                if (groups and (groups[g_highlight] is not old_group) and
-                    old_group is not None):
-                    g_highlight = groups.index(old_group)
-                self.show_groups(g_highlight, groups, cur_win, g_offset,
-                                 changed)
-                self.show_entries(e_highlight, entries, cur_win, e_offset,
-                                  hide)
-            elif c == ord('G'):
-                if groups:
-                    edit = self.get_string('', 'Title: ')
+                        old_group = None
 
                     try: 
-                        self.db.create_group(edit, groups[g_highlight])
+                        if self.cur_root is self.db._root_group:
+                            self.db.create_group(edit)
+                        else:
+                            self.db.create_group(edit, self.cur_root)
                     except KPError as err:
                         self.draw_text(changed,
                                        (1,0, err.__str__()),
@@ -1493,6 +1535,33 @@ class App(object):
                         self.any_key()
                     else:
                         changed = True
+                    groups = sorted(self.cur_root.children,
+                                    key = lambda group: group.title.lower())
+                    if groups and groups[g_highlight].entries:
+                        entries = sorted(groups[g_highlight].entries,
+                                         key = lambda entry: entry.title.lower())
+                    else:
+                        entries = []
+                    if (groups and (groups[g_highlight] is not old_group) and
+                        old_group is not None):
+                        g_highlight = groups.index(old_group)
+                self.show_groups(g_highlight, groups, cur_win, g_offset,
+                                 changed)
+                self.show_entries(e_highlight, entries, cur_win, e_offset,
+                                  hide)
+            elif c == ord('G'):
+                if groups:
+                    edit = self.get_string('', 'Title: ')
+                    if edit is not False:
+                        try: 
+                            self.db.create_group(edit, groups[g_highlight])
+                        except KPError as err:
+                            self.draw_text(changed,
+                                           (1,0, err.__str__()),
+                                           (4,0, 'Press any key.'))
+                            self.any_key()
+                        else:
+                            changed = True
                     self.show_groups(g_highlight, groups, cur_win, g_offset, 
                                      changed)
                     self.show_entries(e_highlight, entries, cur_win,
@@ -1507,53 +1576,105 @@ class App(object):
                                    (1,0, 'At least one of the following attributes '
                                     'must be given. Press any key'))
                     self.any_key()
-                    title = self.get_string('', 'Title: ')
-                    url = self.get_string('', 'URL: ')
-                    username = self.get_string('', 'Username: ')
-                    password = self.get_password('Password: ', False)
-                    if password != '':
-                        confirm = self.get_password('Confirm: ', False)
-                    else:
-                        confirm = ''
 
-                    if password != confirm:
-                        self.draw_text(changed,
-                                       (1,0, 'Passwords didn\'t match. Will '
-                                             'not set this attribute. Press '
-                                             'any key.'))
-                        self.any_key()
-                        password = ''
-                    comment = self.get_string('', 'Comment: ')
-                    
-                    self.draw_text(changed,
-                                   (1,0, 'Set expiration date? [y/(n)]'))
+                    pass_title = False
+                    pass_url = False
+                    pass_username = False
+                    pass_password = False
+                    pass_confirm = False
+                    pass_comment = False
+                    goto_last = False
                     while True:
-                        try:
-                            e = self.stdscr.getch()
-                        except KeyboardInterrupt:
-                            e = 4
+                        if pass_title is False:
+                            title = self.get_string('', 'Title: ')
+                        if title is False:
+                            break
+                        pass_title = True
 
-                        if e == ord('y'):
-                            y, mon, d = self.get_exp_date()
-                            break
-                        elif e == 4:
-                            self.del_clipboard()
-                            if self.db is not None:
-                                self.db_close()
-                            self.close()
-                        elif e == -1:
-                            self.del_clipboard()
-                        elif e == KEY_RESIZE:
-                            self.resize_all()
+                        if pass_url is False:
+                            url = self.get_string('', 'URL: ')
+                        if url is False:
+                            pass_title = False
+                            continue
+                        pass_url = True
+
+                        if pass_username is False:
+                            username = self.get_string('', 'Username: ')
+                        if username is False:
+                            pass_url = False
+                            continue
+                        pass_username = True
+
+                        if pass_password is False:
+                            password = self.get_password('Password: ', False)
+                        if password is False:
+                            pass_username = False
+                            continue
+                        pass_password = True
+
+                        if password != '' and (pass_confirm is False):
+                            confirm = self.get_password('Confirm: ', False)
                         else:
-                            y = 2999
-                            mon = 12
-                            d = 28
-                            break
+                            confirm = ''
+                        if confirm is False:
+                            pass_password = False
+                            continue
+                        pass_confirm = True
+
+                        if password != confirm:
+                            self.draw_text(changed,
+                                           (1,0, 'Passwords didn\'t match. Will '
+                                                 'not set this attribute. Press '
+                                                 'any key.'))
+                            self.any_key()
+                            password = ''
+
+                        if pass_comment is False:
+                            comment = self.get_string('', 'Comment: ')
+                        if comment is False:
+                            pass_password = False
+                            pass_confirm = False
+                            continue
+                        pass_comment = True
+                        
+                        self.draw_text(changed,
+                                       (1,0, 'Set expiration date? [y/(n)]'))
+                        while True:
+                            try:
+                                e = self.stdscr.getch()
+                            except KeyboardInterrupt:
+                                e = 4
+
+                            if e == ord('y'):
+                                date = self.get_exp_date()
+                                break
+                            elif e == 4:
+                                self.del_clipboard()
+                                if self.db is not None:
+                                    self.db_close()
+                                self.close()
+                            elif e == -1:
+                                self.del_clipboard()
+                            elif e == KEY_RESIZE:
+                                self.resize_all()
+                            elif e == KEY_F5:
+                                pass_comment = False
+                                goto_last = True
+                                break
+                            else:
+                                date = (2999,12,28)
+                                break
+                        if goto_last is True:
+                            goto_last = False
+                            continue
+                        if date is False:
+                            pass_comment = False
+                            continue
+                        break
                     try:
                         groups[g_highlight].create_entry(title, 1, url,
                                                          username, password,
-                                                         comment, y, mon, d)
+                                                         comment, date[0],date[1],date[2])
                         changed = True
                     except KPError as err:
                         self.draw_text(changed,
@@ -1668,6 +1789,7 @@ class App(object):
                                          key = lambda entry: entry.title.lower())
                     else:
                         entries = []
+                        cur_win = 0
                     self.show_groups(g_highlight, groups, cur_win, g_offset, 
                                      changed)
                     self.show_entries(e_highlight, entries, cur_win,
@@ -1675,31 +1797,32 @@ class App(object):
             elif c == ord('f'):
                 if self.db._entries:
                     title = self.get_string('', 'Title: ')
-                    for i in self.db.groups:
-                        if i.id_ == 0:
-                            i.parent.children.remove(i)
-                            self.db.groups.remove(i)
-                            break
-                    self.db.create_group('Results')
-                    self.db.groups[-1].id_ = 0
-                    for i in self.db._entries:
-                        if title.lower() in i.title.lower():
-                            self.db.groups[-1].entries.append(i)
-                            cur_win = 1
-                    self.cur_root = self.db._root_group
-                    groups = sorted(self.cur_root.children,
-                                    key = lambda group: group.title.lower())
-                    for i in groups:
-                        if i.id_ == 0:
-                            groups.remove(i)
-                            groups.append(i)
-                    g_highlight = len(groups)-1
-                    if groups and groups[-1].entries:
-                        entries = sorted(groups[-1].entries,
-                                         key = lambda entry: entry.title.lower())
-                    else:
-                        entries = []
-                    e_highlight = 0
+                    if title is not False:
+                        for i in self.db.groups:
+                            if i.id_ == 0:
+                                i.parent.children.remove(i)
+                                self.db.groups.remove(i)
+                                break
+                        self.db.create_group('Results')
+                        self.db.groups[-1].id_ = 0
+                        for i in self.db._entries:
+                            if title.lower() in i.title.lower():
+                                self.db.groups[-1].entries.append(i)
+                                cur_win = 1
+                        self.cur_root = self.db._root_group
+                        groups = sorted(self.cur_root.children,
+                                        key = lambda group: group.title.lower())
+                        for i in groups:
+                            if i.id_ == 0:
+                                groups.remove(i)
+                                groups.append(i)
+                        g_highlight = len(groups)-1
+                        if groups and groups[-1].entries:
+                            entries = sorted(groups[-1].entries,
+                                             key = lambda entry: entry.title.lower())
+                        else:
+                            entries = []
+                        e_highlight = 0
                     self.show_groups(g_highlight, groups, cur_win, g_offset, 
                                      changed)
                     self.show_entries(e_highlight, entries, cur_win, 
@@ -1730,49 +1853,57 @@ class App(object):
                     edit = self.get_string(edit, std)
                     changed = True
 
-                    if c == ord('t'):
-                        if cur_win == 0:
-                            groups[g_highlight].set_title(edit)
-                        elif cur_win == 1:
-                            entries[e_highlight].set_title(edit)
-                    elif c == ord('u'):
-                        entries[e_highlight].set_username(edit)
-                    elif c == ord('U'):
-                        entries[e_highlight].set_url(edit)
-                    elif c == ord('C'):
-                        entries[e_highlight].set_comment(edit)
+                    if edit is not False:
+                        if c == ord('t'):
+                            if cur_win == 0:
+                                groups[g_highlight].set_title(edit)
+                            elif cur_win == 1:
+                                entries[e_highlight].set_title(edit)
+                        elif c == ord('u'):
+                            entries[e_highlight].set_username(edit)
+                        elif c == ord('U'):
+                            entries[e_highlight].set_url(edit)
+                        elif c == ord('C'):
+                            entries[e_highlight].set_comment(edit)
                     self.show_groups(g_highlight, groups, cur_win, g_offset, 
                                      changed)
                     self.show_entries(e_highlight, entries, cur_win,
                                       e_offset, hide)
             elif c == ord('p'):
                 if entries:
-                    password = self.get_password('Password: ')
-                    confirm = self.get_password('Confirm: ')
-                    
-                    if password == confirm:
-                        entries[e_highlight].set_password(password)
-                        changed = True
-                    else:
-                        try:
-                            self.stdscr.addstr(3,0, 'Passwords didn\'t match. '
-                                                    'Press any key.')
-                        except:
-                            pass
-                        self.any_key()
+                    while True:
+                        password = self.get_password('Password: ')
+                        if password is False:
+                            break
+                        confirm = self.get_password('Confirm: ')
+                        if confirm is False:
+                            continue
+                        
+                        if password == confirm:
+                            entries[e_highlight].set_password(password)
+                            changed = True
+                            break
+                        else:
+                            try:
+                                self.stdscr.addstr(3,0, 'Passwords didn\'t match. '
+                                                        'Press any key.')
+                            except:
+                                pass
+                            self.any_key()
+                            break
                     self.show_groups(g_highlight, groups, cur_win, g_offset, 
                                      changed)
-                    if entries:
-                        self.show_entries(e_highlight, entries, cur_win,
-                                          e_offset, hide)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
             elif c == ord('E'):
                 if entries:
                     exp = entries[e_highlight].expire.timetuple()
-                    y, mon, d = self.get_exp_date(exp[0], exp[1], exp[2])
+                    date = self.get_exp_date(exp[0], exp[1], exp[2])
 
-                    entries[e_highlight].set_expire(y, mon, d, 
-                                                    exp[3], exp[4], exp[5])
-                    changed = True
+                    if date is not False:
+                        entries[e_highlight].set_expire(date[0],date[1],date[2], 
+                                                        exp[3], exp[4], exp[5])
+                        changed = True
                     self.show_groups(g_highlight, groups, cur_win, g_offset, 
                                      changed)
                     self.show_entries(e_highlight, entries, cur_win,
@@ -2114,5 +2245,6 @@ if __name__ == '__main__':
             app = App()
             wrapper(app.main_loop(filepath))
         else:
-            app = main.App()
-            wrapper(ain_loop())
+            app = App()
+            wrapper(app.main_loop())
+
