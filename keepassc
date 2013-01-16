@@ -612,15 +612,15 @@ class App(object):
                     continue
                 else:
                     self.cur_dir = filepath
-                    if self.open_file() is True:
-                        break
+                    if self.open_file() is False:
+                        continue
             elif nav == 3:
                 self.cur_dir = self.last_file
                 if self.open_file() is False:
                     continue
             else:
                 return False
-            break
+            return True
 
     def get_filepath(self, ask_for_lf = True, keyfile = False):
         '''This method is used to get a filepath, e.g. for 'Save as' '''
