@@ -511,7 +511,9 @@ class App(object):
                                   (2,0, 'Create new database (2)'),
                                   (3,0, 'Quit (3)')),
                                   (5,0, 'Type \'F1\' for help inside the file '
-                                        'or database browser.'))
+                                        'or database browser.'),
+                                  (6,0, 'Type \'F5\' to return to the previous'
+                                        'dialog at any time'))
             if menu == 1:
                 if self.open_db() is False:
                     continue
