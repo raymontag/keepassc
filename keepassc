@@ -1221,6 +1221,7 @@ class App(object):
                 if changed is True:
                     self.draw_text(changed, 
                                    (1,0, 'File has changed. Save? [(y)/n]'))
+                    no_exit = False
                     while True:
                         try:
                             e = self.stdscr.getch()
@@ -1270,6 +1271,7 @@ class App(object):
                 self.del_clipboard()
                 if changed is True:
                     self.draw_text(changed, (1,0, 'File has changed. Save? [(y)/n]'))
+                    no_exit = False
                     while True:
                         try:
                             e = self.stdscr.getch()
@@ -1409,6 +1411,7 @@ class App(object):
                 if changed is True:
                     self.draw_text(changed,
                                    (1,0, 'File has changed. Save? [(y)/n]'))
+                    no_lock = False
                     while True:
                         try:
                             e = self.stdscr.getch()
