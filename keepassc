@@ -1235,6 +1235,9 @@ class App(object):
                             self.del_clipboard()
                         elif e == KEY_RESIZE:
                             self.resize_all()
+                        elif e == KEY_F5:
+                            no_exit = True
+                            break
                         elif e == ord('n'):
                             break
                         else:
@@ -1246,6 +1249,13 @@ class App(object):
                             else:
                                 self.save(False)
                             break
+                    if no_exit is True:
+                        self.show_groups(g_highlight, groups, cur_win, g_offset, 
+                                         changed)
+                        self.show_entries(e_highlight, entries, cur_win,
+                                          e_offset, hide)
+                        continue
+                        
                 self.del_clipboard()
                 self.db_close()
                 self.group_win.clear()
@@ -1276,6 +1286,9 @@ class App(object):
                             self.resize_all()
                         elif e == ord('n'):
                             break
+                        elif e == KEY_F5:
+                            no_exit = True
+                            break
                         else:
                             if self.db.filepath is None:
                                 filepath = self.get_filepath()
@@ -1285,6 +1298,12 @@ class App(object):
                             else:
                                 self.save(False)
                             break
+                    if no_exit is True:
+                        self.show_groups(g_highlight, groups, cur_win, g_offset, 
+                                         changed)
+                        self.show_entries(e_highlight, entries, cur_win,
+                                          e_offset, hide)
+                        continue
                 self.db_close()
                 self.close()
             elif c == ord('c'):
@@ -1404,6 +1423,9 @@ class App(object):
                             self.del_clipboard()
                         elif e == KEY_RESIZE:
                             self.resize_all()
+                        elif e == KEY_F5:
+                            no_lock = True
+                            break
                         elif e == ord('n'):
                             break
                         else:
@@ -1417,6 +1439,12 @@ class App(object):
                                 self.save(False)
                                 changed = False
                             break
+                if no_lock is True:
+                    self.show_groups(g_highlight, groups, cur_win, g_offset,
+                                     changed)
+                    self.show_entries(e_highlight, entries, cur_win,
+                                      e_offset, hide)
+                    continue
                 self.del_clipboard()
                 if self.db.filepath is None:
                     self.draw_text(changed,
@@ -1514,6 +1542,7 @@ class App(object):
                                 pass
                             self.any_key()
                         if auth != 3: self.db.keyfile = None;
+                    break
                 self.show_groups(g_highlight, groups, cur_win, g_offset, changed)
                 self.show_entries(e_highlight, entries, cur_win, e_offset,
                                   hide)
