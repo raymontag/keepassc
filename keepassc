@@ -103,13 +103,16 @@ class App(object):
         self.info_win.mvwin(int(2*(self.ysize-1)/3), int(self.xsize/3))
 
     def del_clipboard(self):
-        cb_p = Popen('xsel', stdout = PIPE)
-        cb = cb_p.stdout.read().decode()
-        if self.del_cb is True and cb == self.cb:
-            Popen(['xsel', '-pc'])
-            Popen(['xsel', '-bc'])
-            self.cb = None
-            self.del_cb = False
+        try:
+            cb_p = Popen('xsel', stdout = PIPE)
+            cb = cb_p.stdout.read().decode()
+            if self.del_cb is True and cb == self.cb:
+                Popen(['xsel', '-pc'])
+                Popen(['xsel', '-bc'])
+                self.cb = None
+                self.del_cb = False
+        except FileNotFoundError:
+            pass
             
     def any_key(self):
         '''If any key is needed.'''
@@ -1432,28 +1435,36 @@ class App(object):
                 if entries:
                     entry = entries[e_highlight]
                     if entry.password is not None:
-                        Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
-                        Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
-                        p = entry.password
-                        (Popen(['xsel', '-pi'], stdin = PIPE, stderr = PIPE,
-                         stdout = PIPE).communicate(p.encode()))
-                        (Popen(['xsel', '-bi'], stdin = PIPE, stderr = PIPE,
-                         stdout = PIPE).communicate(p.encode()))
-                        self.cb = entry.password
-                        self.del_cb = True
+                        try:
+                            Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                            Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
+                            p = entry.password
+                            (Popen(['xsel', '-pi'], stdin = PIPE, stderr = PIPE,
+                             stdout = PIPE).communicate(p.encode()))
+                            (Popen(['xsel', '-bi'], stdin = PIPE, stderr = PIPE,
+                             stdout = PIPE).communicate(p.encode()))
+                        except FileNotFoundError:
+                            pass
+                        else:
+                            self.cb = entry.password
+                            self.del_cb = True
             elif c == ord('b'):
                 if entries:
                     entry = entries[e_highlight]
                     if entry.username is not None:
-                        Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
-                        Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
-                        p = entry.username
-                        (Popen(['xsel', '-pi'], stdin = PIPE, stderr = PIPE,
-                         stdout = PIPE).communicate(p.encode()))
-                        (Popen(['xsel', '-bi'], stdin = PIPE, stderr = PIPE,
-                         stdout = PIPE).communicate(p.encode()))
-                        self.cb = entry.username
-                        self.del_cb = True
+                        try:
+                            Popen(['xsel', '-pc'], stderr = PIPE, stdout = PIPE)
+                            Popen(['xsel', '-bc'], stderr = PIPE, stdout = PIPE)
+                            p = entry.username
+                            (Popen(['xsel', '-pi'], stdin = PIPE, stderr = PIPE,
+                             stdout = PIPE).communicate(p.encode()))
+                            (Popen(['xsel', '-bi'], stdin = PIPE, stderr = PIPE,
+                             stdout = PIPE).communicate(p.encode()))
+                        except FileNotFoundError:
+                            pass
+                        else:
+                            self.cb = entry.username
+                            self.del_cb = True
             elif c == ord('o'):
                 if entries:
                     entry = entries[e_highlight]
