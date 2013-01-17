@@ -22,7 +22,7 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 import webbrowser
 from curses import *
 from _curses import error
-from curses.ascii import NL, DEL
+from curses.ascii import NL, DEL, SP
 from datetime import date
 from getpass import getpass
 from optparse import OptionParser
@@ -246,6 +246,33 @@ class App(object):
                     password = password[:-1]
         return password
 
+    def gen_pass(self):
+        while True:
+            items = self.gen_check_menu(((1,0, 'Include numbers'),
+                                           (2,0, 'Enforce capitalized letters'),
+                                           (3,0, 'Include special symbols')),
+                                           (5,0, 'Type space to un-/check'),
+                                           (6,0, 'Type enter to enter options'))
+            if items is False:
+                return False
+            length = self.get_num('Password length: ')
+            if length is False:
+                continue
+            options = '-s'
+            if options[0] == 0:
+                options += '0'
+            else:
+                options += 'n'
+            if options[1] == 0:
+                options += 'A'
+            else:
+                options += 'c'
+            if options[2] == 1:
+                options += 'y'
+
+            return (Popen(['pwgen', options, str(length), '1'], 
+                              stdout = PIPE).stdout.read().decode()[:-1])
+
     def get_exp_date(self, *exp):
         '''This method is used to get an expiration date for entries.
 
@@ -432,6 +459,38 @@ class App(object):
             break
         return (y,mon,d)
 
+    def get_num(self, std = '', edit = ''):
+        edit = ''
+        e = KEY_BACKSPACE
+        while e != NL:
+            if e == KEY_BACKSPACE and len(edit) != 0:
+                edit = edit[:-1]
+            elif e == KEY_BACKSPACE or e == DEL:
+                pass
+            elif e == -1:
+                self.del_clipboard()
+            elif e == 4:
+                self.del_clipboard()
+                if self.db is not None:
+                    self.db_close()
+                self.close()
+            elif e == KEY_RESIZE:
+                self.resize_all()
+            elif e == KEY_F5:
+                return False
+            elif len(edit) < 4 and e >= 48 and e <= 57:
+                edit += chr(e)
+            self.draw_text(False,
+                           (1,0, std+edit))
+            try:
+                e = self.stdscr.getch()
+            except KeyboardInterrupt:
+                e = 4
+            if e == NL and edit == '':
+                e = KEY_BACKSPACE
+                continue
+        return int(edit)
+
     def gen_menu(self, misc, *add):
         '''A universal method to generate a menu.
 
@@ -489,6 +548,66 @@ class App(object):
                 highlight -= 1
             elif 49 <= e <= 48 + len(misc): # ASCII(49) = 1 ...
                 return e - 48
+
+    def gen_check_menu(self, misc, *add):
+        if len(misc) == 0:
+            return False
+        items = []
+        for i in range(len(misc)):
+            items.append(0)
+        highlight = 1
+        h_color = 6
+        n_color = 1
+        e = ''
+        while e != NL:
+            try:
+                self.stdscr.clear()
+                self.stdscr.addstr(0,0, self.loginname+'@'+self.hostname+':', 
+                                   color_pair(2))
+                self.stdscr.addstr(0,
+                                   len(self.loginname+'@'+self.hostname+':'),
+                                   self.cur_dir)
+                for i,j,k in misc:
+                    if items[i-1] == 0:
+                        check = '[ ]'
+                    else:
+                        check = '[X]'
+                    if i == highlight:
+                        self.stdscr.addstr(i,j,check+k, color_pair(h_color))
+                    else:
+                        self.stdscr.addstr(i,j,check+k, color_pair(n_color))
+                for i,j,k in add:
+                    self.stdscr.addstr(i,j,k)
+            except:
+                pass
+            finally:
+                self.stdscr.refresh()
+            try:
+                e = self.stdscr.getch()
+            except KeyboardInterrupt:
+                e = 4
+            if e == -1:
+                self.del_clipboard()
+            elif e == 4:
+                self.del_clipboard()
+                if self.db is not None:
+                    self.db_close()
+                self.close()
+            elif e == KEY_RESIZE:
+                self.resize_all()
+            elif e == KEY_F5:
+                return False
+            elif e == SP:
+                if items[highlight-1] == 0:
+                    items[highlight-1] = 1
+                else:
+                    items[highlight-1] = 0
+            elif e == KEY_DOWN and highlight < len(misc):
+                highlight += 1
+            elif e == KEY_UP and highlight > 1:
+                highlight -= 1
+            elif e == NL:
+                return items
 
     def main_loop(self, kdb_file = None):
         '''The main loop. The program alway return to this method.'''
@@ -1168,6 +1287,7 @@ class App(object):
                 print('\'f\' - find entry by title')
                 print('\'L\' - lock db')
                 print('Navigate with arrow keys or h/j/k/l like in vim')
+                print('Type \'F5\' in a dialog to return to the previous one')
                 print('Type \'return\' to enter subgroups')
                 print('Type \'backspace\' to go back')
                 try:
@@ -1342,9 +1462,6 @@ class App(object):
                         if url[:7] != 'http://' and url[:8] != 'https://':
                             url = 'http://'+url
                         webbrowser.open(url)
-                # To prevent the stuff webbrowser.open() writes
-                self.show_entries(e_highlight, entries, cur_win, e_offset,
-                                  hide)
             elif c == -1:
                 self.del_clipboard()
             elif c == ord('s'):
@@ -1640,34 +1757,41 @@ class App(object):
                         pass_username = True
 
                         if pass_password is False:
-                            password = self.get_password('Password: ', False)
-                        if password is False:
+                            nav = self.gen_menu(((1,0, 'Use password generator (1)'),
+                                                 (2,0, 'Type password by hand (2)')))
+                            if nav == 1:
+                                password = self.gen_pass()
+                                if password is False:
+                                    continue
+                            elif nav == 2:
+                                while True:
+                                    password = self.get_password('Password: ')
+                                    if password is False:
+                                        break
+                                    confirm = self.get_password('Confirm: ')
+                                    if confirm is False:
+                                        continue
+                                    
+                                    if password != confirm:
+                                        try:
+                                            self.stdscr.addstr(3,0, 'Passwords didn\'t match. '
+                                                                    'Press any key.')
+                                        except:
+                                            pass
+                                        self.any_key()
+                                    else:
+                                        break
+                                if password is False:
+                                    continue
+                        if nav is False:
                             pass_username = False
                             continue
                         pass_password = True
-
-                        if password != '' and (pass_confirm is False):
-                            confirm = self.get_password('Confirm: ', False)
-                        else:
-                            confirm = ''
-                        if confirm is False:
-                            pass_password = False
-                            continue
-                        pass_confirm = True
-
-                        if password != confirm:
-                            self.draw_text(changed,
-                                           (1,0, 'Passwords didn\'t match. Will '
-                                                 'not set this attribute. Press '
-                                                 'any key.'))
-                            self.any_key()
-                            password = ''
 
                         if pass_comment is False:
                             comment = self.get_string('', 'Comment: ')
                         if comment is False:
                             pass_password = False
-                            pass_confirm = False
                             continue
                         pass_comment = True
                         
@@ -1704,24 +1828,24 @@ class App(object):
                         if date is False:
                             pass_comment = False
                             continue
+                        try:
+                            groups[g_highlight].create_entry(title, 1, url,
+                                                             username, password,
+                                                             comment, date[0],date[1],date[2])
+                            changed = True
+                        except KPError as err:
+                            self.draw_text(changed,
+                                           (1,0, err.__str__()),
+                                           (4,0, 'Press any key.'))
+                            self.any_key()
+                        groups = sorted(self.cur_root.children,
+                                        key = lambda group: group.title.lower())
+                        entries = sorted(groups[g_highlight].entries,
+                                         key = lambda entry: entry.title.lower())
+                        if (entries and entries[e_highlight] is not old_entry and
+                            old_entry is not None):
+                            e_highlight = entries.index(old_entry)
                         break
-                    try:
-                        groups[g_highlight].create_entry(title, 1, url,
-                                                         username, password,
-                                                         comment, date[0],date[1],date[2])
-                        changed = True
-                    except KPError as err:
-                        self.draw_text(changed,
-                                       (1,0, err.__str__()),
-                                       (4,0, 'Press any key.'))
-                        self.any_key()
-                    groups = sorted(self.cur_root.children,
-                                    key = lambda group: group.title.lower())
-                    entries = sorted(groups[g_highlight].entries,
-                                     key = lambda entry: entry.title.lower())
-                    if (entries and entries[e_highlight] is not old_entry and
-                        old_entry is not None):
-                        e_highlight = entries.index(old_entry)
                     self.show_groups(g_highlight, groups, cur_win, g_offset, 
                                      changed)
                     self.show_entries(e_highlight, entries, cur_win,
@@ -1905,26 +2029,33 @@ class App(object):
                                       e_offset, hide)
             elif c == ord('p'):
                 if entries:
-                    while True:
-                        password = self.get_password('Password: ')
-                        if password is False:
-                            break
-                        confirm = self.get_password('Confirm: ')
-                        if confirm is False:
-                            continue
-                        
-                        if password == confirm:
-                            entries[e_highlight].set_password(password)
-                            changed = True
-                            break
-                        else:
-                            try:
-                                self.stdscr.addstr(3,0, 'Passwords didn\'t match. '
-                                                        'Press any key.')
-                            except:
-                                pass
-                            self.any_key()
-                            break
+                    nav = self.gen_menu(((1,0, 'Use password generator (1)'),
+                                         (2,0, 'Type password by hand (2)')))
+                    if nav == 1:
+                        password = self.gen_pass()
+                        entries[e_highlight].set_password(password)
+                        changed = True
+                    elif nav == 2:
+                        while True:
+                            password = self.get_password('Password: ')
+                            if password is False:
+                                break
+                            confirm = self.get_password('Confirm: ')
+                            if confirm is False:
+                                continue
+                            
+                            if password == confirm:
+                                entries[e_highlight].set_password(password)
+                                changed = True
+                                break
+                            else:
+                                try:
+                                    self.stdscr.addstr(3,0, 'Passwords didn\'t match. '
+                                                            'Press any key.')
+                                except:
+                                    pass
+                                self.any_key()
+                                break
                     self.show_groups(g_highlight, groups, cur_win, g_offset, 
                                      changed)
                     self.show_entries(e_highlight, entries, cur_win,
@@ -2069,7 +2200,7 @@ class App(object):
                                      changed)
                     self.show_entries(e_highlight, entries, cur_win,
                                       e_offset, hide)
-                    
+        
     def show_groups(self, highlight, groups, cur_win, offset, changed):
         self.draw_text(changed)
         self.group_win.clear()
