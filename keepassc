@@ -1586,12 +1586,12 @@ class App(object):
                                 self.save(False)
                                 changed = False
                             break
-                if no_lock is True:
-                    self.show_groups(g_highlight, groups, cur_win, g_offset,
-                                     changed)
-                    self.show_entries(e_highlight, entries, cur_win,
-                                      e_offset, hide)
-                    continue
+                    if no_lock is True:
+                        self.show_groups(g_highlight, groups, cur_win, g_offset,
+                                         changed)
+                        self.show_entries(e_highlight, entries, cur_win,
+                                          e_offset, hide)
+                        continue
                 self.del_clipboard()
                 if self.db.filepath is None:
                     self.draw_text(changed,
