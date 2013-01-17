@@ -961,7 +961,7 @@ class App(object):
                 print('\'e\' - abort')
                 print('\'H\' - show/hide hidden files')
                 try:
-                    input('Press any key')
+                    input('Press return')
                 except EOFError:
                     print('')
                     if not self.db is None:
@@ -1010,7 +1010,7 @@ class App(object):
                 print('\'e\' - abort')
                 print('\'H\' - show/hide hidden files')
                 try:
-                    input('Press any key')
+                    input('Press return')
                 except EOFError:
                     if not self.db is None:
                         self.db_close()
@@ -1291,7 +1291,7 @@ class App(object):
                 print('Type \'return\' to enter subgroups')
                 print('Type \'backspace\' to go back')
                 try:
-                    input('Press any key.')
+                    input('Press return.')
                 except EOFError:
                     if not self.db is None:
                         self.db_close()
