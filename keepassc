@@ -273,8 +273,18 @@ class App(object):
             if options[2] == 1:
                 options += 'y'
 
-            return (Popen(['pwgen', options, str(length), '1'], 
+            try:
+                password = (Popen(['pwgen', options, str(length), '1'], 
                               stdout = PIPE).stdout.read().decode()[:-1])
+            except FileNotFoundError as err:
+                self.draw_text(False,
+                               (1,0, err.__str__()),
+                               (4,0, 'Press any key.'))
+                self.any_key()
+                return False
+            else:
+                return password
+                
 
     def get_exp_date(self, *exp):
         '''This method is used to get an expiration date for entries.
@@ -1443,8 +1453,11 @@ class App(object):
                              stdout = PIPE).communicate(p.encode()))
                             (Popen(['xsel', '-bi'], stdin = PIPE, stderr = PIPE,
                              stdout = PIPE).communicate(p.encode()))
-                        except FileNotFoundError:
-                            pass
+                        except FileNotFoundError as err:
+                            self.draw_text(False,
+                                           (1,0, err.__str__()),
+                                           (4,0, 'Press any key.'))
+                            self.any_key()
                         else:
                             self.cb = entry.password
                             self.del_cb = True
@@ -1460,8 +1473,11 @@ class App(object):
                              stdout = PIPE).communicate(p.encode()))
                             (Popen(['xsel', '-bi'], stdin = PIPE, stderr = PIPE,
                              stdout = PIPE).communicate(p.encode()))
-                        except FileNotFoundError:
-                            pass
+                        except FileNotFoundError as err:
+                            self.draw_text(False,
+                                           (1,0, err.__str__()),
+                                           (4,0, 'Press any key.'))
+                            self.any_key()
                         else:
                             self.cb = entry.username
                             self.del_cb = True
