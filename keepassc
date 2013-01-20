@@ -1832,17 +1832,18 @@ class App(object):
                         if pass_password is False:
                             nav = self.gen_menu(
                                 ((1, 0, 'Use password generator (1)'),
-                                 (2, 0, 'Type password by hand (2)')))
+                                 (2, 0, 'Type password by hand (2)'),
+                                 (3, 0, 'No password (3)')))
                             if nav == 1:
                                 password = self.gen_pass()
                                 if password is False:
                                     continue
                             elif nav == 2:
                                 while True:
-                                    password = self.get_password('Password: ')
+                                    password = self.get_password('Password: ', False)
                                     if password is False:
                                         break
-                                    confirm = self.get_password('Confirm: ')
+                                    confirm = self.get_password('Confirm: ', False)
                                     if confirm is False:
                                         continue
 
@@ -1857,6 +1858,8 @@ class App(object):
                                         break
                                 if password is False:
                                     continue
+                            else:
+                                password = ''
                         if nav is False:
                             pass_username = False
                             continue
@@ -2114,10 +2117,10 @@ class App(object):
                         changed = True
                     elif nav == 2:
                         while True:
-                            password = self.get_password('Password: ')
+                            password = self.get_password('Password: ', False)
                             if password is False:
                                 break
-                            confirm = self.get_password('Confirm: ')
+                            confirm = self.get_password('Confirm: ', False)
                             if confirm is False:
                                 continue
 
