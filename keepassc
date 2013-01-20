@@ -2245,10 +2245,10 @@ class App(object):
                                   hide)
             elif c == NL:
                 if groups and groups[g_highlight].children:
+                    self.cur_root = groups[g_highlight]
                     g_highlight = 0
                     e_highlight = 0
                     cur_win = 0
-                    self.cur_root = groups[g_highlight]
                     groups = sorted(self.cur_root.children,
                                     key=lambda group: group.title.lower())
                     if groups and groups[g_highlight].entries:
