@@ -563,9 +563,9 @@ class App(object):
                 return False
             elif e == NL:
                 return highlight
-            elif e == cur.KEY_DOWN and highlight < len(misc):
+            elif (e == cur.KEY_DOWN or e == ord('j')) and highlight < len(misc):
                 highlight += 1
-            elif e == cur.KEY_UP and highlight > 1:
+            elif (e == cur.KEY_UP or e == ord('k')) and highlight > 1:
                 highlight -= 1
             elif 49 <= e <= 48 + len(misc):  # ASCII(49) = 1 ...
                 return e - 48
@@ -627,9 +627,9 @@ class App(object):
                     items[highlight - 1] = 1
                 else:
                     items[highlight - 1] = 0
-            elif e == cur.KEY_DOWN and highlight < len(misc):
+            elif (e == cur.KEY_DOWN or e == ord('j')) and highlight < len(misc):
                 highlight += 1
-            elif e == cur.KEY_UP and highlight > 1:
+            elif (e == cur.KEY_UP or e == ord('k')) and highlight > 1:
                 highlight -= 1
             elif e == NL:
                 return items
@@ -735,17 +735,17 @@ class App(object):
                     (2, 0, 'Type direct path (2)')))
             else:
                 nav = self.gen_menu((
-                    (1, 0, 'Use the file browser (1)'),
-                    (2, 0, 'Type direct path (2)'),
-                    (3, 0, 'Use ' + self.last_file + ' (3)')))
-            if nav == 1:
+                    (1, 0, 'Use ' + self.last_file + ' (1)'),
+                    (2, 0, 'Use the file browser (2)'),
+                    (3, 0, 'Type direct path (3)')))
+            if nav == 2:
                 filepath = self.browser()
                 if filepath is False:
                     continue
                 self.cur_dir = filepath
                 if self.open_file() is False:
                     continue
-            elif nav == 2:
+            elif nav == 3:
                 filepath = self.get_direct_filepath()
                 if filepath is False:
                     continue
@@ -759,7 +759,7 @@ class App(object):
                     self.cur_dir = filepath
                     if self.open_file() is False:
                         continue
-            elif nav == 3:
+            elif nav == 1:
                 self.cur_dir = self.last_file
                 if self.open_file() is False:
                     continue
