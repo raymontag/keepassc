@@ -1,11 +1,11 @@
 '''
-Copyright (C) 2012 Karsten-Kai König <kkoenig@posteo.de>
+Copyright (C) 2013 Karsten-Kai König <kkoenig@posteo.de>
 
 This file is part of keepassc.
 
-keepassc is free software: you can redistribute it and/or modify it 
+keepassc is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation, either version 3 of the License, or at your 
+Free Software Foundation, either version 3 of the License, or at your
 option) any later version.
 
 keepassc is distributed in the hope that it will be useful, but WITHOUT
@@ -20,20 +20,21 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 
 from distutils.core import setup
 
-setup( 
-     name = "keepassc", 
-     version = "1.4.1", 
-     author = "Karsten-Kai König", 
-     author_email = "kkoenig@posteo.de",
-     url = "www.nongnu.org/keepassc",
-     download_url = "http://download-mirror.savannah.gnu.org/releases/keepassc/",
-     description = "A password manager that is fully compatible to KeePass v.1.x and KeePassX",
-     scripts = ['keepassc'],
-     classifiers = [
-        'Operating System :: POSIX',
-        'License :: OSI Approved :: GNU Lesser General Public License v3 or later (GPLv3+)',
-        'Development Status :: 5 - Production/Stable',
-        'Environment :: Console :: Curses'],
-     license = "GPL v3 or later",
-     data_files = [('share/man/man1', ['keepassc.1'])],
+setup(name = "keepassc",
+      version = "1.4.1",
+      author = "Karsten-Kai König",
+      author_email = "kkoenig@posteo.de",
+      url = "www.nongnu.org/keepassc",
+      download_url = "http://download-mirror.savannah.gnu.org/releases/keepassc/",
+      description = "A password manager that is fully compatible to KeePass v.1.x and KeePassX",
+      packages = ['editor'],
+      scripts = ['bin/keepassc'],
+      classifiers = [
+          'Operating System :: POSIX',
+          'License :: OSI Approved :: GNU Lesser General Public License v3 or later (GPLv3+)',
+          'Development Status :: 5 - Production/Stable',
+          'Environment :: Console :: Curses'],
+      license = "GPL v3 or later",
+      data_files = [('share/man/man1', ['keepassc.1']),
+                    ('share/doc/keepassc', ['README', 'COPYING'])]
 )
