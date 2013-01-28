@@ -259,7 +259,7 @@ class App(object):
         while True:
             items = self.gen_check_menu(((1, 0, 'Include numbers'),
                                          (2, 0,
-                                          'Enforce capitalized letters'),
+                                          'Include capitalized letters'),
                                          (3, 0, 'Include special symbols')),
                                         (5, 0, 'Type space to un-/check'),
                                         (6, 0, 'Type enter to enter options'))
@@ -268,29 +268,18 @@ class App(object):
             length = self.get_num('Password length: ')
             if length is False:
                 continue
-            options = '-s'
-            if options[0] == 0:
-                options += '0'
-            else:
-                options += 'n'
-            if options[1] == 0:
-                options += 'A'
-            else:
-                options += 'c'
-            if options[2] == 1:
-                options += 'y'
+            char_set = 'abcdefghijklmnopqrstuvwxyz'
+            if items[0] == 1:
+                char_set += '1234567890'
+            if items[1] == 1:
+                char_set += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+            if items[2] == 1:
+                char_set += '!"#$%& \'()*+,-./:;<=>?@[\]^_`{|}~$§'
 
-            try:
-                password = (Popen(['pwgen', options, str(length), '1'],
-                                  stdout=PIPE).stdout.read().decode()[:-1])
-            except FileNotFoundError as err:
-                self.draw_text(False,
-                               (1, 0, err.__str__()),
-                               (4, 0, 'Press any key.'))
-                self.any_key()
-                return False
-            else:
-                return password
+            password = ''
+            for i in range(length):
+                password += sample(char_set, 1)[0]
+            return password
 
     def get_exp_date(self, *exp):
         '''This method is used to get an expiration date for entries.
