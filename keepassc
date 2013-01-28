@@ -28,6 +28,7 @@ from getpass import getpass
 from os import chdir, getcwd, geteuid, listdir, mkdir
 from os.path import isdir, isfile, expanduser, realpath, splitext
 from pwd import getpwuid
+from random import sample
 from socket import gethostname
 from subprocess import Popen, PIPE
 from sys import exit, stdout
