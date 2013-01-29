@@ -36,7 +36,6 @@ Dependencies:
 * Python 3
 * kppy http://www.nongnu.org/kppy
 * xsel (optional but necessary if you want to copy usernames and passwords to clipboard)  http://www.vergenet.net/~conrad/software/xsel/
-* pwgen (optional but necessary if you want to generate passwords in KeePassC)
 * A POSIX-compatible operating system
 
 Copyright (C) 2012 Karsten-Kai König <kkoenig@posteo.de>
