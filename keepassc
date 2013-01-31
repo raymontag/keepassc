@@ -21,7 +21,6 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
 from curses import wrapper
-from curses.ascii import NL, DEL, SP
 from getpass import getpass
 from os import geteuid
 from os.path import expanduser, realpath, splitext

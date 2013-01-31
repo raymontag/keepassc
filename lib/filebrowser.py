@@ -19,13 +19,16 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 import curses as cur
-from curses.ascii import NL, DEL, SP
+from curses.ascii import NL, DEL
 from os import listdir
 from os.path import expanduser, isdir
 
 
 class FileBrowser(object):
+    '''This class represents the file browser'''
+
     def __init__(self, control):
+
         self.control = control
 
     def get_filepath(self, ask_for_lf=True, keyfile=False, last_file=None):
@@ -40,18 +43,18 @@ class FileBrowser(object):
                 (1, 0, 'Use ' + last_file + ' (1)'),
                 (2, 0, 'Use the file browser (2)'),
                 (3, 0, 'Type direct path (3)')))
-        if (ask_for_lf is True and nav == 2) or (ask_for_lf is False and nav == 1):
+        if ((ask_for_lf is True and nav == 2) or 
+            (ask_for_lf is False and nav == 1)):
             if keyfile is True:
                 filepath = self.browser(False, keyfile)
             else:
                 filepath = self.browser(True)
-                if filepath is False:
-                    return False
-                if filepath[-4:] != '.kdb':
+                if filepath[-4:] != '.kdb' and filepath is not False:
                     filename = self.control.get_string('', 'Filename: ')
                     filepath += '/' + filename + '.kdb'
             return filepath
-        if (ask_for_lf is True and nav == 3) or (ask_for_lf is False and nav == 2):
+        if ((ask_for_lf is True and nav == 3) or 
+            (ask_for_lf is False and nav == 2)):
             while True:
                 filepath = self.get_direct_filepath(last_file)
                 if filepath is False:
@@ -61,7 +64,7 @@ class FileBrowser(object):
                     self.control.draw_text(False,
                                    (1, 0, 'Need path to a kdb-file!'),
                                    (3, 0, 'Press any key'))
-                    self.any_key()
+                    self.control.any_key()
                     continue
                 else:
                     return filepath
@@ -90,13 +93,13 @@ class FileBrowser(object):
             elif e == cur.KEY_BACKSPACE or e == DEL:
                 pass
             elif e == 4:
-                pass # TODO send kill signal
+                return -1
             elif e == '':
                 pass
             elif e == cur.KEY_F5:
                 return False
             elif e == cur.KEY_RESIZE:
-                self.resize_all()
+                self.control.resize_all()
             elif e == ord('~'):
                 edit += expanduser('~/')
                 show = 0
@@ -184,7 +187,8 @@ class FileBrowser(object):
                     highlight = 0
                     dir_cont = self.get_dir_cont(hidden, keyfile)
                 elif isdir(self.control.cur_dir + '/' + dir_cont[highlight]):
-                    self.control.cur_dir = self.control.cur_dir + '/' + dir_cont[highlight]
+                    self.control.cur_dir = (self.control.cur_dir + '/' + 
+                                            dir_cont[highlight])
                     if self.control.cur_dir[:2] == '//':
                         self.control.cur_dir = self.control.cur_dir[1:]
                     highlight = 0
@@ -195,7 +199,7 @@ class FileBrowser(object):
                         self.control.cur_dir = kdb_file
                     return ret
             elif c == cur.KEY_RESIZE:
-                self.resize_all()
+                self.control.resize_all()
             elif c == cur.KEY_F1:
                 self.control.browser_help(mode_new)
             elif c == cur.KEY_F5:
@@ -207,9 +211,9 @@ class FileBrowser(object):
                     hidden = True
                 dir_cont = self.get_dir_cont(hidden, keyfile)
             elif c == 4:
-                pass # TODO return exit signal
+                return -1
             elif c == ord('q') and mode_new is not True:
-                pass # TODO same
+                return -1
             elif c == ord('e'):
                 return False
             elif c == ord('o') and mode_new is True:
@@ -221,6 +225,8 @@ class FileBrowser(object):
                     return self.control.cur_dir
 
     def get_dir_cont(self, hidden, keyfile):
+        '''Get the content of the current dir'''
+
         try:
             dir_cont = listdir(self.control.cur_dir)
         except OSError:
@@ -236,8 +242,9 @@ class FileBrowser(object):
 
         rem = []
         for i in dir_cont:
-            if ((not isdir(self.control.cur_dir + '/' + i) and not i[-4:] == '.kdb' and
-                 keyfile is False) or (i[0] == '.' and hidden is True)):
+            if ((not isdir(self.control.cur_dir + '/' + i) and not 
+                i[-4:] == '.kdb' and keyfile is False) or 
+                (i[0] == '.' and hidden is True)):
                 rem.append(i)
         for i in rem:
             dir_cont.remove(i)
@@ -258,3 +265,4 @@ class FileBrowser(object):
         if not self.control.cur_dir == '/':
             dir_cont.insert(0, '..')
         return dir_cont
+

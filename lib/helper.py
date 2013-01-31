@@ -55,18 +55,24 @@ def parse_config(control):
                     config[key] = val
             handler.close()
     else: # write standard config
-        config_dir = control.config_home[:-7]
-        if not isdir(config_dir):
-            if isfile(config_dir):
-                remove(config_dir)
-            makedirs(config_dir)
-        try:
-            handler = open(control.config_home, 'w')
-        except Exception as err:
-            print(err.__str__())
-        else:
-            for key, val in config.items():
-                handler.write(key+'='+str(val)+'\n')
-            handler.close()
+        write_config(control, config)
     return config
 
+def write_config(control, config):
+    '''Function to write the config file'''
+
+    config_dir = control.config_home[:-7]
+    if not isdir(config_dir):
+        if isfile(config_dir):
+            remove(config_dir)
+        makedirs(config_dir)
+    try:
+        handler = open(control.config_home, 'w')
+    except Exception as err:
+        print(err.__str__())
+        return False
+    else:
+        for key, val in config.items():
+            handler.write(key+'='+str(val)+'\n')
+        handler.close()
+    return True

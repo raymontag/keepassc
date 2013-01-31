@@ -24,8 +24,8 @@ from datetime import date
 from os import chdir, getcwd, getenv, geteuid
 from os.path import expanduser, isfile, isdir, realpath
 from pwd import getpwuid
+from random import sample
 from socket import gethostname
-from subprocess import Popen, PIPE
 from sys import exit
 
 from kppy import KPDB, KPError
@@ -74,12 +74,12 @@ class Control(object):
         self.cur_dir = getcwd()
         chdir('/var/empty')
         self.db = None
-        self.cb = None
-        self.del_cb = False
 
         self.fb = FileBrowser(self)
 
     def initialize_cur(self):
+        '''Method to initialize curses functionality'''
+
         self.stdscr = cur.initscr()
         try:
             cur.curs_set(0)
@@ -115,6 +115,8 @@ class Control(object):
         self.info_win.bkgd(1)
 
     def resize_all(self):
+        '''Method to resize windows'''
+
         self.ysize, self.xsize = self.stdscr.getmaxyx()
         self.group_win.resize(self.ysize - 1, int(self.xsize / 3))
         self.entry_win.resize(
@@ -125,17 +127,6 @@ class Control(object):
         self.entry_win.mvwin(1, int(self.xsize / 3))
         self.info_win.mvwin(int(2 * (self.ysize - 1) / 3), int(self.xsize / 3))
 
-    def del_clipboard(self):
-        try:
-            cb_p = Popen('xsel', stdout=PIPE)
-            cb = cb_p.stdout.read().decode()
-            if cb == self.cb:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
-                self.cb = None
-        except FileNotFoundError: # xsel not installed
-            pass
-
     def any_key(self):
         '''If any key is needed.'''
 
@@ -144,17 +135,12 @@ class Control(object):
                 e = self.stdscr.getch()
             except KeyboardInterrupt:
                 e = 4
-            if e == -1:
-                self.del_clipboard()
-            elif e == 4:
-                self.del_clipboard()
-                if self.db is not None:
-                    self.db_close()
-                self.close()
+            if e == 4:
+                return -1
             elif e == cur.KEY_RESIZE:
                 self.resize_all()
             else:
-                break
+                return e
 
     def draw_text(self, changed, *misc):
         '''This method is a wrapper to display some text on stdscr.
@@ -179,7 +165,7 @@ class Control(object):
                 cur_dir)
             for i, j, k in misc:
                 self.stdscr.addstr(i, j, k)
-        except:
+        except: # to prevent a crash if screen is small
             pass
         finally:
             self.stdscr.refresh()
@@ -199,13 +185,8 @@ class Control(object):
                 edit = edit[:-1]
             elif e == cur.KEY_BACKSPACE or e == DEL:
                 pass
-            elif e == -1:
-                self.del_clipboard()
             elif e == 4:
-                self.del_clipboard()
-                if self.db is not None:
-                    self.db_close()
-                self.close()
+                return -1
             elif e == '':
                 pass
             elif e == cur.KEY_RESIZE:
@@ -247,13 +228,8 @@ class Control(object):
                 pass
             elif e == '':
                 pass
-            elif e == -1:
-                self.del_clipboard()
             elif e == 4:
-                self.del_clipboard()
-                if self.db is not None:
-                    self.db_close()
-                self.close()
+                return -1
             elif e == cur.KEY_RESIZE:
                 self.ysize, self.xsize = self.stdscr.getmaxyx()
                 self.group_win.resize(self.ysize - 1, int(self.xsize / 3))
@@ -274,28 +250,33 @@ class Control(object):
         return password
 
     def gen_pass(self):
+        '''Method to generate a password'''
+
         while True:
             items = self.gen_check_menu(((1, 0, 'Include numbers'),
                                          (2, 0,
                                           'Include capitalized letters'),
                                          (3, 0, 'Include special symbols')),
-                                        (5, 0, 'Type space to un-/check'),
-                                        (6, 0, 'Type enter to enter options'))
-            if items is False:
-                return False
+                                        (5, 0, 'Press space to un-/check'),
+                                        (6, 0, 
+                                         'Press return to enter options'))
+            if items is False or items == -1:
+                return items
             length = self.get_num('Password length: ')
             if length is False:
                 continue
+            elif length == -1:
+                return -1
             char_set = 'abcdefghijklmnopqrstuvwxyz'
             if items[0] == 1:
                 char_set += '1234567890'
             if items[1] == 1:
                 char_set += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
             if items[2] == 1:
-                char_set += '!"#$%& \'()*+,-./:;<=>?@[\]^_`{|}~$§'
+                char_set += '!"#$%& \'()*+,-./:;<=>?@[\\]^_`{|}~$§'
 
             password = ''
-            for i in range(length):
+            for _ in range(length):
                 password += sample(char_set, 1)[0]
             return password
 
@@ -318,13 +299,8 @@ class Control(object):
                         edit = edit[:-1]
                     elif e == cur.KEY_BACKSPACE or e == DEL:
                         pass
-                    elif e == -1:
-                        self.del_clipboard()
                     elif e == 4:
-                        self.del_clipboard()
-                        if self.db is not None:
-                            self.db_close()
-                        self.close()
+                        return -1
                     elif e == cur.KEY_RESIZE:
                         self.resize_all()
                     elif e == cur.KEY_F5:
@@ -332,13 +308,15 @@ class Control(object):
                     elif len(edit) < 4 and e >= 48 and e <= 57:
                         edit += chr(e)
                     self.draw_text(False,
-                                   (1, 0, 'Special date 2999-12-28 means that the '
-                                    'expires never.'),
+                                   (1, 0, 'Special date 2999-12-28 means that '
+                                    'the expires never.'),
                                    (3, 0, 'Year: ' + edit))
                     if exp:
                         try:
-                            self.stdscr.addstr(2, 0, 'Actual expiration date: ' +
-                                               str(exp[0]) + '-' + str(exp[1]) + '-' +
+                            self.stdscr.addstr(2, 0, 
+                                               'Actual expiration date: ' +
+                                               str(exp[0]) + '-' + 
+                                               str(exp[1]) + '-' +
                                                str(exp[2]))
                         except:
                             pass
@@ -362,13 +340,8 @@ class Control(object):
                         edit = edit[:-1]
                     elif e == cur.KEY_BACKSPACE or e == DEL:
                         pass
-                    elif e == -1:
-                        self.del_clipboard()
                     elif e == 4:
-                        self.del_clipboard()
-                        if self.db is not None:
-                            self.db_close()
-                        self.close()
+                        return -1
                     elif e == cur.KEY_RESIZE:
                         self.resize_all()
                     elif e == cur.KEY_F5:
@@ -378,14 +351,16 @@ class Control(object):
                     elif len(edit) < 2 and e >= 48 and e <= 57:
                         edit += chr(e)
                     self.draw_text(False,
-                                   (1, 0, 'Special date 2999-12-28 means that the '
-                                    'expires never.'),
+                                   (1, 0, 'Special date 2999-12-28 means that '
+                                    'the expires never.'),
                                    (3, 0, 'Year: ' + str(y)),
                                    (4, 0, 'Month: ' + edit))
                     if exp:
                         try:
-                            self.stdscr.addstr(2, 0, 'Actual expiration date: ' +
-                                               str(exp[0]) + '-' + str(exp[1]) + '-' +
+                            self.stdscr.addstr(2, 0, 
+                                               'Actual expiration date: ' +
+                                               str(exp[0]) + '-' + 
+                                               str(exp[1]) + '-' +
                                                str(exp[2]))
                         except:
                             pass
@@ -401,9 +376,11 @@ class Control(object):
                         continue
                     elif e == NL and (int(edit) > 12 or int(edit) < 1):
                         self.draw_text(False,
-                                       (1, 0, 'Month must be between 1 and 12. Press '
-                                        'any key.'))
-                        self.any_key()
+                                       (1, 0, 
+                                        'Month must be between 1 and 12. '
+                                        'Press any key.'))
+                        if self.any_key() == -1:
+                            return -1
                         e = ''
                 if goto_last is True:
                     goto_last = False
@@ -418,13 +395,8 @@ class Control(object):
                     edit = edit[:-1]
                 elif e == cur.KEY_BACKSPACE or e == DEL:
                     pass
-                elif e == -1:
-                    self.del_clipboard()
                 elif e == 4:
-                    self.del_clipboard()
-                    if self.db is not None:
-                        self.db_close()
-                    self.close()
+                    return -1
                 elif e == cur.KEY_RESIZE:
                     self.resize_all()
                 elif e == cur.KEY_F5:
@@ -442,7 +414,8 @@ class Control(object):
                 if exp:
                     try:
                         self.stdscr.addstr(2, 0, 'Actual expiration date: ' +
-                                           str(exp[0]) + '-' + str(exp[1]) + '-' +
+                                           str(exp[0]) + '-' + 
+                                           str(exp[1]) + '-' +
                                            str(exp[2]))
                     except:
                         pass
@@ -456,26 +429,34 @@ class Control(object):
                 if e == NL and edit == '':
                     e = cur.KEY_BACKSPACE
                     continue
-                elif (e == NL and (mon == 1 or mon == 3 or mon == 5 or mon == 7 or
-                                   mon == 8 or mon == 10 or mon == 12) and (int(edit) > 31 or
-                                                                            int(edit) < 0)):
+                elif (e == NL and (mon == 1 or mon == 3 or mon == 5 or 
+                                   mon == 7 or mon == 8 or mon == 10 or 
+                                   mon == 12) and 
+                      (int(edit) > 31 or int(edit) < 0)):
                     self.draw_text(False,
-                                   (1, 0, 'Day must be between 1 and 31. Press '
+                                   (1, 0, 
+                                    'Day must be between 1 and 31. Press '
                                     'any key.'))
-                    self.any_key()
+                    if self.any_key() == -1:
+                        return -1
                     e = ''
-                elif (e == NL and mon == 2 and (int(edit) > 28 or int(edit) < 0)):
+                elif (e == NL and mon == 2 and (int(edit) > 28 or 
+                                                int(edit) < 0)):
                     self.draw_text(False,
-                                   (1, 0, 'Day must be between 1 and 28. Press '
+                                   (1, 0, 
+                                    'Day must be between 1 and 28. Press '
                                     'any key.'))
-                    self.any_key()
+                    if self.any_key() == -1:
+                        return -1
                     e = ''
                 elif (e == NL and (mon == 4 or mon == 6 or mon == 9 or
                       mon == 11) and (int(edit) > 30 or int(edit) < 0)):
                     self.draw_text(False,
-                                   (1, 0, 'Day must be between 1 and 30. Press '
+                                   (1, 0, 
+                                    'Day must be between 1 and 30. Press '
                                     'any key.'))
-                    self.any_key()
+                    if self.any_key() == -1:
+                        return -1
                     e = ''
             if goto_last is True:
                 goto_last = False
@@ -486,6 +467,8 @@ class Control(object):
         return (y, mon, d)
 
     def get_num(self, std='', edit=''):
+        '''Method to get a number'''
+
         edit = ''
         e = cur.KEY_BACKSPACE
         while e != NL:
@@ -493,13 +476,8 @@ class Control(object):
                 edit = edit[:-1]
             elif e == cur.KEY_BACKSPACE or e == DEL:
                 pass
-            elif e == -1:
-                self.del_clipboard()
             elif e == 4:
-                self.del_clipboard()
-                if self.db is not None:
-                    self.db_close()
-                self.close()
+                return -1
             elif e == cur.KEY_RESIZE:
                 self.resize_all()
             elif e == cur.KEY_F5:
@@ -557,13 +535,8 @@ class Control(object):
                 e = self.stdscr.getch()
             except KeyboardInterrupt:
                 e = 4
-            if e == -1:
-                self.del_clipboard()
-            elif e == 4:
-                self.del_clipboard()
-                if self.db is not None:
-                    self.db_close()
-                self.close()
+            if e == 4:
+                return -1
             elif e == cur.KEY_RESIZE:
                 self.resize_all()
             elif e == cur.KEY_F5:
@@ -578,6 +551,8 @@ class Control(object):
                 return e - 48
 
     def gen_check_menu(self, misc, *add):
+        '''Print a menu with checkable entries'''
+
         if len(misc) == 0:
             return False
         items = []
@@ -618,13 +593,8 @@ class Control(object):
                 e = self.stdscr.getch()
             except KeyboardInterrupt:
                 e = 4
-            if e == -1:
-                self.del_clipboard()
-            elif e == 4:
-                self.del_clipboard()
-                if self.db is not None:
-                    self.db_close()
-                self.close()
+            if e == 4:
+                return -1
             elif e == cur.KEY_RESIZE:
                 self.resize_all()
             elif e == cur.KEY_F5:
@@ -647,7 +617,7 @@ class Control(object):
         if kdb_file is not None:
             self.cur_dir = kdb_file
             if self.open_file() is True:
-                #self.db_browser()
+                #self.db_browser() TODO
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last) - 1]
         while True:
@@ -673,7 +643,7 @@ class Control(object):
             if menu == 1:
                 if self.open_db() is False:
                     continue
-                self.db_browser()
+                #self.db_browser() TODO
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last) - 1]
             elif menu == 2:
@@ -685,14 +655,23 @@ class Control(object):
                     self.db = KPDB(new=True)
                     if auth is False:
                         break
+                    elif auth == -1:
+                        self.db = None
+                        self.close()
                     if auth == 1 or auth == 3:
                         while True:
                             password = self.get_password('Password: ')
                             if password is False:
                                 break
+                            elif password == -1:
+                                self.db = None
+                                self.close()
                             confirm = self.get_password('Confirm: ')
                             if confirm is False:
                                 break
+                            elif confirm == -1:
+                                self.db = None
+                                self.close()
                             if password == confirm:
                                 self.db.password = password
                                 break
@@ -701,7 +680,9 @@ class Control(object):
                                                (1, 0,
                                                 'Passwords didn\' match!'),
                                                (3, 0, 'Press any key'))
-                                self.any_key()
+                                if self.any_key() == -1:
+                                    self.db = None
+                                    self.close()
                         if auth != 3:
                             self.db.keyfile = None
                     if password is False or confirm is False:
@@ -715,7 +696,9 @@ class Control(object):
                                 self.draw_text(False,
                                                (1, 0, 'That\' not a file!'),
                                                (3, 0, 'Press any key'))
-                                self.any_key()
+                                if self.any_key() == -1:
+                                    self.db = None
+                                    self.close()
                                 continue
                             break
                         if filepath is False:
@@ -725,14 +708,13 @@ class Control(object):
                             self.db.password = None
 
                     if auth is not False:
-                        self.db_browser()
+                        #self.db_browser() TODO
                         last = self.cur_dir.split('/')[-1]
                         self.cur_dir = self.cur_dir[:-len(last) - 1]
                     else:
                         self.db = None
                     break
-            elif menu == 3 or menu is False:
-                self.del_clipboard()
+            elif menu == 3 or menu is False or menu == -1:
                 self.close()
 
     def open_db(self):
@@ -748,22 +730,29 @@ class Control(object):
                     (1, 0, 'Use ' + self.last_file + ' (1)'),
                     (2, 0, 'Use the file browser (2)'),
                     (3, 0, 'Type direct path (3)')))
-            if (self.last_file is not None and nav == 2) or (self.last_file is None and nav == 1):
+            if ((self.last_file is not None and nav == 2) or 
+                (self.last_file is None and nav == 1)):
                 filepath = self.fb.browser()
                 if filepath is False:
                     continue
+                elif filepath == -1:
+                    self.close()
                 self.cur_dir = filepath
                 if self.open_file() is False:
                     continue
-            elif (self.last_file is not None and nav == 3) or (self.last_file is None and nav == 2):
+            elif ((self.last_file is not None and nav == 3) or 
+                  (self.last_file is None and nav == 2)):
                 filepath = self.fb.get_direct_filepath(self.last_file)
                 if filepath is False:
                     continue
+                elif filepath == -1:
+                    self.close()
                 elif filepath[-4:] != '.kdb' or isdir(filepath):
                     self.draw_text(False,
                                    (1, 0, 'Need path to a kdb-file!'),
                                    (3, 0, 'Press any key'))
-                    self.any_key()
+                    if self.any_key == -1:
+                        self.close()
                     continue
                 else:
                     self.cur_dir = filepath
@@ -773,11 +762,15 @@ class Control(object):
                 self.cur_dir = self.last_file
                 if self.open_file() is False:
                     continue
+            elif nav == -1:
+                self.close()
             else:
                 return False
             return True
 
     def browser_help(self, mode_new):
+        '''Print help for filebrowser'''
+
         cur.noraw()
         self.stdscr.keypad(0)
         cur.endwin()
@@ -795,8 +788,46 @@ class Control(object):
             input('Press return')
         except EOFError:
             print('')
+            if self.db is not None:
+                self.db.db_close()
+            exit()
+        self.initialize_cur()
+
+    def dbbrowser_help(self):
+        cur.noraw()
+        self.stdscr.keypad(0)
+        cur.endwin()
+        print('\'e\' - go to main menu')
+        print('\'q\' - close program')
+        print('\'x\' - save db and close program')
+        print('\'s\' - save db')
+        print('\'S\' - save db with alternative filepath')
+        print('\'c\' - copy password of current entry')
+        print('\'b\' - copy username of current entry')
+        print('\'H\' - show password of current entry')
+        print('\'o\' - open URL of entry in standard webbrowser')
+        print('\'P\' - edit db password')
+        print('\'g\' - create group')
+        print('\'G\' - create subgroup')
+        print('\'y\' - create entry')
+        print('\'d\' - delete group or entry')
+        print('\'t\' - edit title of selected group or entry')
+        print('\'u\' - edit username')
+        print('\'p\' - edit password')
+        print('\'U\' - edit URL')
+        print('\'C\' - edit comment')
+        print('\'E\' - edit expiration date')
+        print('\'f\' - find entry by title')
+        print('\'L\' - lock db')
+        print('Navigate with arrow keys or h/j/k/l like in vim')
+        print('Type \'F5\' in a dialog to return to the previous one')
+        print('Type \'return\' to enter subgroups')
+        print('Type \'backspace\' to go back')
+        try:
+            input('Press return.')
+        except EOFError:
             if not self.db is None:
-                self.db_close()
+                self.db.db_close()
             exit()
         self.initialize_cur()
 
@@ -833,6 +864,8 @@ class Control(object):
         self.stdscr.refresh()
 
     def open_file(self):
+        '''Method to open a database.'''
+
         while True:
             auth = self.gen_menu((
                                  (1, 0, 'Use a password (1)'),
@@ -840,10 +873,14 @@ class Control(object):
                                  (3, 0, 'Use both (3)')))
             if auth is False:
                 return False
+            elif auth == -1:
+                self.close()
             if auth == 1 or auth == 3:
                 password = self.get_password('Password: ')
                 if password is False:
                     continue
+                elif password == -1:
+                    self.close()
                 if auth != 3:
                     keyfile = None
             if auth == 2 or auth == 3:
@@ -858,7 +895,8 @@ class Control(object):
                         self.draw_text(False,
                                        (1, 0, 'That\'s not a file'),
                                        (3, 0, 'Press any key.'))
-                        self.any_key()
+                        if self.any_key() == -1:
+                            self.close()
                         continue
                     break
                 if keyfile is False:
@@ -879,30 +917,27 @@ class Control(object):
                         e = 4
 
                     if e == ord('n'):
-                        self.db = KPDB(self.cur_dir, password, keyfile, False)
+                        read_only = False
                         break
-                    elif e == -1:
-                        self.del_clipboard()
                     elif e == 4:
-                        self.del_clipboard()
-                        if self.db is not None:
-                            self.db_close()
                         self.close()
                     elif e == cur.KEY_RESIZE:
                         self.resize_all()
                     elif e == cur.KEY_F5:
                         return False
                     else:
-                        self.db = KPDB(self.cur_dir, password, keyfile, True)
+                        read_only = True
                         break
             else:
-                self.db = KPDB(self.cur_dir, password, keyfile, False)
+                read_only = False
+            self.db = KPDB(self.cur_dir, password, keyfile, read_only)
             return True
         except KPError as err:
             self.draw_text(False,
                            (1, 0, err.__str__()),
                            (4, 0, 'Press any key.'))
-            self.any_key()
+            if self.any_key() == -1:
+                self.close()
             last = self.cur_dir.split('/')[-1]
             self.cur_dir = self.cur_dir[:-len(last) - 1]
             return False
@@ -917,6 +952,8 @@ class Control(object):
 
 
     def show_groups(self, highlight, groups, cur_win, offset, changed):
+        '''Just print all groups in a column'''
+
         self.draw_text(changed)
         self.group_win.clear()
         parent = self.cur_root
@@ -965,6 +1002,8 @@ class Control(object):
 
     def show_entries(self, e_highlight, entries, cur_win, offset,
                      hide):
+        '''Just print all entries in a column'''
+
         self.info_win.clear()
         try:
             self.entry_win.clear()
