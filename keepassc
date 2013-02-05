@@ -637,10 +637,9 @@ class App(object):
             try:
                 handler = open(expanduser('~/.config/keepassc'), 'r')
                 self.last_file = handler.readline()  # TODO: Read other configs
+                handler.close()
             except:
                 self.last_file = None
-            finally:
-                handler.close()
             menu = self.gen_menu(((1, 0, 'Open existing database (1)'),
                                   (2, 0, 'Create new database (2)'),
                                   (3, 0, 'Quit (3)')),
