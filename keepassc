@@ -727,15 +727,15 @@ class App(object):
                     (1, 0, 'Use ' + self.last_file + ' (1)'),
                     (2, 0, 'Use the file browser (2)'),
                     (3, 0, 'Type direct path (3)')))
-            if nav == 2:
+            if (self.last_file is not None and nav == 2) or (self.last_file is None and nav == 1):
                 filepath = self.browser()
                 if filepath is False:
                     continue
                 self.cur_dir = filepath
                 if self.open_file() is False:
                     continue
-            elif nav == 3:
-                filepath = self.get_direct_filepath()
+            elif (self.last_file is not None and nav == 3) or (self.last_file is None and nav == 2):
+                filepath = self.get_direct_filepath(self.last_file)
                 if filepath is False:
                     continue
                 elif filepath[-4:] != '.kdb' or isdir(filepath):
@@ -765,10 +765,11 @@ class App(object):
                 (2, 0, 'Type direct path (2)')))
         else:
             nav = self.gen_menu((
-                (1, 0, 'Use the file browser (1)'),
-                (2, 0, 'Type direct path (2)'),
-                (3, 0, 'Use ' + self.last_file + ' (3)')))
-        if nav == 2:
+                (1, 0, 'Use ' + self.last_file + ' (1)'),
+                (2, 0, 'Use the file browser (2)'),
+                (3, 0, 'Type direct path (3)')))
+        if ((self.last_file is not None and ask_for_lf is True and nav == 3) or
+            ((self.last_file is None or ask_for_lf is False) and nav == 2)):
             while True:
                 filepath = self.get_direct_filepath()
                 if filepath is False:
