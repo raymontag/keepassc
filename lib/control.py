@@ -1000,8 +1000,7 @@ class Control(object):
         finally:
             self.group_win.refresh()
 
-    def show_entries(self, e_highlight, entries, cur_win, offset,
-                     hide):
+    def show_entries(self, e_highlight, entries, cur_win, offset):
         '''Just print all entries in a column'''
 
         self.info_win.clear()
