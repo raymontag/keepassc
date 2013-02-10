@@ -32,6 +32,7 @@ from kppy import KPDB, KPError
 
 from .helper import parse_config
 from .filebrowser import FileBrowser
+from .dbbrowser import DBBrowser
 
 class Control(object):
     '''This class represents the whole application.'''
@@ -76,6 +77,7 @@ class Control(object):
         self.db = None
 
         self.fb = FileBrowser(self)
+        self.dbbrowser = DBBrowser(self)
 
     def initialize_cur(self):
         '''Method to initialize curses functionality'''
@@ -611,13 +613,39 @@ class Control(object):
             elif e == NL:
                 return items
 
+
+    def draw_lock_menu(self, changed, highlight, *misc):
+        '''Draw menu for locked database'''
+
+        if changed is True:
+            cur_dir = self.cur_dir + '*'
+        else:
+            cur_dir = self.cur_dir
+        try:
+            self.stdscr.clear()
+            self.stdscr.addstr(
+                0, 0, self.loginname + '@' + self.hostname + ':',
+                cur.color_pair(2))
+            self.stdscr.addstr(
+                0, len(self.loginname + '@' + self.hostname + ':'),
+                cur_dir)
+            for i, j, k in misc:
+                if i == highlight:
+                    self.stdscr.addstr(i, j, k, cur.color_pair(h_color))
+                else:
+                    self.stdscr.addstr(i, j, k, cur.color_pair(n_color))
+        except: # to prevent a crash if screen is small
+            pass
+        finally:
+            self.stdscr.refresh()
+
     def main_loop(self, kdb_file=None):
         '''The main loop. The program alway return to this method.'''
 
         if kdb_file is not None:
             self.cur_dir = kdb_file
             if self.open_file() is True:
-                #self.db_browser() TODO
+                self.dbbrowser.db_browser()
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last) - 1]
         while True:
@@ -643,7 +671,7 @@ class Control(object):
             if menu == 1:
                 if self.open_db() is False:
                     continue
-                #self.db_browser() TODO
+                self.dbbrowser.db_browser()
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last) - 1]
             elif menu == 2:
@@ -692,6 +720,8 @@ class Control(object):
                             filepath = self.fb.get_filepath(False, True)
                             if filepath is False:
                                 break
+                            elif filepath == -1:
+                                self.close()
                             elif not isfile(filepath):
                                 self.draw_text(False,
                                                (1, 0, 'That\' not a file!'),
@@ -708,7 +738,7 @@ class Control(object):
                             self.db.password = None
 
                     if auth is not False:
-                        #self.db_browser() TODO
+                        self.dbbrowser.db_browser()
                         last = self.cur_dir.split('/')[-1]
                         self.cur_dir = self.cur_dir[:-len(last) - 1]
                     else:
@@ -891,6 +921,8 @@ class Control(object):
                     keyfile = self.fb.get_filepath(False, True)
                     if keyfile is False:
                         break
+                    elif keyfile == -1:
+                        self.close()
                     elif not isfile(keyfile):
                         self.draw_text(False,
                                        (1, 0, 'That\'s not a file'),
