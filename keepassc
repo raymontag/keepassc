@@ -1363,6 +1363,30 @@ class App(object):
                                   hide)
             # File operations
             elif c == ord('e'):
+                for i in self.db.groups:
+                    if i.id_ == 0:
+                        try:
+                            i.remove_group()
+                        except KPError as err:
+                            self.draw_text(self.changed,
+                                           (1, 0, err.__str__()),
+                                           (4, 0, 'Press any key.'))
+                            self.any_key()
+                            return False
+                        else:
+                            if (g_highlight >= len(groups) and
+                                    g_highlight != 0):
+                                g_highlight -= 1
+                            e_highlight = 0
+                        break
+                groups = sorted(self.cur_root.children,
+                                key=lambda group: group.title.lower())
+                if groups and groups[g_highlight].entries:
+                    entries = sorted(groups[g_highlight].entries,
+                                     key=lambda entry:
+                                     entry.title.lower())
+                else:
+                    entries = []
                 if changed is True:
                     self.draw_text(changed,
                                    (1, 0, 'File has changed. Save? [(y)/n]'))
@@ -1414,6 +1438,30 @@ class App(object):
                 cur.doupdate()
                 break
             elif c == ord('q') or c == 4:
+                for i in self.db.groups:
+                    if i.id_ == 0:
+                        try:
+                            i.remove_group()
+                        except KPError as err:
+                            self.draw_text(self.changed,
+                                           (1, 0, err.__str__()),
+                                           (4, 0, 'Press any key.'))
+                            self.any_key()
+                            return False
+                        else:
+                            if (g_highlight >= len(groups) and
+                                    g_highlight != 0):
+                                g_highlight -= 1
+                            e_highlight = 0
+                        break
+                groups = sorted(self.cur_root.children,
+                                key=lambda group: group.title.lower())
+                if groups and groups[g_highlight].entries:
+                    entries = sorted(groups[g_highlight].entries,
+                                     key=lambda entry:
+                                     entry.title.lower())
+                else:
+                    entries = []
                 self.del_clipboard()
                 if changed is True:
                     self.draw_text(
@@ -1519,6 +1567,30 @@ class App(object):
             elif c == -1:
                 self.del_clipboard()
             elif c == ord('s'):
+                for i in self.db.groups:
+                    if i.id_ == 0:
+                        try:
+                            i.remove_group()
+                        except KPError as err:
+                            self.draw_text(self.changed,
+                                           (1, 0, err.__str__()),
+                                           (4, 0, 'Press any key.'))
+                            self.any_key()
+                            return False
+                        else:
+                            if (g_highlight >= len(self.db.groups) and
+                                g_highlight != 0):
+                                g_highlight -= 1
+                            e_highlight = 0
+                        break
+                groups = sorted(self.cur_root.children,
+                                key=lambda group: group.title.lower())
+                if groups and groups[g_highlight].entries:
+                    entries = sorted(groups[g_highlight].entries,
+                                     key=lambda entry:
+                                     entry.title.lower())
+                else:
+                    entries = []
                 if self.db.filepath is None:
                     filepath = self.get_filepath()
                     if filepath is not False:
@@ -1530,6 +1602,30 @@ class App(object):
                 self.show_entries(e_highlight, entries, cur_win, e_offset,
                                   hide)
             elif c == ord('S'):
+                for i in self.db.groups:
+                    if i.id_ == 0:
+                        try:
+                            i.remove_group()
+                        except KPError as err:
+                            self.draw_text(self.changed,
+                                           (1, 0, err.__str__()),
+                                           (4, 0, 'Press any key.'))
+                            self.any_key()
+                            return False
+                        else:
+                            if (g_highlight >= len(groups) and
+                                    g_highlight != 0):
+                                g_highlight -= 1
+                            e_highlight = 0
+                        break
+                groups = sorted(self.cur_root.children,
+                                key=lambda group: group.title.lower())
+                if groups and groups[g_highlight].entries:
+                    entries = sorted(groups[g_highlight].entries,
+                                     key=lambda entry:
+                                     entry.title.lower())
+                else:
+                    entries = []
                 filepath = self.get_filepath(False)
                 if filepath is not False:
                     if self.db.filepath is None:
@@ -1566,6 +1662,30 @@ class App(object):
                                   hide)
                 changed = False
             elif c == ord('x'):
+                for i in self.db.groups:
+                    if i.id_ == 0:
+                        try:
+                            i.remove_group()
+                        except KPError as err:
+                            self.draw_text(self.changed,
+                                           (1, 0, err.__str__()),
+                                           (4, 0, 'Press any key.'))
+                            self.any_key()
+                            return False
+                        else:
+                            if (g_highlight >= len(groups) and
+                                    g_highlight != 0):
+                                g_highlight -= 1
+                            e_highlight = 0
+                        break
+                groups = sorted(self.cur_root.children,
+                                key=lambda group: group.title.lower())
+                if groups and groups[g_highlight].entries:
+                    entries = sorted(groups[g_highlight].entries,
+                                     key=lambda entry:
+                                     entry.title.lower())
+                else:
+                    entries = []
                 self.del_clipboard()
                 if self.db.filepath is None:
                     filepath = self.get_filepath()
@@ -1582,6 +1702,30 @@ class App(object):
                 self.show_entries(e_highlight, entries, cur_win, e_offset,
                                   hide)
             elif c == ord('L'):
+                for i in self.db.groups:
+                    if i.id_ == 0:
+                        try:
+                            i.remove_group()
+                        except KPError as err:
+                            self.draw_text(self.changed,
+                                           (1, 0, err.__str__()),
+                                           (4, 0, 'Press any key.'))
+                            self.any_key()
+                            return False
+                        else:
+                            if (g_highlight >= len(groups) and
+                                    g_highlight != 0):
+                                g_highlight -= 1
+                            e_highlight = 0
+                        break
+                groups = sorted(self.cur_root.children,
+                                key=lambda group: group.title.lower())
+                if groups and groups[g_highlight].entries:
+                    entries = sorted(groups[g_highlight].entries,
+                                     key=lambda entry:
+                                     entry.title.lower())
+                else:
+                    entries = []
                 if changed is True:
                     self.draw_text(changed,
                                    (1, 0, 'File has changed. Save? [(y)/n]'))
@@ -2028,15 +2172,29 @@ class App(object):
                     if title is not False:
                         for i in self.db.groups:
                             if i.id_ == 0:
-                                i.parent.children.remove(i)
-                                self.db.groups.remove(i)
-                                break
+                                try:
+                                    i.remove_group()
+                                except KPError as err:
+                                    self.draw_text(self.changed,
+                                                   (1, 0, err.__str__()),
+                                                   (4, 0, 'Press any key.'))
+                                    self.any_key()
+                                    return False
                         self.db.create_group('Results')
                         self.db.groups[-1].id_ = 0
-                        for i in self.db._entries:
-                            if title.lower() in i.title.lower():
-                                self.db.groups[-1].entries.append(i)
-                                cur_win = 1
+                        #Necessary construct to prevent inf loop
+                        for i in range(len(self.db._entries)):
+                            entry = self.db._entries[i]
+                            if title.lower() in entry.title.lower():
+                                exp = entry.expire.timetuple()
+                                self.db.groups[-1].create_entry(
+                                        entry.title + ' ('+ entry.group.title + ')', 
+                                                                entry.image, entry.url,
+                                                                entry.username,
+                                                                entry.password, 
+                                                                entry.comment,
+                                                                exp[0], exp[1], exp[2])
+                                self.cur_win = 1
                         self.cur_root = self.db._root_group
                         groups = sorted(self.cur_root.children,
                                         key=lambda group: group.title.lower())
