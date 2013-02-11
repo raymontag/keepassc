@@ -107,6 +107,24 @@ class DBBrowser(object):
     def save(self, cur_dir):
         '''Save the database. cur_dir is the current directory.'''
 
+        for i in self.db.groups:
+            if i.id_ == 0:
+                try:
+                    i.remove_group()
+                except KPError as err:
+                    self.control.draw_text(self.changed,
+                                   (1, 0, err.__str__()),
+                                   (4, 0, 'Press any key.'))
+                    if self.control.any_key() == -1:
+                        self.close()
+                    return False
+                else:
+                    if (self.g_highlight >= len(self.groups) and
+                            self.g_highlight != 0):
+                        self.g_highlight -= 1
+                    self.e_highlight = 0
+                break
+
         self.control.draw_text(False,
                                (1, 0, 'Do not interrupt or '
                                 'your file will break!'))
@@ -682,22 +700,38 @@ class DBBrowser(object):
 
         if self.db._entries:
             title = self.control.get_string('', 'Title: ')
-            if title is not False:
+            if title is not False and title != '':
                 for i in self.db.groups:
                     if i.id_ == 0:
-                        i.parent.children.remove(i)
-                        self.db.groups.remove(i)
-                        break
+                        try:
+                            i.remove_group()
+                        except KPError as err:
+                            self.control.draw_text(self.changed,
+                                           (1, 0, err.__str__()),
+                                           (4, 0, 'Press any key.'))
+                            if self.control.any_key() == -1:
+                                self.close()
+                            return False
                 self.db.create_group('Results')
                 self.db.groups[-1].id_ = 0
-                for i in self.db._entries:
-                    if title.lower() in i.title.lower():
-                        self.db.groups[-1].entries.append(i)
+
+                #Necessary construct to prevent inf loop
+                for i in range(len(self.db._entries)):
+                    entry = self.db._entries[i]
+                    if title.lower() in entry.title.lower():
+                        exp = entry.expire.timetuple()
+                        self.db.groups[-1].create_entry(
+                                entry.title + ' ('+ entry.group.title + ')', 
+                                                        entry.image, entry.url,
+                                                        entry.username,
+                                                        entry.password, 
+                                                        entry.comment,
+                                                        exp[0], exp[1], exp[2])
                         self.cur_win = 1
                 self.cur_root = self.db._root_group
                 self.groups = sorted(self.cur_root.children,
                                 key=lambda group: group.title.lower())
-                for i in self.groups:
+                for i in self.groups: # 'Results' should be the last group
                     if i.id_ == 0:
                         self.groups.remove(i)
                         self.groups.append(i)
@@ -831,7 +865,11 @@ class DBBrowser(object):
     def show_password(self):
         '''Show password of marked entry (e.g. copy it without xsel)'''
 
-        pass
+        if self.entries:
+            self.control.draw_text(self.changed,
+                            (1, 0, self.entries[self.e_highlight].password))
+            if self.control.any_key() == -1:
+                self.close()
 
     def copy_password(self):
         '''Copy password to clipboard (calls cp2cb)'''
@@ -1043,11 +1081,13 @@ class DBBrowser(object):
             NL: self.unlock_db}
             
         while True:
+            '''
             if (self.control.config['lock_db'] and self.state == 0 and 
                 self.db.filepath is not None):
                 self.lock_timer = threading.Timer(
                                     self.control.config['lock_delay'],
                                     self.lock_db).start()
+            '''
             try:
                 c = self.control.stdscr.getch()
             except KeyboardInterrupt:

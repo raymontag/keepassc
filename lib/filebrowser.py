@@ -71,7 +71,7 @@ class FileBrowser(object):
                     continue
                 else:
                     return filepath
-        elif nav == 1:
+        elif nav == 1: # it was asked for last file
             return last_file
         elif nav == -1:
             return -1

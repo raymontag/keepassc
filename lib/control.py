@@ -645,7 +645,7 @@ class Control(object):
 
         if kdb_file is not None:
             self.cur_dir = kdb_file
-            if self.open_file() is True:
+            if self.open_db(True) is True:
                 db = DBBrowser(self)
                 del db
                 last = self.cur_dir.split('/')[-1]
@@ -751,56 +751,96 @@ class Control(object):
             elif menu == 3 or menu is False or menu == -1:
                 self.close()
 
-    def open_db(self):
+    def open_db(self, skip_fb = False):
         ''' This method opens a database.'''
-
-        while True:
-            if self.last_file is None:
-                nav = self.gen_menu((
-                    (1, 0, 'Use the file browser (1)'),
-                    (2, 0, 'Type direct path (2)')))
-            else:
-                nav = self.gen_menu((
-                    (1, 0, 'Use ' + self.last_file + ' (1)'),
-                    (2, 0, 'Use the file browser (2)'),
-                    (3, 0, 'Type direct path (3)')))
-            if ((self.last_file is not None and nav == 2) or 
-                (self.last_file is None and nav == 1)):
-                filepath = self.fb.browser()
-                if filepath is False:
-                    continue
-                elif filepath == -1:
-                    self.close()
-                self.cur_dir = filepath
-                if self.open_file() is False:
-                    continue
-            elif ((self.last_file is not None and nav == 3) or 
-                  (self.last_file is None and nav == 2)):
-                filepath = self.fb.get_direct_filepath(self.last_file)
-                if filepath is False:
-                    continue
-                elif filepath == -1:
-                    self.close()
-                elif filepath[-4:] != '.kdb' or isdir(filepath):
-                    self.draw_text(False,
-                                   (1, 0, 'Need path to a kdb-file!'),
-                                   (3, 0, 'Press any key'))
-                    if self.any_key == -1:
-                        self.close()
-                    continue
-                else:
-                    self.cur_dir = filepath
-                    if self.open_file() is False:
-                        continue
-            elif nav == 1:
-                self.cur_dir = self.last_file
-                if self.open_file() is False:
-                    continue
-            elif nav == -1:
+        
+        if skip_fb is False:
+            filepath = self.fb.get_filepath(last_file = self.last_file)
+            if filepath is False:
+                return False
+            elif filepath == -1:
                 self.close()
             else:
+                self.cur_dir = filepath
+
+        while True:
+            auth = self.gen_menu((
+                                 (1, 0, 'Use a password (1)'),
+                                 (2, 0, 'Use a keyfile (2)'),
+                                 (3, 0, 'Use both (3)')))
+            if auth is False:
                 return False
+            elif auth == -1:
+                self.close()
+            if auth == 1 or auth == 3:
+                password = self.get_password('Password: ')
+                if password is False:
+                    continue
+                elif password == -1:
+                    self.close()
+                if auth != 3:
+                    keyfile = None
+            if auth == 2 or auth == 3:
+                # Ugly construct but works
+                # "if keyfile is False" stuff is needed to implement the
+                # return to previous screen stuff
+                # Use similar constructs elsewhere
+                while True:
+                    keyfile = self.fb.get_filepath(False, True)
+                    if keyfile is False:
+                        break
+                    elif keyfile == -1:
+                        self.close()
+                    elif not isfile(keyfile):
+                        self.draw_text(False,
+                                       (1, 0, 'That\'s not a file'),
+                                       (3, 0, 'Press any key.'))
+                        if self.any_key() == -1:
+                            self.close()
+                        continue
+                    break
+                if keyfile is False:
+                    continue
+                if auth != 3:
+                    password = None
+            break
+        try:
+            if isfile(self.cur_dir + '.lock'):
+                self.draw_text(False,
+                               (1, 0, 'Database seems to be opened.'
+                                ' Open file in read-only mode?'
+                                ' [(y)/n]'))
+                while True:
+                    try:
+                        e = self.stdscr.getch()
+                    except KeyboardInterrupt:
+                        e = 4
+
+                    if e == ord('n'):
+                        read_only = False
+                        break
+                    elif e == 4:
+                        self.close()
+                    elif e == cur.KEY_RESIZE:
+                        self.resize_all()
+                    elif e == cur.KEY_F5:
+                        return False
+                    else:
+                        read_only = True
+                        break
+            else:
+                read_only = False
+            self.db = KPDB(self.cur_dir, password, keyfile, read_only)
             return True
+        except KPError as err:
+            self.draw_text(False,
+                           (1, 0, err.__str__()),
+                           (4, 0, 'Press any key.'))
+            if self.any_key() == -1:
+                self.close()
+            last = self.cur_dir.split('/')[-1]
+            self.cur_dir = self.cur_dir[:-len(last) - 1]
+            return False
 
     def browser_help(self, mode_new):
         '''Print help for filebrowser'''
@@ -900,83 +940,6 @@ class Control(object):
     def open_file(self):
         '''Method to open a database.'''
 
-        while True:
-            auth = self.gen_menu((
-                                 (1, 0, 'Use a password (1)'),
-                                 (2, 0, 'Use a keyfile (2)'),
-                                 (3, 0, 'Use both (3)')))
-            if auth is False:
-                return False
-            elif auth == -1:
-                self.close()
-            if auth == 1 or auth == 3:
-                password = self.get_password('Password: ')
-                if password is False:
-                    continue
-                elif password == -1:
-                    self.close()
-                if auth != 3:
-                    keyfile = None
-            if auth == 2 or auth == 3:
-                # Ugly construct but works
-                # "if keyfile is False" stuff is needed to implement the
-                # return to previous screen stuff
-                while True:
-                    keyfile = self.fb.get_filepath(False, True)
-                    if keyfile is False:
-                        break
-                    elif keyfile == -1:
-                        self.close()
-                    elif not isfile(keyfile):
-                        self.draw_text(False,
-                                       (1, 0, 'That\'s not a file'),
-                                       (3, 0, 'Press any key.'))
-                        if self.any_key() == -1:
-                            self.close()
-                        continue
-                    break
-                if keyfile is False:
-                    continue
-                if auth != 3:
-                    password = None
-            break
-        try:
-            if isfile(self.cur_dir + '.lock'):
-                self.draw_text(False,
-                               (1, 0, 'Database seems to be opened.'
-                                ' Open file in read-only mode?'
-                                ' [(y)/n]'))
-                while True:
-                    try:
-                        e = self.stdscr.getch()
-                    except KeyboardInterrupt:
-                        e = 4
-
-                    if e == ord('n'):
-                        read_only = False
-                        break
-                    elif e == 4:
-                        self.close()
-                    elif e == cur.KEY_RESIZE:
-                        self.resize_all()
-                    elif e == cur.KEY_F5:
-                        return False
-                    else:
-                        read_only = True
-                        break
-            else:
-                read_only = False
-            self.db = KPDB(self.cur_dir, password, keyfile, read_only)
-            return True
-        except KPError as err:
-            self.draw_text(False,
-                           (1, 0, err.__str__()),
-                           (4, 0, 'Press any key.'))
-            if self.any_key() == -1:
-                self.close()
-            last = self.cur_dir.split('/')[-1]
-            self.cur_dir = self.cur_dir[:-len(last) - 1]
-            return False
 
     def close(self):
         '''Close the program correctly.'''
@@ -1086,10 +1049,6 @@ class Control(object):
                     username = ""
                 else:
                     username = entry.username
-                if entry.password is None or hide is True:
-                    password = ""
-                else:
-                    password = entry.password
                 if entry.url is None:
                     url = ""
                 else:
@@ -1121,15 +1080,14 @@ class Control(object):
                 self.info_win.addstr(2, 0, title, cur.A_BOLD)
                 self.info_win.addstr(3, 0, "Group: " + group_title)
                 self.info_win.addstr(4, 0, "Username: " + username)
-                self.info_win.addstr(5, 0, "Password: " + password)
-                self.info_win.addstr(6, 0, "URL: " + url)
-                self.info_win.addstr(7, 0, "Creation: " + creation)
-                self.info_win.addstr(8, 0, "Access: " + last_access)
-                self.info_win.addstr(9, 0, "Modification: " + last_mod)
-                self.info_win.addstr(10, 0, expire)
+                self.info_win.addstr(5, 0, "URL: " + url)
+                self.info_win.addstr(6, 0, "Creation: " + creation)
+                self.info_win.addstr(7, 0, "Access: " + last_access)
+                self.info_win.addstr(8, 0, "Modification: " + last_mod)
+                self.info_win.addstr(9, 0, expire)
                 if date.today() > entry.expire.date():
-                    self.info_win.addstr(10, 22, ' (expired)')
-                self.info_win.addstr(11, 0, "Comment: " + comment)
+                    self.info_win.addstr(9, 22, ' (expired)')
+                self.info_win.addstr(10, 0, "Comment: " + comment)
         except:
             pass
         finally:
