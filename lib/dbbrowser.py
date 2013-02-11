@@ -62,6 +62,13 @@ class DBBrowser(object):
         self.cur_win = 0
         self.state = 0 # 0 = unlocked, 1 = locked 
 
+        self.control.show_groups(self.g_highlight, self.groups, 
+                                 self.cur_win, self.g_offset,
+                                 self.changed, self.cur_root)
+        self.control.show_entries(self.e_highlight, self.entries,
+                                  self.cur_win, self.e_offset)
+        self.db_browser()
+
     def pre_save(self):
         '''Prepare saving'''
 
@@ -239,9 +246,9 @@ class DBBrowser(object):
         self.db.lock()
         self.state = 1
         self.control.draw_lock_menu(self.changed, self.lock_highlight,
-                                    ((1, 0, 'Use a password (1)'),
-                                     (2, 0, 'Use a keyfile (2)'),
-                                     (3, 0, 'Use both (3)')))
+                                    (1, 0, 'Use a password (1)'),
+                                    (2, 0, 'Use a keyfile (2)'),
+                                    (3, 0, 'Use both (3)'))
 
     def unlock_db(self):
         '''Unlock the database'''
@@ -250,13 +257,17 @@ class DBBrowser(object):
             password = self.control.get_password('Password: ')
             if password is False:
                 return False
-            if self.lock_highlight != 3:
+            elif password == -1:
+                self.close()
+            if self.lock_highlight != 3: # Only password needed
                 keyfile = None
         if self.lock_highlight == 2 or self.lock_highlight == 3:
             while True:
-                keyfile = self.control.get_direct_filepath()
+                keyfile = self.control.fb.get_filepath(False, True)
                 if keyfile is False:
                     return False
+                elif keyfile == -1:
+                    self.close()
                 elif not isfile(keyfile):
                     self.control.draw_text(self.changed,
                                    (1, 0, 'That\'s not a file'),
@@ -265,7 +276,7 @@ class DBBrowser(object):
                         self.close()
                     continue
                 break
-            if self.lock_highlight != 3:
+            if self.lock_highlight != 3: # Only keyfile needed
                 password = None
         try:
             self.db.unlock(password, keyfile)
@@ -288,7 +299,7 @@ class DBBrowser(object):
             self.state = 0
             self.control.show_groups(self.g_highlight, self.groups, 
                                      self.cur_win, self.g_offset,
-                                     self.changed)
+                                     self.changed, self.cur_root)
             self.control.show_entries(self.e_highlight, self.entries, 
                                       self.cur_win, self.e_offset)
     
@@ -334,9 +345,13 @@ class DBBrowser(object):
                 password = self.control.get_password('New Password: ')
                 if password is False:
                     continue
+                elif password == -1:
+                    self.close()
                 confirm = self.control.get_password('Confirm: ')
                 if confirm is False:
                     continue
+                elif confirm == -1:
+                    self.close()
                 if password == confirm:
                     self.db.password = password
                 else:
@@ -349,6 +364,8 @@ class DBBrowser(object):
                     self.db.keyfile = None
             if auth is False:
                 return False
+            elif auth == -1:
+                self.close()
             else:
                 return True
 
@@ -386,6 +403,8 @@ class DBBrowser(object):
                 self.groups[self.g_highlight] is not old_group and
                 old_group is not None):
                 self.g_highlight = self.groups.index(old_group)
+        elif edit == -1:
+            self.close()
 
     def create_sub_group(self):
         '''Create a sub group with marked group as parrent'''
@@ -403,6 +422,8 @@ class DBBrowser(object):
                         self.close()
                 else:
                     self.changed = True
+            elif edit == -1:
+                self.close()
 
     def create_entry(self):
         '''Create an entry for the marked group'''
@@ -429,6 +450,8 @@ class DBBrowser(object):
                     title = self.control.get_string('', 'Title: ')
                 if title is False:
                     break
+                elif title == -1:
+                    self.close()
                 pass_title = True
 
                 if pass_url is False:
@@ -436,6 +459,8 @@ class DBBrowser(object):
                 if url is False:
                     pass_title = False
                     continue
+                elif url == -1:
+                    self.close()
                 pass_url = True
 
                 if pass_username is False:
@@ -443,6 +468,8 @@ class DBBrowser(object):
                 if username is False:
                     pass_url = False
                     continue
+                elif username == -1:
+                    self.close()
                 pass_username = True
 
                 if pass_password is False:
@@ -454,16 +481,22 @@ class DBBrowser(object):
                         password = self.control.gen_pass()
                         if password is False:
                             continue
+                        elif password == -1:
+                            self.close()
                     elif nav == 2:
                         while True:
                             password = self.control.get_password('Password: ',
                                                                  False)
                             if password is False:
                                 break
+                            elif password == -1:
+                                self.close()
                             confirm = self.control.get_password('Confirm: ',
                                                                 False)
                             if confirm is False:
                                 continue
+                            elif confirm == -1:
+                                self.close()
 
                             if password != confirm:
                                 self.control.draw_text(self.changed,
@@ -475,6 +508,8 @@ class DBBrowser(object):
                                 break
                         if password is False:
                             continue
+                    elif nav == -1:
+                        self.close()
                     else:
                         password = ''
                 if nav is False:
@@ -487,6 +522,8 @@ class DBBrowser(object):
                 if comment is False:
                     pass_password = False
                     continue
+                elif comment == -1:
+                    self.close()
                 pass_comment = True
 
                 self.control.draw_text(self.changed,
@@ -517,6 +554,8 @@ class DBBrowser(object):
                 if exp_date is False:
                     pass_comment = False
                     continue
+                elif exp_date == -1:
+                    self.close()
                 try:
                     self.groups[self.g_highlight].create_entry(title, 1, url,
                                                      username, password,
@@ -669,6 +708,8 @@ class DBBrowser(object):
                 else:
                     self.entries = []
                 self.e_highlight = 0
+            elif title == -1:
+                self.close()
 
     def edit_title(self):
         '''Edit title of group or entry'''
@@ -682,6 +723,8 @@ class DBBrowser(object):
                 if edit is not False:
                     self.groups[self.g_highlight].set_title(edit)
                     self.changed = True
+                elif edit == -1:
+                    self.close()
             elif self.cur_win == 1:
                 edit = self.control.get_string(
                                         self.entries[self.e_highlight].title,
@@ -689,6 +732,8 @@ class DBBrowser(object):
                 if edit is not False:
                     self.entries[self.e_highlight].set_title(edit)
                     self.changed = True
+                elif edit == -1:
+                    self.close()
             
     def edit_username(self):
         '''Edit username of marked entry'''
@@ -700,6 +745,8 @@ class DBBrowser(object):
                                     std)
             if edit is not False:
                 self.entries[self.e_highlight].set_username(edit)
+            elif edit == -1:
+                self.close()
                 
     def edit_url(self):
         '''Edit URL of marked entry'''
@@ -710,6 +757,8 @@ class DBBrowser(object):
                                     self.entries[self.e_highlight].url, std)
             if edit is not False:
                 self.entries[self.e_highlight].set_url(edit)
+            elif edit == -1:
+                self.close()
 
     def edit_comment(self):
         '''Edit comment of marked entry'''
@@ -721,6 +770,8 @@ class DBBrowser(object):
                                     std)
             if edit is not False:
                 self.entries[self.e_highlight].set_comment(edit)
+            elif edit == -1:
+                self.close()
     
     def edit_password(self):
         '''Edit password of marked entry'''
@@ -741,9 +792,13 @@ class DBBrowser(object):
                 password = self.control.get_password('Password: ', False)
                 if password is False:
                     break
+                elif password == -1:
+                    self.close()
                 confirm = self.control.get_password('Confirm: ', False)
                 if confirm is False:
                     continue
+                elif confirm == -1:
+                    self.close()
 
                 if password == confirm:
                     self.entries[self.e_highlight].set_password(password)
@@ -756,6 +811,8 @@ class DBBrowser(object):
                     if self.control.any_key() == -1:
                         self.close()
                     break
+        elif nav == -1:
+            self.close()
 
     def edit_date(self):
         '''Edit expiration date of marked entry'''
@@ -768,6 +825,8 @@ class DBBrowser(object):
                 exp_date[0], exp_date[1], exp_date[2],
                 exp[3], exp[4], exp[5])
             self.changed = True
+        elif exp_date == -1:
+            self.close()
 
     def show_password(self):
         '''Show password of marked entry (e.g. copy it without xsel)'''
@@ -983,25 +1042,18 @@ class DBBrowser(object):
             ord('k'): self.nav_up_lock,
             NL: self.unlock_db}
             
-        self.control.show_groups(self.g_highlight, self.groups, 
-                                 self.cur_win, self.g_offset,
-                                 self.changed)
-        self.control.show_entries(self.e_highlight, self.entries,
-                                  self.cur_win, self.e_offset)
         while True:
             if (self.control.config['lock_db'] and self.state == 0 and 
                 self.db.filepath is not None):
                 self.lock_timer = threading.Timer(
-                                    self.control.config['lock_db'],
-                                    self.lock_db())
+                                    self.control.config['lock_delay'],
+                                    self.lock_db).start()
             try:
                 c = self.control.stdscr.getch()
             except KeyboardInterrupt:
                 c = 4
             if type(self.lock_timer) is threading.Timer:
                 self.lock_timer.cancel()
-            if c == 4:
-                self.close()
             if self.state == 0:
                 if c == ord('\t'): # Switch group/entry view with tab.
                     if self.cur_win == 0:
@@ -1012,16 +1064,19 @@ class DBBrowser(object):
                     unlocked_state[c]()
                 if c == ord('e'):
                     return False
-                self.control.show_groups(self.g_highlight, self.groups, 
-                                         self.cur_win, self.g_offset,
-                                         self.changed)
-                self.control.show_entries(self.e_highlight, self.entries,
-                                          self.cur_win, self.e_offset)
+                if self.state == 0:
+                    self.control.show_groups(self.g_highlight, self.groups, 
+                                             self.cur_win, self.g_offset,
+                                             self.changed, self.cur_root)
+                    self.control.show_entries(self.e_highlight, self.entries,
+                                              self.cur_win, self.e_offset)
             elif self.state == 1 and c in locked_state:
                 locked_state[c]()
-                self.control.draw_lock_menu(self.changed, self.lock_highlight,
-                                            ((1, 0, 'Use a password (1)'),
-                                             (2, 0, 'Use a keyfile (2)'),
-                                             (3, 0, 'Use both (3)')))
+                if self.state == -1:
+                    self.control.draw_lock_menu(self.changed,
+                                                self.lock_highlight,
+                                                (1, 0, 'Use a password (1)'),
+                                                (2, 0, 'Use a keyfile (2)'),
+                                                (3, 0, 'Use both (3)'))
                 
 

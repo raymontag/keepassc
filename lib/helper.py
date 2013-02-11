@@ -35,7 +35,7 @@ def parse_config(control):
     config = {'del_clip': True, # standard config
               'clip_delay': 20,
               'lock_db': True,
-              'lock_delay': 1}
+              'lock_delay': 60}
               
     if isfile(control.config_home):
         try:
@@ -50,7 +50,7 @@ def parse_config(control):
                 elif val == 'False\n':
                     val = False
                 else:
-                    int(val)
+                    val = int(val)
                 if key in config:
                     config[key] = val
             handler.close()

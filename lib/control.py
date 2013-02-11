@@ -77,7 +77,6 @@ class Control(object):
         self.db = None
 
         self.fb = FileBrowser(self)
-        self.dbbrowser = DBBrowser(self)
 
     def initialize_cur(self):
         '''Method to initialize curses functionality'''
@@ -617,6 +616,8 @@ class Control(object):
     def draw_lock_menu(self, changed, highlight, *misc):
         '''Draw menu for locked database'''
 
+        h_color = 6
+        n_color = 1
         if changed is True:
             cur_dir = self.cur_dir + '*'
         else:
@@ -634,8 +635,8 @@ class Control(object):
                     self.stdscr.addstr(i, j, k, cur.color_pair(h_color))
                 else:
                     self.stdscr.addstr(i, j, k, cur.color_pair(n_color))
-        except: # to prevent a crash if screen is small
-            pass
+        #except: # to prevent a crash if screen is small
+        #    pass
         finally:
             self.stdscr.refresh()
 
@@ -645,7 +646,8 @@ class Control(object):
         if kdb_file is not None:
             self.cur_dir = kdb_file
             if self.open_file() is True:
-                self.dbbrowser.db_browser()
+                db = DBBrowser(self)
+                del db
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last) - 1]
         while True:
@@ -667,11 +669,12 @@ class Control(object):
                                  (5, 0, 'Type \'F1\' for help inside the file '
                                         'or database browser.'),
                                  (6, 0, 'Type \'F5\' to return to the previous'
-                                        'dialog at any time'))
+                                        ' dialog at any time.'))
             if menu == 1:
                 if self.open_db() is False:
                     continue
-                self.dbbrowser.db_browser()
+                db = DBBrowser(self)
+                del db
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last) - 1]
             elif menu == 2:
@@ -738,7 +741,8 @@ class Control(object):
                             self.db.password = None
 
                     if auth is not False:
-                        self.dbbrowser.db_browser()
+                        db = DBBrowser(self)
+                        del db
                         last = self.cur_dir.split('/')[-1]
                         self.cur_dir = self.cur_dir[:-len(last) - 1]
                     else:
@@ -983,12 +987,11 @@ class Control(object):
         exit()
 
 
-    def show_groups(self, highlight, groups, cur_win, offset, changed):
+    def show_groups(self, highlight, groups, cur_win, offset, changed, parent):
         '''Just print all groups in a column'''
 
         self.draw_text(changed)
         self.group_win.clear()
-        parent = self.cur_root
         if parent is self.db._root_group:
             root_title = 'Parent: _ROOT_'
         else:

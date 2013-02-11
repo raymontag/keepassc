@@ -44,7 +44,7 @@ class FileBrowser(object):
                 (2, 0, 'Use the file browser (2)'),
                 (3, 0, 'Type direct path (3)')))
         if ((ask_for_lf is True and last_file is not None and nav == 2) or 
-            ((last_file is None or ask_for_lf) is False and nav == 1)):
+            ((last_file is None or ask_for_lf is False) and nav == 1)):
             if keyfile is True:
                 filepath = self.browser(False, keyfile)
             else:
@@ -54,11 +54,13 @@ class FileBrowser(object):
                     filepath += '/' + filename + '.kdb'
             return filepath
         if ((ask_for_lf is True and last_file is not None and nav == 3) or 
-            ((last_file is None or ask_for_lf) is False and nav == 2)):
+            ((last_file is None or ask_for_lf is False) and nav == 2)):
             while True:
                 filepath = self.get_direct_filepath(last_file)
                 if filepath is False:
                     return False
+                elif filepath == -1:
+                    return -1
                 elif ((filepath[-4:] != '.kdb' or isdir(filepath)) and
                       keyfile is False):
                     self.control.draw_text(False,
@@ -71,6 +73,8 @@ class FileBrowser(object):
                     return filepath
         elif nav == 1:
             return last_file
+        elif nav == -1:
+            return -1
         else:
             return False
 
