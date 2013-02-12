@@ -30,7 +30,7 @@ from sys import exit
 
 from kppy import KPDB, KPError
 
-from .helper import parse_config
+from .helper import parse_config, write_config
 from .filebrowser import FileBrowser
 from .dbbrowser import DBBrowser
 
@@ -612,6 +612,62 @@ class Control(object):
             elif e == NL:
                 return items
 
+    def gen_config_menu(self):
+        '''The configuration menu'''
+
+        while True:
+            menu = self.gen_menu(((1, 0, 'Delete clipboard automatically: ' + 
+                                   str(self.config['del_clip'])),
+                                  (2, 0, 'Waiting time (seconds): ' +
+                                   str(self.config['clip_delay'])),
+                                  (3, 0, 'Lock database automatically: ' +
+                                   str(self.config['lock_db'])),
+                                  (4, 0, 'Waiting time (seconds): ' +
+                                   str(self.config['lock_delay'])),
+                                  (5, 0, 'Generate default configuration'),
+                                  (6, 0, 'Write config')),
+                                  (8, 0, 'Automatic locking works only for '
+                                         'saved databases!'))
+            if menu == 1:
+                if self.config['del_clip'] is True:
+                    self.config['del_clip'] = False                
+                elif self.config['del_clip'] is False:
+                    self.config['del_clip'] = True              
+            elif menu == 2:
+                delay = self.get_num('Waiting time: ', 
+                                     str(self.config['clip_delay']))
+                if delay is False:
+                    continue
+                elif delay == -1:
+                    self.close()
+                else:
+                    self.config['clip_delay'] = delay
+            elif menu == 3:
+                if self.config['lock_db'] is True:
+                    self.config['lock_db'] = False                
+                elif self.config['lock_db'] is False:
+                    self.config['lock_db'] = True              
+            elif menu == 4:
+                delay = self.get_num('Waiting time: ', 
+                                     str(self.config['lock_delay']))
+                if delay is False:
+                    continue
+                elif delay == -1:
+                    self.close()
+                else:
+                    self.config['lock_delay'] = delay
+            elif menu == 5:
+                self.config['del_clip'] = True              
+                self.config['clip_delay'] = 20
+                self.config['lock_db'] = True              
+                self.config['lock_delay'] = 60
+            elif menu == 6:
+                write_config(self, self.config)
+                return True
+            elif menu is False:
+                return False
+            elif menu == -1:
+                self.close()
 
     def draw_lock_menu(self, changed, highlight, *misc):
         '''Draw menu for locked database'''
@@ -665,10 +721,11 @@ class Control(object):
                     
             menu = self.gen_menu(((1, 0, 'Open existing database (1)'),
                                   (2, 0, 'Create new database (2)'),
-                                  (3, 0, 'Quit (3)')),
-                                 (5, 0, 'Type \'F1\' for help inside the file '
+                                  (3, 0, 'Configuration (3)'),
+                                  (4, 0, 'Quit (4)')),
+                                 (6, 0, 'Type \'F1\' for help inside the file '
                                         'or database browser.'),
-                                 (6, 0, 'Type \'F5\' to return to the previous'
+                                 (7, 0, 'Type \'F5\' to return to the previous'
                                         ' dialog at any time.'))
             if menu == 1:
                 if self.open_db() is False:
@@ -748,7 +805,9 @@ class Control(object):
                     else:
                         self.db = None
                     break
-            elif menu == 3 or menu is False or menu == -1:
+            elif menu == 3:
+                self.gen_config_menu()
+            elif menu == 4 or menu is False or menu == -1:
                 self.close()
 
     def open_db(self, skip_fb = False):
