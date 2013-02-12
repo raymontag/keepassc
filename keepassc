@@ -735,7 +735,7 @@ class App(object):
                 if self.open_file() is False:
                     continue
             elif (self.last_file is not None and nav == 3) or (self.last_file is None and nav == 2):
-                filepath = self.get_direct_filepath(self.last_file)
+                filepath = self.get_direct_filepath()
                 if filepath is False:
                     continue
                 elif filepath[-4:] != '.kdb' or isdir(filepath):
