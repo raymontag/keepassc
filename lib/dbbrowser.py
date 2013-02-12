@@ -74,10 +74,10 @@ class DBBrowser(object):
 
         if self.db.filepath is None:
             filepath = self.control.fb.get_filepath()
-            if filepath is not False:
-                self.control.cur_dir = filepath
-            elif filepath == -1:
+            if filepath == -1:
                 self.close()
+            elif filepath is not False:
+                self.control.cur_dir = filepath
             else:
                 return False
         if self.save(self.control.cur_dir) is not False:
@@ -89,7 +89,9 @@ class DBBrowser(object):
         '''Prepare "Save as"'''
 
         filepath = self.control.fb.get_filepath(False)
-        if filepath is not False:
+        if filepath == -1:
+            self.close()
+        elif filepath is not False:
             if self.db.filepath is None:
                 self.control.cur_dir = filepath
             if isfile(filepath):
@@ -99,8 +101,6 @@ class DBBrowser(object):
                     self.changed = False
                 else:
                     return False
-        elif filepath == -1:
-            self.close()
         else: 
             return False
 
@@ -119,11 +119,17 @@ class DBBrowser(object):
                         self.close()
                     return False
                 else:
-                    if (self.g_highlight >= len(self.groups) and
+                    if (self.g_highlight >= len(self.db.groups) and
                             self.g_highlight != 0):
                         self.g_highlight -= 1
                     self.e_highlight = 0
                 break
+        self.groups = sorted(self.cur_root.children,
+                        key=lambda group: group.title.lower())
+        self.entries = []
+        if self.groups and self.groups[self.g_highlight].entries:
+            self.entries = sorted(self.groups[self.g_highlight].entries,
+                             key=lambda entry: entry.title.lower())
 
         self.control.draw_text(False,
                                (1, 0, 'Do not interrupt or '
@@ -143,12 +149,12 @@ class DBBrowser(object):
 
         if self.db.filepath is None:
             filepath = self.control.fb.get_filepath()
-            if filepath is not False:
+            if filepath == -1:
+                self.close()
+            elif filepath is not False:
                 self.control.cur_dir = filepath
                 if self.save(self.control.cur_dir) is not False:
                     self.close()
-            elif filepath == -1:
-                self.close()
         elif self.save(self.control.cur_dir) is not False:
             self.close()
 
@@ -173,11 +179,11 @@ class DBBrowser(object):
             else:
                 if self.db.filepath is None:
                     filepath = self.control.fb.get_filepath()
-                    if filepath is not False:
+                    if filepath == -1:
+                        self.close()
+                    elif filepath is not False:
                         self.control.cur_dir = filepath
                         self.save(self.control.cur_dir)
-                    elif filepath == -1:
-                        self.close()
                     else:
                         continue
                 else:
@@ -391,7 +397,9 @@ class DBBrowser(object):
         '''Create a group in the current root'''
 
         edit = self.control.get_string('', 'Title: ')
-        if edit is not False:
+        if edit == -1:
+            self.close()
+        elif edit is not False:
             if self.groups:
                 old_group = self.groups[self.g_highlight]
             else:
@@ -421,15 +429,15 @@ class DBBrowser(object):
                 self.groups[self.g_highlight] is not old_group and
                 old_group is not None):
                 self.g_highlight = self.groups.index(old_group)
-        elif edit == -1:
-            self.close()
 
     def create_sub_group(self):
         '''Create a sub group with marked group as parrent'''
 
         if self.groups:
             edit = self.control.get_string('', 'Title: ')
-            if edit is not False:
+            if edit == -1:
+                self.close()
+            elif edit is not False:
                 try:
                     self.db.create_group(edit, self.groups[self.g_highlight])
                 except KPError as err:
@@ -440,8 +448,6 @@ class DBBrowser(object):
                         self.close()
                 else:
                     self.changed = True
-            elif edit == -1:
-                self.close()
 
     def create_entry(self):
         '''Create an entry for the marked group'''
@@ -628,7 +634,7 @@ class DBBrowser(object):
                     if self.control.any_key() == -1:
                         self.close()
                 else:
-                    if (not self.groups and
+                    if (not self.cur_root.children and
                             self.cur_root is not self.db._root_group):
                         self.cur_root = self.cur_root.parent
                     self.changed = True
@@ -700,7 +706,9 @@ class DBBrowser(object):
 
         if self.db._entries:
             title = self.control.get_string('', 'Title: ')
-            if title is not False and title != '':
+            if title == -1:
+                self.close()
+            elif title is not False and title != '':
                 for i in self.db.groups:
                     if i.id_ == 0:
                         try:
@@ -742,8 +750,6 @@ class DBBrowser(object):
                 else:
                     self.entries = []
                 self.e_highlight = 0
-            elif title == -1:
-                self.close()
 
     def edit_title(self):
         '''Edit title of group or entry'''
@@ -754,20 +760,20 @@ class DBBrowser(object):
                 edit = self.control.get_string(
                                         self.groups[self.g_highlight].title, 
                                         std)
-                if edit is not False:
+                if edit == -1:
+                    self.close()
+                elif edit is not False:
                     self.groups[self.g_highlight].set_title(edit)
                     self.changed = True
-                elif edit == -1:
-                    self.close()
             elif self.cur_win == 1:
                 edit = self.control.get_string(
                                         self.entries[self.e_highlight].title,
                                         std)
-                if edit is not False:
+                if edit == -1:
+                    self.close()
+                elif edit is not False:
                     self.entries[self.e_highlight].set_title(edit)
                     self.changed = True
-                elif edit == -1:
-                    self.close()
             
     def edit_username(self):
         '''Edit username of marked entry'''
@@ -777,10 +783,10 @@ class DBBrowser(object):
             edit = self.control.get_string(
                                     self.entries[self.e_highlight].username,
                                     std)
-            if edit is not False:
-                self.entries[self.e_highlight].set_username(edit)
-            elif edit == -1:
+            if edit == -1:
                 self.close()
+            elif edit is not False:
+                self.entries[self.e_highlight].set_username(edit)
                 
     def edit_url(self):
         '''Edit URL of marked entry'''
@@ -789,10 +795,10 @@ class DBBrowser(object):
             std = 'URL: '
             edit = self.control.get_string(
                                     self.entries[self.e_highlight].url, std)
-            if edit is not False:
-                self.entries[self.e_highlight].set_url(edit)
-            elif edit == -1:
+            if edit == -1:
                 self.close()
+            elif edit is not False:
+                self.entries[self.e_highlight].set_url(edit)
 
     def edit_comment(self):
         '''Edit comment of marked entry'''
@@ -802,10 +808,10 @@ class DBBrowser(object):
             edit = self.control.get_string(
                                     self.entries[self.e_highlight].comment,
                                     std)
-            if edit is not False:
-                self.entries[self.e_highlight].set_comment(edit)
-            elif edit == -1:
+            if edit == -1:
                 self.close()
+            elif edit is not False:
+                self.entries[self.e_highlight].set_comment(edit)
     
     def edit_password(self):
         '''Edit password of marked entry'''
@@ -854,13 +860,13 @@ class DBBrowser(object):
         exp = self.entries[self.e_highlight].expire.timetuple()
         exp_date = self.control.get_exp_date(exp[0], exp[1], exp[2])
 
-        if exp_date is not False:
+        if exp_date == -1:
+            self.close()
+        elif exp_date is not False:
             self.entries[self.e_highlight].set_expire(
                 exp_date[0], exp_date[1], exp_date[2],
                 exp[3], exp[4], exp[5])
             self.changed = True
-        elif exp_date == -1:
-            self.close()
 
     def show_password(self):
         '''Show password of marked entry (e.g. copy it without xsel)'''
