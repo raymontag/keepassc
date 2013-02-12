@@ -1374,7 +1374,7 @@ class App(object):
                             self.any_key()
                             return False
                         else:
-                            if (g_highlight >= len(groups) and
+                            if (g_highlight >= len(self.db.groups) and
                                     g_highlight != 0):
                                 g_highlight -= 1
                             e_highlight = 0
@@ -1449,7 +1449,7 @@ class App(object):
                             self.any_key()
                             return False
                         else:
-                            if (g_highlight >= len(groups) and
+                            if (g_highlight >= len(self.db.groups) and
                                     g_highlight != 0):
                                 g_highlight -= 1
                             e_highlight = 0
@@ -1613,7 +1613,7 @@ class App(object):
                             self.any_key()
                             return False
                         else:
-                            if (g_highlight >= len(groups) and
+                            if (g_highlight >= len(self.db.groups) and
                                     g_highlight != 0):
                                 g_highlight -= 1
                             e_highlight = 0
@@ -1673,7 +1673,7 @@ class App(object):
                             self.any_key()
                             return False
                         else:
-                            if (g_highlight >= len(groups) and
+                            if (g_highlight >= len(self.db.groups) and
                                     g_highlight != 0):
                                 g_highlight -= 1
                             e_highlight = 0
@@ -1713,7 +1713,7 @@ class App(object):
                             self.any_key()
                             return False
                         else:
-                            if (g_highlight >= len(groups) and
+                            if (g_highlight >= len(self.db.groups) and
                                     g_highlight != 0):
                                 g_highlight -= 1
                             e_highlight = 0
