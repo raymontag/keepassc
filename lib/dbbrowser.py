@@ -60,7 +60,7 @@ class DBBrowser(object):
                              key=lambda entry: entry.title.lower())
         self.changed = False
         self.cur_win = 0
-        self.state = 0 # 0 = unlocked, 1 = locked 
+        self.state = 0 # 0 = unlocked, 1 = locked, 2 = pre_lock
 
         self.control.show_groups(self.g_highlight, self.groups, 
                                  self.cur_win, self.g_offset,
@@ -80,10 +80,14 @@ class DBBrowser(object):
                 self.control.cur_dir = filepath
             else:
                 return False
-        if self.save(self.control.cur_dir) is not False:
-            self.changed = False
-        else:
-            return False
+        while True:
+            if self.save(self.control.cur_dir) is not False:
+                self.changed = False
+                break
+            elif self.state != 2:
+                return False
+            else:
+                continue
     
     def pre_save_as(self):
         '''Prepare "Save as"'''
@@ -253,13 +257,9 @@ class DBBrowser(object):
                 return
         self.close()
 
-    def lock_db(self):
-        '''Lock the database'''
+    def pre_lock(self):
+        '''Method is necessary to prevent weird effects due to theading'''
 
-        if self.changed is True:
-            if self.ask_for_saving() is False:
-                return False
-        self.del_clipboard()
         if self.db.filepath is None:
             self.control.draw_text(self.changed,
                            (1, 0, 'Can only lock an existing db!'),
@@ -267,6 +267,17 @@ class DBBrowser(object):
             if self.control.any_key() == -1:
                 self.close()
             return False
+        if self.changed is True and self.db.read_only is False:
+            self.state = 2
+            self.control.draw_text(self.changed,
+                           (1, 0, 'File has changed. Save? [(y)/n]'))
+        else:
+            self.lock_db()
+
+    def lock_db(self):
+        '''Lock the database'''
+
+        self.del_clipboard()
         self.db.lock()
         self.state = 1
         self.control.draw_lock_menu(self.changed, self.lock_highlight,
@@ -615,10 +626,17 @@ class DBBrowser(object):
     def delete_group(self):
         '''Delete the marked group'''
 
-        title = self.groups[self.g_highlight].title
-        self.control.draw_text(self.changed,
-                       (1, 0, 'Really delete group ' + title + '? '
-                        '[y/(n)]'))
+        if len(self.db.groups) > 1:
+            title = self.groups[self.g_highlight].title
+            self.control.draw_text(self.changed,
+                           (1, 0, 'Really delete group ' + title + '? '
+                            '[y/(n)]'))
+        else:
+            self.control.draw_text(self.changed,
+                           (1, 0, 'At least one group is needed!'),
+                           (3, 0, 'Press any key'))
+            if self.control.any_key() == -1:
+                self.close()
         while True:
             try:
                 e = self.control.stdscr.getch()
@@ -1050,7 +1068,7 @@ class DBBrowser(object):
             ord('s'): self.pre_save,
             ord('S'): self.pre_save_as,
             ord('x'): self.save_n_quit,
-            ord('L'): self.lock_db,
+            ord('L'): self.pre_lock,
             ord('P'): self.change_db_password,
             ord('g'): self.create_group,
             ord('G'): self.create_sub_group,
@@ -1085,15 +1103,14 @@ class DBBrowser(object):
             cur.KEY_UP: self.nav_up_lock,
             ord('k'): self.nav_up_lock,
             NL: self.unlock_db}
-            
+
         while True:
-            '''
             if (self.control.config['lock_db'] and self.state == 0 and 
                 self.db.filepath is not None):
                 self.lock_timer = threading.Timer(
                                     self.control.config['lock_delay'],
-                                    self.lock_db).start()
-            '''
+                                    self.pre_lock)
+                self.lock_timer.start()
             try:
                 c = self.control.stdscr.getch()
             except KeyboardInterrupt:
@@ -1110,7 +1127,7 @@ class DBBrowser(object):
                     unlocked_state[c]()
                 if c == ord('e'):
                     return False
-                if self.state == 0:
+                if self.state == 0: # 'cause 'L' changes state
                     self.control.show_groups(self.g_highlight, self.groups, 
                                              self.cur_win, self.g_offset,
                                              self.changed, self.cur_root)
@@ -1118,11 +1135,16 @@ class DBBrowser(object):
                                               self.cur_win, self.e_offset)
             elif self.state == 1 and c in locked_state:
                 locked_state[c]()
-                if self.state == -1:
+                if self.state == 1: # 'cause 'L' changes state
                     self.control.draw_lock_menu(self.changed,
                                                 self.lock_highlight,
                                                 (1, 0, 'Use a password (1)'),
                                                 (2, 0, 'Use a keyfile (2)'),
                                                 (3, 0, 'Use both (3)'))
-                
+            elif self.state == 2:
+                if c == ord('n'):
+                    self.lock_db()
+                else:
+                    self.pre_save()
+                    self.lock_db()
 
