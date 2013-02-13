@@ -64,7 +64,7 @@ class DBBrowser(object):
                                   self.cur_win, self.e_offset)
         self.db_browser()
 
-    def sort_tables(self, groups, results):
+    def sort_tables(self, groups, results, go2results = False):
         if groups is True: #To prevent senseless sorting
             self.groups = sorted(self.cur_root.children,
                             key=lambda group: group.title.lower())
@@ -73,6 +73,8 @@ class DBBrowser(object):
                 if i.id_ == 0:
                     self.groups.remove(i)
                     self.groups.append(i)
+        if go2results is True:
+            self.g_highlight = len(self.groups) - 1
         self.entries = []
         if self.groups and self.groups[self.g_highlight].entries:
             self.entries = sorted(self.groups[self.g_highlight].entries,
@@ -633,6 +635,7 @@ class DBBrowser(object):
                             self.g_highlight != 0):
                         self.g_highlight -= 1
                     self.e_highlight = 0
+                    self.sort_tables(True, True)
                 break
             elif e == 4:
                 self.close()
@@ -640,7 +643,6 @@ class DBBrowser(object):
                 self.control.resize_all()
             else:
                 break
-            self.sort_tables(True, True)
 
     def delete_entry(self):
         '''Delete marked entry'''
@@ -664,6 +666,7 @@ class DBBrowser(object):
                     if self.control.any_key() == -1:
                         self.close()
                 else:
+                    self.sort_tables(True, True)
                     self.changed = True
                     if not self.entries:
                         self.cur_win = 0
@@ -677,8 +680,6 @@ class DBBrowser(object):
                 self.control.resize_all()
             else:
                 break
-            self.sort_tables(True, True)
-            self.cur_win = 0
 
     def find_entries(self):
         '''Find entries by title'''
@@ -706,8 +707,7 @@ class DBBrowser(object):
                                                         exp[0], exp[1], exp[2])
                         self.cur_win = 1
                 self.cur_root = self.db._root_group
-                self.g_highlight = len(self.db.groups) - 1
-                self.sort_tables(True, True)
+                self.sort_tables(True, True, True)
                 self.e_highlight = 0
 
     def remove_results(self):
