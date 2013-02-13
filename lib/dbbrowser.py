@@ -68,15 +68,15 @@ class DBBrowser(object):
         if groups is True: #To prevent senseless sorting
             self.groups = sorted(self.cur_root.children,
                             key=lambda group: group.title.lower())
-        self.entries = []
-        if self.groups and self.groups[self.g_highlight].entries:
-            self.entries = sorted(self.groups[self.g_highlight].entries,
-                             key=lambda entry: entry.title.lower())
         if results is True: # To prevent senseless sorting
             for i in self.groups: # 'Results' should be the last group
                 if i.id_ == 0:
                     self.groups.remove(i)
                     self.groups.append(i)
+        self.entries = []
+        if self.groups and self.groups[self.g_highlight].entries:
+            self.entries = sorted(self.groups[self.g_highlight].entries,
+                             key=lambda entry: entry.title.lower())
 
     def pre_save(self):
         '''Prepare saving'''
@@ -706,7 +706,7 @@ class DBBrowser(object):
                                                         exp[0], exp[1], exp[2])
                         self.cur_win = 1
                 self.cur_root = self.db._root_group
-                self.g_highlight = len(self.groups)
+                self.g_highlight = len(self.db.groups) - 1
                 self.sort_tables(True, True)
                 self.e_highlight = 0
 
