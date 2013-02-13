@@ -52,12 +52,7 @@ class DBBrowser(object):
         self.e_highlight = 0
         self.g_offset = 0
         self.e_offset = 0
-        self.groups = sorted(self.cur_root.children,
-                        key=lambda group: group.title.lower())
-        self.entries = []
-        if self.groups and self.groups[self.g_highlight].entries:
-            self.entries = sorted(self.groups[self.g_highlight].entries,
-                             key=lambda entry: entry.title.lower())
+        self.sort_tables(True, False)
         self.changed = False
         self.cur_win = 0
         self.state = 0 # 0 = unlocked, 1 = locked, 2 = pre_lock
@@ -68,6 +63,20 @@ class DBBrowser(object):
         self.control.show_entries(self.e_highlight, self.entries,
                                   self.cur_win, self.e_offset)
         self.db_browser()
+
+    def sort_tables(self, groups, results):
+        if groups is True: #To prevent senseless sorting
+            self.groups = sorted(self.cur_root.children,
+                            key=lambda group: group.title.lower())
+        self.entries = []
+        if self.groups and self.groups[self.g_highlight].entries:
+            self.entries = sorted(self.groups[self.g_highlight].entries,
+                             key=lambda entry: entry.title.lower())
+        if results is True: # To prevent senseless sorting
+            for i in self.groups: # 'Results' should be the last group
+                if i.id_ == 0:
+                    self.groups.remove(i)
+                    self.groups.append(i)
 
     def pre_save(self):
         '''Prepare saving'''
@@ -111,30 +120,8 @@ class DBBrowser(object):
     def save(self, cur_dir):
         '''Save the database. cur_dir is the current directory.'''
 
-        for i in self.db.groups:
-            if i.id_ == 0:
-                try:
-                    i.remove_group()
-                except KPError as err:
-                    self.control.draw_text(self.changed,
-                                   (1, 0, err.__str__()),
-                                   (4, 0, 'Press any key.'))
-                    if self.control.any_key() == -1:
-                        self.close()
-                    return False
-                else:
-                    if (self.g_highlight >= len(self.db.groups) and
-                            self.g_highlight != 0):
-                        self.g_highlight -= 1
-                    self.e_highlight = 0
-                break
-        self.groups = sorted(self.cur_root.children,
-                        key=lambda group: group.title.lower())
-        self.entries = []
-        if self.groups and self.groups[self.g_highlight].entries:
-            self.entries = sorted(self.groups[self.g_highlight].entries,
-                             key=lambda entry: entry.title.lower())
-
+        self.remove_results()
+        self.sort_tables(True, False)
         self.control.draw_text(False,
                                (1, 0, 'Do not interrupt or '
                                 'your file will break!'))
@@ -277,6 +264,7 @@ class DBBrowser(object):
     def lock_db(self):
         '''Lock the database'''
 
+        self.remove_results()
         self.del_clipboard()
         self.db.lock()
         self.state = 1
@@ -323,14 +311,7 @@ class DBBrowser(object):
                 self.close()
         else:
             self.cur_root = self.db._root_group
-            self.groups = sorted(self.cur_root.children,
-                            key=lambda group: group.title.lower())
-            if self.groups and self.groups[self.g_highlight].entries:
-                self.entries = sorted(self.groups[self.g_highlight].entries,
-                                 key=lambda entry:
-                                 entry.title.lower())
-            else:
-                self.entries = []
+            self.sort_tables(True, False)
             self.state = 0
             self.control.show_groups(self.g_highlight, self.groups, 
                                      self.cur_win, self.g_offset,
@@ -429,13 +410,7 @@ class DBBrowser(object):
                     self.close()
             else:
                 self.changed = True
-            self.groups = sorted(self.cur_root.children,
-                            key=lambda group: group.title.lower())
-            if self.groups and self.groups[self.g_highlight].entries:
-                self.entries = sorted(self.groups[self.g_highlight].entries,
-                                 key=lambda entry: entry.title.lower())
-            else:
-                self.entries = []
+            self.sort_tables(True, True)
             if (self.groups and 
                 self.groups[self.g_highlight] is not old_group and
                 old_group is not None):
@@ -605,10 +580,7 @@ class DBBrowser(object):
                                    (4, 0, 'Press any key.'))
                     if self.control.any_key() == -1:
                         self.close()
-                self.groups = sorted(self.cur_root.children,
-                                key=lambda group: group.title.lower())
-                self.entries = sorted(self.groups[self.g_highlight].entries,
-                                 key=lambda entry: entry.title.lower())
+                self.sort_tables(True, True)
                 if (self.entries and 
                     self.entries[self.e_highlight] is not old_entry and
                     old_entry is not None):
@@ -668,14 +640,7 @@ class DBBrowser(object):
                 self.control.resize_all()
             else:
                 break
-        self.groups = sorted(self.cur_root.children,
-                        key=lambda group: group.title.lower())
-        if self.groups and self.groups[self.g_highlight].entries:
-            self.entries = sorted(self.groups[self.g_highlight].entries,
-                             key=lambda entry:
-                             entry.title.lower())
-        else:
-            self.entries = []
+            self.sort_tables(True, True)
 
     def delete_entry(self):
         '''Delete marked entry'''
@@ -712,11 +677,7 @@ class DBBrowser(object):
                 self.control.resize_all()
             else:
                 break
-        if self.groups and self.groups[self.g_highlight].entries:
-            self.entries = sorted(self.groups[self.g_highlight].entries,
-                             key=lambda entry: entry.title.lower())
-        else:
-            self.entries = []
+            self.sort_tables(True, True)
             self.cur_win = 0
 
     def find_entries(self):
@@ -727,17 +688,7 @@ class DBBrowser(object):
             if title == -1:
                 self.close()
             elif title is not False and title != '':
-                for i in self.db.groups:
-                    if i.id_ == 0:
-                        try:
-                            i.remove_group()
-                        except KPError as err:
-                            self.control.draw_text(self.changed,
-                                           (1, 0, err.__str__()),
-                                           (4, 0, 'Press any key.'))
-                            if self.control.any_key() == -1:
-                                self.close()
-                            return False
+                self.remove_results()
                 self.db.create_group('Results')
                 self.db.groups[-1].id_ = 0
 
@@ -755,19 +706,30 @@ class DBBrowser(object):
                                                         exp[0], exp[1], exp[2])
                         self.cur_win = 1
                 self.cur_root = self.db._root_group
-                self.groups = sorted(self.cur_root.children,
-                                key=lambda group: group.title.lower())
-                for i in self.groups: # 'Results' should be the last group
-                    if i.id_ == 0:
-                        self.groups.remove(i)
-                        self.groups.append(i)
-                self.g_highlight = len(self.groups) - 1
-                if self.groups and self.groups[-1].entries:
-                    self.entries = sorted(self.groups[-1].entries,
-                                     key=lambda entry: entry.title.lower())
-                else:
-                    self.entries = []
+                self.g_highlight = len(self.groups)
+                self.sort_tables(True, True)
                 self.e_highlight = 0
+
+    def remove_results(self):
+        '''Remove possible search result group'''
+
+        for i in self.db.groups:
+            if i.id_ == 0:
+                try:
+                    i.remove_group()
+                except KPError as err:
+                    self.control.draw_text(self.changed,
+                                   (1, 0, err.__str__()),
+                                   (4, 0, 'Press any key.'))
+                    if self.control.any_key() == -1:
+                        self.close()
+                    return False
+                else:
+                    if (self.g_highlight >= len(self.db.groups) and
+                            self.g_highlight != 0):
+                        self.g_highlight -= 1
+                    self.e_highlight = 0
+                break
 
     def edit_title(self):
         '''Edit title of group or entry'''
@@ -968,12 +930,7 @@ class DBBrowser(object):
             self.g_highlight += 1
             self.e_offset = 0
             self.e_highlight = 0
-            if self.groups and self.groups[self.g_highlight].entries:
-                self.entries = sorted(self.groups[self.g_highlight].entries,
-                                 key=lambda entry:
-                                 entry.title.lower())
-            else:
-                self.entries = []
+            self.sort_tables(False, True)
         elif self.cur_win == 1 and self.e_highlight < len(self.entries)  - 1:
             ysize = self.control.entry_win.getmaxyx()[0]
             if (self.e_highlight >= ysize - 4 and
@@ -992,12 +949,7 @@ class DBBrowser(object):
             self.g_highlight -= 1
             self.e_offset = 0
             self.e_highlight = 0
-            if self.groups and self.groups[self.g_highlight].entries:
-                self.entries = sorted(self.groups[self.g_highlight].entries,
-                                 key=lambda entry:
-                                 entry.title.lower())
-            else:
-                self.entries = []
+            self.sort_tables(False, True)
         elif self.cur_win == 1 and self.e_highlight > 0:
             ysize = self.control.entry_win.getmaxyx()[0]
             if self.e_highlight <= len(self.entries) - ysize + 3 and \
@@ -1024,14 +976,7 @@ class DBBrowser(object):
             self.g_highlight = 0
             self.e_highlight = 0
             self.cur_win = 0
-            self.groups = sorted(self.cur_root.children,
-                            key=lambda group: group.title.lower())
-            if self.groups and self.groups[self.g_highlight].entries:
-                self.entries = sorted(self.groups[self.g_highlight].entries,
-                                 key=lambda entry: entry.title.lower(
-                                 ))
-            else:
-                self.entries = []
+            self.sort_tables(True, False)
 
     def go2parent(self):
         '''Change to parent of current subgroups'''
@@ -1041,18 +986,7 @@ class DBBrowser(object):
             self.e_highlight = 0
             self.cur_win = 0
             self.cur_root = self.cur_root.parent
-            self.groups = sorted(self.cur_root.children,
-                            key=lambda group: group.title.lower())
-            for i in self.groups:
-                if i.id_ == 0:
-                    self.groups.remove(i)
-                    self.groups.append(i)
-            if self.groups and self.groups[self.g_highlight].entries:
-                self.entries = sorted(self.groups[self.g_highlight].entries,
-                                 key=lambda entry: entry.title.lower(
-                                 ))
-            else:
-                self.entries = []
+            self.sort_tables(True, True)
 
     def db_browser(self):
         '''The database browser.'''
@@ -1075,6 +1009,7 @@ class DBBrowser(object):
             ord('y'): self.create_entry,
             ord('d'): self.pre_delete,
             ord('f'): self.find_entries,
+            ord('/'): self.find_entries,
             ord('t'): self.edit_title,
             ord('u'): self.edit_username,
             ord('U'): self.edit_url,
