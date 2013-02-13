@@ -35,7 +35,9 @@ def parse_config(control):
     config = {'del_clip': True, # standard config
               'clip_delay': 20,
               'lock_db': True,
-              'lock_delay': 60}
+              'lock_delay': 60,
+              'rem_db': True,
+              'rem_key': False}
               
     if isfile(control.config_home):
         try:

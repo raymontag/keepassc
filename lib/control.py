@@ -21,7 +21,7 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 import curses as cur
 from curses.ascii import NL, DEL, SP
 from datetime import date
-from os import chdir, getcwd, getenv, geteuid
+from os import chdir, getcwd, getenv, geteuid, remove
 from os.path import expanduser, isfile, isdir, realpath
 from pwd import getpwuid
 from random import sample
@@ -65,11 +65,16 @@ class Control(object):
             else:
                 self.data_home += '/keepassc/'
         self.last_home = self.data_home+'last'
+        self.key_home = self.data_home+'key'
 
         self.config = parse_config(self)
 
+        if self.config['rem_key'] is False and isfile(self.key_home):
+            remove(self.key_home)
+
         self.initialize_cur()
         self.last_file = None
+        self.last_key = None
         self.loginname = getpwuid(geteuid())[0]
         self.hostname = gethostname()
         self.cur_dir = getcwd()
@@ -624,9 +629,13 @@ class Control(object):
                                    str(self.config['lock_db'])),
                                   (4, 0, 'Waiting time (seconds): ' +
                                    str(self.config['lock_delay'])),
-                                  (5, 0, 'Generate default configuration'),
-                                  (6, 0, 'Write config')),
-                                  (8, 0, 'Automatic locking works only for '
+                                  (5, 0, 'Remember last database: ' +
+                                   str(self.config['rem_db'])),
+                                  (6, 0, 'Remember last keyfile: ' +
+                                   str(self.config['rem_key'])),
+                                  (7, 0, 'Generate default configuration'),
+                                  (8, 0, 'Write config')),
+                                  (10, 0, 'Automatic locking works only for '
                                          'saved databases!'))
             if menu == 1:
                 if self.config['del_clip'] is True:
@@ -657,11 +666,23 @@ class Control(object):
                 else:
                     self.config['lock_delay'] = delay
             elif menu == 5:
-                self.config['del_clip'] = True              
-                self.config['clip_delay'] = 20
-                self.config['lock_db'] = True              
-                self.config['lock_delay'] = 60
+                if self.config['rem_db'] is True:
+                    self.config['rem_db'] = False                
+                elif self.config['rem_db'] is False:
+                    self.config['rem_db'] = True              
             elif menu == 6:
+                if self.config['rem_key'] is True:
+                    self.config['rem_key'] = False                
+                elif self.config['rem_key'] is False:
+                    self.config['rem_key'] = True              
+            elif menu == 7:
+                self.config = {'del_clip': True, # standard config
+                               'clip_delay': 20,
+                               'lock_db': True,
+                               'lock_delay': 60,
+                               'rem_db': True,
+                               'rem_key': False}
+            elif menu == 8:
                 write_config(self, self.config)
                 return True
             elif menu is False:
@@ -696,8 +717,37 @@ class Control(object):
         finally:
             self.stdscr.refresh()
 
+    def get_last_db(self):
+        if isfile(self.last_home):
+            try:
+                handler = open(self.last_home, 'r')
+            except Exception as err:
+                self.last_file = None
+                print(err.__str__())
+            else:
+                self.last_file = handler.readline()
+                handler.close()
+        else:
+            self.last_file = None
+
+    def get_last_key(self):
+        if isfile(self.key_home):
+            try:
+                handler = open(self.key_home, 'r')
+            except Exception as err:
+                self.key_file = None
+                print(err.__str__())
+            else:
+                self.last_key = handler.readline()
+                handler.close()
+        else:
+            self.key_file = None
+
     def main_loop(self, kdb_file=None):
         '''The main loop. The program alway return to this method.'''
+
+        # This is needed to remember last database and open it directly
+        self.get_last_db()
 
         if kdb_file is not None:
             self.cur_dir = kdb_file
@@ -706,19 +756,16 @@ class Control(object):
                 del db
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last) - 1]
+        elif self.last_file is not None and self.config['rem_db'] is True:
+            self.cur_dir = self.last_file
+            if self.open_db(True) is True:
+                db = DBBrowser(self)
+                del db
+                last = self.cur_dir.split('/')[-1]
+                self.cur_dir = self.cur_dir[:-len(last) - 1]
+            
         while True:
-            if isfile(self.last_home):
-                try:
-                    handler = open(self.last_home, 'r')
-                except Exception as err:
-                    self.last_file = None
-                    print(err.__str__())
-                else:
-                    self.last_file = handler.readline()
-                    handler.close()
-            else:
-                self.last_file = None
-                    
+            self.get_last_db()
             menu = self.gen_menu(((1, 0, 'Open existing database (1)'),
                                   (2, 0, 'Create new database (2)'),
                                   (3, 0, 'Configuration (3)'),
@@ -845,7 +892,16 @@ class Control(object):
                 # return to previous screen stuff
                 # Use similar constructs elsewhere
                 while True:
-                    keyfile = self.fb.get_filepath(False, True)
+                    if self.config['rem_key'] is True:
+                        self.get_last_key()
+                    if (self.last_key is None or 
+                        self.config['rem_key'] is False):
+                        ask_for_lf = False
+                    else:
+                        ask_for_lf = True
+                    
+                    keyfile = self.fb.get_filepath(ask_for_lf, True, 
+                                                   self.last_key)
                     if keyfile is False:
                         break
                     elif keyfile == -1:
@@ -862,6 +918,14 @@ class Control(object):
                     continue
                 if auth != 3:
                     password = None
+                if self.config['rem_key'] is True:
+                    if not isdir(self.key_home[:-4]):
+                        if isfile(self.key_home[:-4]):
+                            remove(self.key_home[:-4])
+                        makedirs(self.key_home[:-4])
+                    handler = open(self.key_home, 'w')
+                    handler.write(keyfile)
+                    handler.close()
             break
         try:
             if isfile(self.cur_dir + '.lock'):
@@ -1003,6 +1067,8 @@ class Control(object):
     def close(self):
         '''Close the program correctly.'''
 
+        if self.config['rem_key'] is False and isfile(self.key_home):
+            remove(self.key_home)
         cur.noraw()
         self.stdscr.keypad(0)
         cur.endwin()
