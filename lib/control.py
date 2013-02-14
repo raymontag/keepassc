@@ -19,6 +19,7 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 import curses as cur
+import _curses
 from curses.ascii import NL, DEL, SP
 from datetime import date
 from os import chdir, getcwd, getenv, geteuid, remove
@@ -91,7 +92,7 @@ class Control(object):
             cur.curs_set(0)
         except:
             print('Invisible cursor not supported')
-        cur.raw()
+        cur.cbreak()
         cur.noecho()
         self.stdscr.keypad(1)
         cur.start_color()
@@ -205,7 +206,7 @@ class Control(object):
             self.draw_text(False, (1, 0, std + edit))
             try:
                 e = self.stdscr.get_wch()
-            except KeyboardInterrupt:
+            except BaseException: # ugly but doesn't work otherwise
                 e = '\x04'
         return edit
 
@@ -968,7 +969,7 @@ class Control(object):
     def browser_help(self, mode_new):
         '''Print help for filebrowser'''
 
-        cur.noraw()
+        cur.nocbreak()
         self.stdscr.keypad(0)
         cur.endwin()
         if mode_new:
@@ -991,7 +992,7 @@ class Control(object):
         self.initialize_cur()
 
     def dbbrowser_help(self):
-        cur.noraw()
+        cur.nocbreak()
         self.stdscr.keypad(0)
         cur.endwin()
         print('\'e\' - go to main menu')
@@ -1069,7 +1070,7 @@ class Control(object):
 
         if self.config['rem_key'] is False and isfile(self.key_home):
             remove(self.key_home)
-        cur.noraw()
+        cur.nocbreak()
         self.stdscr.keypad(0)
         cur.endwin()
         exit()
