@@ -49,7 +49,8 @@ class FileBrowser(object):
                 filepath = self.browser(False, keyfile)
             else:
                 filepath = self.browser(True)
-                if filepath[-4:] != '.kdb' and filepath is not False:
+                if (filepath[-4:] != '.kdb' and filepath is not False and
+                    type(filepath) is str):
                     filename = self.control.get_string('', 'Filename: ')
                     filepath += '/' + filename + '.kdb'
             return filepath
