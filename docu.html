@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <title>KeepassC by raymontag</title>
+  </head>
+
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>KeepassC</h1>
+        <h2>KeePassC is a curses-based password manager compatible to KeePass v.1.x and KeePassX</h2>
+
+        <section id="downloads">
+          <a href="https://github.com/raymontag/keepassc/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/raymontag/keepassc" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+        <h1>KeePassC - Introduction</h1>
+
+    <p>Using KeePassC is very straightforward. Let's start in main menu:</p>
+
+    <p><a href="1.jpg"><img src="1thumb.jpg"></a></p>
+
+    <p>There are three things you can do: Opening an existing database (type '1'), creating a new database (type '2') or configuration KeePassC. We start with opening an existing database.<p>
+
+    <p><a href="3.jpg"><img src="3thumb.jpg"></a></p>
+
+    <p>Again you've different choices: Open the last used database (type '1'), open one by searching in the file browser (type '2') or open one by typing a direct filepath ('3', auto-completion is supported). To get help in the file browser type 'F1'.</p>
+
+    <p>You will see a dialog where you choose which things are needed to open the database: A normal password ('1'), a keyfile ('2') or both ('3'). Again, for keyfiles you've the choice to use the last used (optional, deactivated by default, can activated in configuration menu), the file browser or type a direct path.</p>
+
+    <p><a href="2.jpg"><img src="2thumb.jpg"></a></p>
+
+    <p>If succesfully entered the database you can see a window simillar to the image above. You can watch all available commands by typing 'F1'.</p>
+
+    <p>Let's start with groups. To create a group type 'g'. You have to enter a group title. It's also possible to create a sub-group by typing 'G'. If a group has sub-groups a '+' stands next to the title. The actual parent group is printed at the top. To enter a new group type 'return' to return to the parent type 'backspace'.</p>
+
+    <p>Creating an entry is just as simple as creating a group. Type 'y' and you'll some self-explanatory questions. To interact with your entries type the right arrow and navigate to your specific entry. To copy the password to X's clipboard (if you've installed xsel) type 'c', to copy the username type 'b'. You can open the specified URL in your standard browser type 'o'. To show the password on screen type 'H'.</p>
+
+    <p>It's possible to edit all attributes of your entries and to edit the title of a group. Just navigate to the group or entry and type one of the following keys:</p>
+
+    <ul>
+    <li>t - title</li>
+    <li>u - username</li>
+    <li>p - password</li>
+    <li>U - URL</li>
+    <li>C - comment</li>
+    <li>E - expiration date</li>
+    </ul>
+
+    <p>To exit the whole program type 'q'. It's also possible to type 'Ctrl-C' or 'Ctrl-D' in any dialog to stop the program. Type 'e' to go back to main menu and type 'L' to lock the database. Saving the database goes with 's' or 'S' to save the database to a specific place (again, type 'F1' to get help in file browser). Type 'x' to save the database and finally stop the program. If you ever want to cancel a dialog or rather go to the previous one type 'F5'. Last thing to mention: Type 'P' to edit the database's password.</p>
+
+    <p>Other not mentioned features: It's possible to navigate the whole program with vim-like keys and to parse a filepath of a .kdb-file directly over the command line. Furthermore automatic locking, automatic deletion of clipboard and directly opening of last used database are activated. Deactivate this behavior via the configuration menu.</p>
+  </body>
+</html>
