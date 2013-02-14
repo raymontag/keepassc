@@ -90,7 +90,7 @@ class FileBrowser(object):
             edit = last_file
         else:
             edit = ''
-        while e != NL:
+        while e != '\n':
             if e == cur.KEY_BACKSPACE or e == chr(DEL) and len(edit) != 0:
                 edit = edit[:-1]
                 show = 0
