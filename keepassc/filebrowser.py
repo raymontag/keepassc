@@ -23,7 +23,6 @@ from curses.ascii import NL, DEL
 from os import listdir
 from os.path import expanduser, isdir
 
-
 class FileBrowser(object):
     '''This class represents the file browser'''
 

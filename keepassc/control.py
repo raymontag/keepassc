@@ -19,7 +19,6 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 import curses as cur
-import _curses
 from curses.ascii import NL, DEL, SP
 from datetime import date
 from os import chdir, getcwd, getenv, geteuid, makedirs, remove
@@ -31,6 +30,7 @@ from sys import exit
 
 from kppy import KPDB, KPError
 
+from editor.editor import Editor
 from .helper import parse_config, write_config
 from .filebrowser import FileBrowser
 from .dbbrowser import DBBrowser
@@ -178,39 +178,6 @@ class Control(object):
         finally:
             self.stdscr.refresh()
 
-    def get_string(self, edit='', std=''):
-        '''This method is used to get user input.
-
-        edit is the string to edit and std is text
-        which should be displayed in front of edit.
-        (std edit)
-
-        '''
-
-        e = ''
-        while e != '\n':
-            if e == cur.KEY_BACKSPACE or e == chr(DEL) and len(edit) != 0:
-                edit = edit[:-1]
-            elif e == cur.KEY_BACKSPACE or e == chr(DEL):
-                pass
-            elif e == '\x04':
-                return -1
-            elif e == '':
-                pass
-            elif e == cur.KEY_RESIZE:
-                self.resize_all()
-            elif e == cur.KEY_F5:
-                return False
-            elif type(e) is not int:
-                edit += e
-
-            self.draw_text(False, (1, 0, std + edit))
-            try:
-                e = self.stdscr.get_wch()
-            except BaseException: # ugly but doesn't work otherwise
-                e = '\x04'
-        return edit
-
     def get_password(self, std, needed=True):
         '''This method is used to get a password.
 
@@ -220,42 +187,12 @@ class Control(object):
         is not possible to return an emptry string.
 
         '''
-
-        self.draw_text(False, (1, 0, std))
-
-        password = ''
-        e = ''
-        while e != NL or (len(password) == 0 and needed is True):
-            try:
-                e = self.stdscr.getch()
-            except KeyboardInterrupt:
-                e = 4
-            if e == cur.KEY_BACKSPACE or e == DEL and len(password) != 0:
-                password = password[:-1]
-            elif e == cur.KEY_BACKSPACE or e == DEL:
-                pass
-            elif e == '':
-                pass
-            elif e == 4:
-                return -1
-            elif e == cur.KEY_RESIZE:
-                self.ysize, self.xsize = self.stdscr.getmaxyx()
-                self.group_win.resize(self.ysize - 1, int(self.xsize / 3))
-                self.entry_win.resize(int(2 * (self.ysize - 1) / 3),
-                                      int(2 * self.xsize / 3))
-                self.info_win.resize(int((self.ysize - 1) / 3),
-                                     int(self.xsize / 3) - 2)
-                self.group_win.mvwin(1, 0)
-                self.entry_win.mvwin(1, int(self.ysize / 3))
-                self.info_win.mvwin(
-                    int(2 * (self.ysize - 1) / 3), int(self.ysize / 3))
-            elif e == cur.KEY_F5:
-                return False
-            else:
-                password += chr(e)
-                if ord(password[-1]) == NL:
-                    password = password[:-1]
-        return password
+        password = Editor(self.stdscr, max_text_size=1, win_location=(0, 1),
+                          win_size=(1, 80), title=std, pw_mode=True)()
+        if needed is True and not password:
+            return False
+        else:
+            return password
 
     def gen_pass(self):
         '''Method to generate a password'''
