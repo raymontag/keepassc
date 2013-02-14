@@ -19,10 +19,10 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 import curses as cur
+import os
 import threading
 import webbrowser
 from curses.ascii import NL, DEL
-from os import makedirs, remove
 from os.path import isfile, isdir
 from subprocess import Popen, PIPE
 
@@ -36,8 +36,8 @@ class DBBrowser(object):
         if self.control.cur_dir[-4:] == '.kdb':
             if not isdir(self.control.last_home[:-5]):
                 if isfile(self.control.last_home[:-5]):
-                    remove(self.control.last_home[:-5])
-                makedirs(self.control.last_home[:-5])
+                    os.remove(self.control.last_home[:-5])
+                os.makedirs(self.control.last_home[:-5])
             handler = open(self.control.last_home, 'w')
             handler.write(self.control.cur_dir)
             handler.close()
@@ -933,7 +933,13 @@ class DBBrowser(object):
             if url != '':
                 if url[:7] != 'http://' and url[:8] != 'https://':
                     url = 'http://' + url
-                webbrowser.open(url)
+                savout = os.dup(1)
+                os.close(1)
+                os.open(os.devnull, os.O_RDWR)
+                try:
+                   webbrowser.open(url)
+                finally:
+                   os.dup2(savout, 1)
 
     def nav_down(self):
         '''Navigate down'''
