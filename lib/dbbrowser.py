@@ -276,6 +276,21 @@ class DBBrowser(object):
                                     (2, 0, 'Use a keyfile (2)'),
                                     (3, 0, 'Use both (3)'))
 
+    def unlock_with_password(self):
+        '''Unlock the database with a password'''
+        self.lock_highlight = 1
+        self.unlock_db()
+
+    def unlock_with_keyfile(self):
+        '''Unlock the database with a keyfile'''
+        self.lock_highlight = 2
+        self.unlock_db()
+
+    def unlock_with_both(self):
+        '''Unlock the database with both'''
+        self.lock_highlight = 3
+        self.unlock_db()
+    
     def unlock_db(self):
         '''Unlock the database'''
 
@@ -1038,7 +1053,10 @@ class DBBrowser(object):
             ord('j'): self.nav_down_lock,
             cur.KEY_UP: self.nav_up_lock,
             ord('k'): self.nav_up_lock,
-            NL: self.unlock_db}
+            NL: self.unlock_db,
+            ord('1'): self.unlock_with_password,
+            ord('2'): self.unlock_with_keyfile,
+            ord('3'): self.unlock_with_both}
 
         while True:
             if (self.control.config['lock_db'] and self.state == 0 and 
@@ -1050,11 +1068,6 @@ class DBBrowser(object):
             try:
                 c = self.control.stdscr.getch()
             except KeyboardInterrupt:
-                cur.noraw()
-                self.stdscr.keypad(0)
-                cur.endwin()
-                print('foo')
-                exit()
                 c = 4
             if type(self.lock_timer) is threading.Timer:
                 self.lock_timer.cancel()
