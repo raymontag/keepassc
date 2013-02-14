@@ -186,12 +186,12 @@ class Control(object):
         '''
 
         e = ''
-        while e != NL:
-            if e == cur.KEY_BACKSPACE or e == DEL and len(edit) != 0:
+        while e != '\n':
+            if e == cur.KEY_BACKSPACE or e == chr(DEL) and len(edit) != 0:
                 edit = edit[:-1]
-            elif e == cur.KEY_BACKSPACE or e == DEL:
+            elif e == cur.KEY_BACKSPACE or e == chr(DEL):
                 pass
-            elif e == 4:
+            elif e == '\x04':
                 return -1
             elif e == '':
                 pass
@@ -199,14 +199,14 @@ class Control(object):
                 self.resize_all()
             elif e == cur.KEY_F5:
                 return False
-            else:
-                edit += chr(e)
+            elif type(e) is not int:
+                edit += e
 
             self.draw_text(False, (1, 0, std + edit))
             try:
-                e = self.stdscr.getch()
+                e = self.stdscr.get_wch()
             except KeyboardInterrupt:
-                e = 4
+                e = '\x04'
         return edit
 
     def get_password(self, std, needed=True):

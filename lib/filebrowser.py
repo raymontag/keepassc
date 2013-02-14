@@ -90,14 +90,14 @@ class FileBrowser(object):
         else:
             edit = ''
         while e != NL:
-            if e == cur.KEY_BACKSPACE or e == DEL and len(edit) != 0:
+            if e == cur.KEY_BACKSPACE or e == chr(DEL) and len(edit) != 0:
                 edit = edit[:-1]
                 show = 0
                 rem = []
                 cur_dir = ''
-            elif e == cur.KEY_BACKSPACE or e == DEL:
+            elif e == cur.KEY_BACKSPACE or e == chr(DEL):
                 pass
-            elif e == 4:
+            elif e == '\x04':
                 return -1
             elif e == '':
                 pass
@@ -105,12 +105,12 @@ class FileBrowser(object):
                 return False
             elif e == cur.KEY_RESIZE:
                 self.control.resize_all()
-            elif e == ord('~'):
+            elif e == '~':
                 edit += expanduser('~/')
                 show = 0
                 rem = []
                 cur_dir = ''
-            elif e == ord('\t'):
+            elif e == '\t':
                 if cur_dir == '':
                     last = edit.split('/')[-1]
                     cur_dir = edit[:-len(last)]
@@ -133,17 +133,17 @@ class FileBrowser(object):
                         show += 1
                     if isdir(edit):
                         edit += '/'
-            else:
+            elif type(e) is not int:
                 show = 0
                 rem = []
                 cur_dir = ''
-                edit += chr(e)
+                edit += e
 
             self.control.draw_text(False, (1, 0, 'Filepath: ' + edit))
             try:
-                e = self.control.stdscr.getch()
+                e = self.control.stdscr.get_wch()
             except KeyboardInterrupt:
-                e = 4
+                e = '\x04'
         return edit
 
     def browser(self, mode_new=False, keyfile=False):
