@@ -1,3 +1,27 @@
+"""Scott Hansen <firecat four one five three at gmail dot com>
+
+Copyright (c) 2013, Scott Hansen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+"""
+
 import curses
 import curses.ascii
 import locale
@@ -69,17 +93,25 @@ class Editor(object):
         """Clear the main screen and redraw the box and/or title
 
         """
-        self.scr.clear()
+        # Touchwin seems to save the underlying screen and refreshes it (for
+        # example when the help popup is drawn and cleared again)
+        self.scr.touchwin()
         self.scr.refresh()
         self.stdscr.clear()
         self.stdscr.refresh()
+        quick_help = "   (F2 or Enter: Save, F3: Cancel)"
         if self.box is True:
+            self.boxscr.clear()
             self.boxscr.box()
             if self.title:
                 self.boxscr.addstr(1, 1, self.title, curses.A_BOLD)
+                self.boxscr.addstr(quick_help, curses.A_STANDOUT)
+                self.boxscr.addstr
             self.boxscr.refresh()
         elif self.title:
+            self.boxscr.clear()
             self.boxscr.addstr(0, 0, self.title, curses.A_BOLD)
+            self.boxscr.addstr(quick_help, curses.A_STANDOUT)
             self.boxscr.refresh()
 
     def text_init(self, text):
@@ -367,7 +399,7 @@ class Editor(object):
         cols = min(self.max_win_size_x, max([len(i) for i in txt]) + 2)
         # Only print help text if the window is big enough
         try:
-            popup = self.scr.subwin(lines, cols, 0, 0)
+            popup = curses.newwin(lines, cols, 0, 0)
             popup.addstr(1, 1, help_txt)
             popup.box()
         except:
@@ -376,9 +408,10 @@ class Editor(object):
             while not popup.getch():
                 pass
         finally:
-            # Needed to prevent spurious F1 characters being written to line
+            # Turn back on the cursor
             if self.pw_mode is False:
                 curses.curs_set(1)
+            # flushinp Needed to prevent spurious F1 characters being written to line
             curses.flushinp()
             self.box_init()
 
