@@ -28,7 +28,6 @@ from subprocess import Popen, PIPE
 
 from kppy import KPError
 
-
 class DBBrowser(object):
     '''This class represents the database browser'''
 
@@ -56,21 +55,21 @@ class DBBrowser(object):
         self.sort_tables(True, False)
         self.changed = False
         self.cur_win = 0
-        self.state = 0  # 0 = unlocked, 1 = locked, 2 = pre_lock
+        self.state = 0 # 0 = unlocked, 1 = locked, 2 = pre_lock
 
-        self.control.show_groups(self.g_highlight, self.groups,
+        self.control.show_groups(self.g_highlight, self.groups, 
                                  self.cur_win, self.g_offset,
                                  self.changed, self.cur_root)
         self.control.show_entries(self.e_highlight, self.entries,
                                   self.cur_win, self.e_offset)
         self.db_browser()
 
-    def sort_tables(self, groups, results, go2results=False):
-        if groups is True:  # To prevent senseless sorting
+    def sort_tables(self, groups, results, go2results = False):
+        if groups is True: #To prevent senseless sorting
             self.groups = sorted(self.cur_root.children,
-                                 key=lambda group: group.title.lower())
-        if results is True:  # To prevent senseless sorting
-            for i in self.groups:  # 'Results' should be the last group
+                            key=lambda group: group.title.lower())
+        if results is True: # To prevent senseless sorting
+            for i in self.groups: # 'Results' should be the last group
                 if i.id_ == 0:
                     self.groups.remove(i)
                     self.groups.append(i)
@@ -79,7 +78,7 @@ class DBBrowser(object):
         self.entries = []
         if self.groups and self.groups[self.g_highlight].entries:
             self.entries = sorted(self.groups[self.g_highlight].entries,
-                                  key=lambda entry: entry.title.lower())
+                             key=lambda entry: entry.title.lower())
 
     def pre_save(self):
         '''Prepare saving'''
@@ -100,7 +99,7 @@ class DBBrowser(object):
                 return False
             else:
                 continue
-
+    
     def pre_save_as(self):
         '''Prepare "Save as"'''
 
@@ -117,7 +116,7 @@ class DBBrowser(object):
                     self.changed = False
                 else:
                     return False
-        else:
+        else: 
             return False
 
     def save(self, cur_dir):
@@ -132,8 +131,8 @@ class DBBrowser(object):
             self.db.save(cur_dir)
         except KPError as err:
             self.control.draw_text(False,
-                                   (1, 0, err.__str__()),
-                                   (4, 0, 'Press any key.'))
+                           (1, 0, err.__str__()),
+                           (4, 0, 'Press any key.'))
             if self.control.any_key() == -1:
                 self.close()
             return False
@@ -157,7 +156,7 @@ class DBBrowser(object):
 
         while True:
             self.control.draw_text(self.changed,
-                                   (1, 0, 'File has changed. Save? [(y)/n]'))
+                           (1, 0, 'File has changed. Save? [(y)/n]'))
             try:
                 e = self.control.stdscr.getch()
             except KeyboardInterrupt:
@@ -187,8 +186,8 @@ class DBBrowser(object):
     def overwrite_file(self, filepath):
         '''Overwrite an existing file'''
 
-        self.control.draw_text(self.changed,
-                               (1, 0, 'File exists. Overwrite? [y/(n)]'))
+        self.control.draw_text(self.changed, 
+                       (1, 0, 'File exists. Overwrite? [y/(n)]'))
         while True:
             try:
                 c = self.control.stdscr.getch()
@@ -223,8 +222,8 @@ class DBBrowser(object):
                 self.db.close()
             except KPError as err:
                 self.control.draw_text(False,
-                                       (1, 0, err.__str__()),
-                                       (4, 0, 'Press any key.'))
+                               (1, 0, err.__str__()),
+                               (4, 0, 'Press any key.'))
                 self.control.any_key()
         self.db = None
         self.control.db = None
@@ -253,15 +252,15 @@ class DBBrowser(object):
 
         if self.db.filepath is None:
             self.control.draw_text(self.changed,
-                                   (1, 0, 'Can only lock an existing db!'),
-                                   (4, 0, 'Press any key.'))
+                           (1, 0, 'Can only lock an existing db!'),
+                           (4, 0, 'Press any key.'))
             if self.control.any_key() == -1:
                 self.close()
             return False
         if self.changed is True and self.db.read_only is False:
             self.state = 2
             self.control.draw_text(self.changed,
-                                   (1, 0, 'File has changed. Save? [(y)/n]'))
+                           (1, 0, 'File has changed. Save? [(y)/n]'))
         else:
             self.lock_db()
 
@@ -301,7 +300,7 @@ class DBBrowser(object):
                 return False
             elif password == -1:
                 self.close()
-            if self.lock_highlight != 3:  # Only password needed
+            if self.lock_highlight != 3: # Only password needed
                 keyfile = None
         if self.lock_highlight == 2 or self.lock_highlight == 3:
             while True:
@@ -312,32 +311,32 @@ class DBBrowser(object):
                     self.close()
                 elif not isfile(keyfile):
                     self.control.draw_text(self.changed,
-                                           (1, 0, 'That\'s not a file'),
-                                           (3, 0, 'Press any key.'))
+                                   (1, 0, 'That\'s not a file'),
+                                   (3, 0, 'Press any key.'))
                     if self.control.any_key() == -1:
                         self.close()
                     continue
                 break
-            if self.lock_highlight != 3:  # Only keyfile needed
+            if self.lock_highlight != 3: # Only keyfile needed
                 password = None
         try:
             self.db.unlock(password, keyfile)
         except KPError as err:
             self.control.draw_text(self.changed,
-                                   (1, 0, err.__str__()),
-                                   (4, 0, 'Press any key.'))
+                           (1, 0, err.__str__()),
+                           (4, 0, 'Press any key.'))
             if self.control.any_key() == -1:
                 self.close()
         else:
             self.cur_root = self.db._root_group
             self.sort_tables(True, False)
             self.state = 0
-            self.control.show_groups(self.g_highlight, self.groups,
+            self.control.show_groups(self.g_highlight, self.groups, 
                                      self.cur_win, self.g_offset,
                                      self.changed, self.cur_root)
-            self.control.show_entries(self.e_highlight, self.entries,
+            self.control.show_entries(self.e_highlight, self.entries, 
                                       self.cur_win, self.e_offset)
-
+    
     def nav_down_lock(self):
         '''Navigate down in lock menu'''
 
@@ -354,9 +353,10 @@ class DBBrowser(object):
         '''Change the master key of the database'''
 
         while True:
-            auth = self.control.gen_menu(((1, 0, 'Use a password (1)'),
-                                          (2, 0, 'Use a keyfile (2)'),
-                                          (3, 0, 'Use both (3)')))
+            auth = self.control.gen_menu((
+                                 (1, 0, 'Use a password (1)'),
+                                 (2, 0, 'Use a keyfile (2)'),
+                                 (3, 0, 'Use both (3)')))
             if auth == 2 or auth == 3:
                 while True:
                     filepath = self.control.fb.get_filepath(False, True)
@@ -364,8 +364,8 @@ class DBBrowser(object):
                         self.close()
                     elif not isfile(filepath):
                         self.control.draw_text(self.changed,
-                                               (1, 0, "That's not a file!"),
-                                               (3, 0, 'Press any key.'))
+                                       (1, 0, "That's not a file!"),
+                                       (3, 0, 'Press any key.'))
                         if self.control.any_key() == -1:
                             self.close()
                         continue
@@ -390,8 +390,8 @@ class DBBrowser(object):
                     self.db.password = password
                 else:
                     self.control.draw_text(self.changed,
-                                           (3, 0, 'Passwords didn\'t match. '
-                                            'Press any key.'))
+                                        (3, 0, 'Passwords didn\'t match. '
+                                               'Press any key.'))
                     if self.control.any_key() == -1:
                         self.close()
                 if auth != 3:
@@ -422,16 +422,16 @@ class DBBrowser(object):
                     self.db.create_group(edit, self.cur_root)
             except KPError as err:
                 self.control.draw_text(self.changed,
-                                       (1, 0, err.__str__()),
-                                       (4, 0, 'Press any key.'))
+                               (1, 0, err.__str__()),
+                               (4, 0, 'Press any key.'))
                 if self.control.any_key() == -1:
                     self.close()
             else:
                 self.changed = True
             self.sort_tables(True, True)
-            if (self.groups and
-                    self.groups[self.g_highlight] is not old_group and
-                    old_group is not None):
+            if (self.groups and 
+                self.groups[self.g_highlight] is not old_group and
+                old_group is not None):
                 self.g_highlight = self.groups.index(old_group)
 
     def create_sub_group(self):
@@ -446,8 +446,8 @@ class DBBrowser(object):
                     self.db.create_group(edit, self.groups[self.g_highlight])
                 except KPError as err:
                     self.control.draw_text(self.changed,
-                                           (1, 0, err.__str__()),
-                                           (4, 0, 'Press any key.'))
+                                   (1, 0, err.__str__()),
+                                   (4, 0, 'Press any key.'))
                     if self.control.any_key() == -1:
                         self.close()
                 else:
@@ -462,9 +462,8 @@ class DBBrowser(object):
             else:
                 old_entry = None
             self.control.draw_text(self.changed,
-                                   (1, 0, 'At least one of the '
-                                    'following attributes must be given.'
-                                    'Press any key'))
+                           (1, 0, 'At least one of the following attributes '
+                            'must be given. Press any key'))
             if self.control.any_key() == -1:
                 self.close()
 
@@ -529,8 +528,8 @@ class DBBrowser(object):
 
                             if password != confirm:
                                 self.control.draw_text(self.changed,
-                                                       (3, 0, "Passwords didn't match"),
-                                                       (5, 0, 'Press any key.'))
+                                               (3, 0, "Passwords didn't match"),
+                                               (5, 0, 'Press any key.'))
                                 if self.control.any_key() == -1:
                                     self.close()
                             else:
@@ -556,7 +555,7 @@ class DBBrowser(object):
                 pass_comment = True
 
                 self.control.draw_text(self.changed,
-                                       (1, 0, 'Set expiration date? [y/(n)]'))
+                               (1, 0, 'Set expiration date? [y/(n)]'))
                 while True:
                     try:
                         e = self.control.stdscr.getch()
@@ -587,23 +586,22 @@ class DBBrowser(object):
                     self.close()
                 try:
                     self.groups[self.g_highlight].create_entry(title, 1, url,
-                                                               username,
-                                                               password,
-                                                               comment,
-                                                               exp_date[0],
-                                                               exp_date[1],
-                                                               exp_date[2])
+                                                     username, password,
+                                                     comment,
+                                                     exp_date[0],
+                                                     exp_date[1],
+                                                     exp_date[2])
                     self.changed = True
                 except KPError as err:
                     self.control.draw_text(self.changed,
-                                           (1, 0, err.__str__()),
-                                           (4, 0, 'Press any key.'))
+                                   (1, 0, err.__str__()),
+                                   (4, 0, 'Press any key.'))
                     if self.control.any_key() == -1:
                         self.close()
                 self.sort_tables(True, True)
-                if (self.entries and
-                        self.entries[self.e_highlight] is not old_entry and
-                        old_entry is not None):
+                if (self.entries and 
+                    self.entries[self.e_highlight] is not old_entry and
+                    old_entry is not None):
                     self.e_highlight = self.entries.index(old_entry)
                 break
 
@@ -621,12 +619,12 @@ class DBBrowser(object):
         if len(self.db.groups) > 1:
             title = self.groups[self.g_highlight].title
             self.control.draw_text(self.changed,
-                                   (1, 0, 'Really delete group ' + title + '? '
-                                    '[y/(n)]'))
+                           (1, 0, 'Really delete group ' + title + '? '
+                            '[y/(n)]'))
         else:
             self.control.draw_text(self.changed,
-                                   (1, 0, 'At least one group is needed!'),
-                                   (3, 0, 'Press any key'))
+                           (1, 0, 'At least one group is needed!'),
+                           (3, 0, 'Press any key'))
             if self.control.any_key() == -1:
                 self.close()
         while True:
@@ -639,8 +637,8 @@ class DBBrowser(object):
                     self.groups[self.g_highlight].remove_group()
                 except KPError as err:
                     self.control.draw_text(self.changed,
-                                           (1, 0, err.__str__()),
-                                           (4, 0, 'Press any key.'))
+                                   (1, 0, err.__str__()),
+                                   (4, 0, 'Press any key.'))
                     if self.control.any_key() == -1:
                         self.close()
                 else:
@@ -667,8 +665,8 @@ class DBBrowser(object):
 
         title = self.entries[self.e_highlight].title
         self.control.draw_text(self.changed,
-                               (1, 0,
-                                'Really delete entry ' + title + '? [y/(n)]'))
+                       (1, 0,
+                        'Really delete entry ' + title + '? [y/(n)]'))
         while True:
             try:
                 e = self.control.stdscr.getch()
@@ -679,8 +677,8 @@ class DBBrowser(object):
                     self.entries[self.e_highlight].remove_entry()
                 except KPError as err:
                     self.control.draw_text(self.changed,
-                                           (1, 0, err.__str__()),
-                                           (4, 0, 'Press any key.'))
+                                   (1, 0, err.__str__()),
+                                   (4, 0, 'Press any key.'))
                     if self.control.any_key() == -1:
                         self.close()
                 else:
@@ -717,12 +715,12 @@ class DBBrowser(object):
                     if title.lower() in entry.title.lower():
                         exp = entry.expire.timetuple()
                         self.db.groups[-1].create_entry(
-                            entry.title + ' (' + entry.group.title + ')',
-                            entry.image, entry.url,
-                            entry.username,
-                            entry.password,
-                            entry.comment,
-                            exp[0], exp[1], exp[2])
+                                entry.title + ' ('+ entry.group.title + ')', 
+                                                        entry.image, entry.url,
+                                                        entry.username,
+                                                        entry.password, 
+                                                        entry.comment,
+                                                        exp[0], exp[1], exp[2])
                         self.cur_win = 1
                 self.cur_root = self.db._root_group
                 self.sort_tables(True, True, True)
@@ -737,8 +735,8 @@ class DBBrowser(object):
                     i.remove_group()
                 except KPError as err:
                     self.control.draw_text(self.changed,
-                                           (1, 0, err.__str__()),
-                                           (4, 0, 'Press any key.'))
+                                   (1, 0, err.__str__()),
+                                   (4, 0, 'Press any key.'))
                     if self.control.any_key() == -1:
                         self.close()
                     return False
@@ -756,7 +754,8 @@ class DBBrowser(object):
             std = 'Title: '
             if self.cur_win == 0:
                 edit = self.control.get_string(
-                    self.groups[self.g_highlight].title, std)
+                                        self.groups[self.g_highlight].title, 
+                                        std)
                 if edit == -1:
                     self.close()
                 elif edit is not False:
@@ -764,32 +763,34 @@ class DBBrowser(object):
                     self.changed = True
             elif self.cur_win == 1:
                 edit = self.control.get_string(
-                    self.entries[self.e_highlight].title, std)
+                                        self.entries[self.e_highlight].title,
+                                        std)
                 if edit == -1:
                     self.close()
                 elif edit is not False:
                     self.entries[self.e_highlight].set_title(edit)
                     self.changed = True
-
+            
     def edit_username(self):
         '''Edit username of marked entry'''
 
         if self.entries:
             std = 'Username: '
             edit = self.control.get_string(
-                self.entries[self.e_highlight].username, std)
+                                    self.entries[self.e_highlight].username,
+                                    std)
             if edit == -1:
                 self.close()
             elif edit is not False:
                 self.entries[self.e_highlight].set_username(edit)
-
+                
     def edit_url(self):
         '''Edit URL of marked entry'''
 
         if self.entries:
             std = 'URL: '
             edit = self.control.get_string(
-                self.entries[self.e_highlight].url, std)
+                                    self.entries[self.e_highlight].url, std)
             if edit == -1:
                 self.close()
             elif edit is not False:
@@ -801,12 +802,13 @@ class DBBrowser(object):
         if self.entries:
             std = 'Comment: '
             edit = self.control.get_string(
-                self.entries[self.e_highlight].comment, std)
+                                    self.entries[self.e_highlight].comment,
+                                    std)
             if edit == -1:
                 self.close()
             elif edit is not False:
                 self.entries[self.e_highlight].set_comment(edit)
-
+    
     def edit_password(self):
         '''Edit password of marked entry'''
 
@@ -840,8 +842,8 @@ class DBBrowser(object):
                     break
                 else:
                     self.control.draw_text(self.changed,
-                                           (3, 0, 'Passwords didn\'t match. '
-                                            'Press any key.'))
+                                        (3, 0, 'Passwords didn\'t match. '
+                                               'Press any key.'))
                     if self.control.any_key() == -1:
                         self.close()
                     break
@@ -867,8 +869,7 @@ class DBBrowser(object):
 
         if self.entries:
             self.control.draw_text(self.changed,
-                                   (1, 0,
-                                    self.entries[self.e_highlight].password))
+                            (1, 0, self.entries[self.e_highlight].password))
             if self.control.any_key() == -1:
                 self.close()
 
@@ -894,17 +895,17 @@ class DBBrowser(object):
                 Popen(
                     ['xsel', '-bc'], stderr=PIPE, stdout=PIPE)
                 Popen(['xsel', '-pi'], stdin=PIPE, stderr=PIPE,
-                      stdout=PIPE).communicate(stuff.encode())
+                        stdout=PIPE).communicate(stuff.encode())
                 Popen(['xsel', '-bi'], stdin=PIPE, stderr=PIPE,
-                      stdout=PIPE).communicate(stuff.encode())
+                        stdout=PIPE).communicate(stuff.encode())
                 if self.control.config['del_clip'] is True:
                     self.clip_timer = threading.Timer(
-                        self.control.config['clip_delay'],
-                        self.del_clipboard).start()
+                                      self.control.config['clip_delay'],
+                                      self.del_clipboard).start()
             except FileNotFoundError as err:
                 self.control.draw_text(False,
-                                       (1, 0, err.__str__()),
-                                       (4, 0, 'Press any key.'))
+                               (1, 0, err.__str__()),
+                               (4, 0, 'Press any key.'))
                 if self.control.any_key() == -1:
                     self.close()
             else:
@@ -920,7 +921,7 @@ class DBBrowser(object):
                 Popen(['xsel', '-pc'])
                 Popen(['xsel', '-bc'])
                 self.cb = None
-        except FileNotFoundError:  # xsel not installed
+        except FileNotFoundError: # xsel not installed
             pass
 
     def open_url(self):
@@ -946,7 +947,7 @@ class DBBrowser(object):
             self.e_offset = 0
             self.e_highlight = 0
             self.sort_tables(False, True)
-        elif self.cur_win == 1 and self.e_highlight < len(self.entries) - 1:
+        elif self.cur_win == 1 and self.e_highlight < len(self.entries)  - 1:
             ysize = self.control.entry_win.getmaxyx()[0]
             if (self.e_highlight >= ysize - 4 and
                     not self.e_offset >= len(self.entries) - ysize + 3):
@@ -1058,10 +1059,11 @@ class DBBrowser(object):
             ord('3'): self.unlock_with_both}
 
         while True:
-            if (self.control.config['lock_db'] and self.state == 0 and
-                    self.db.filepath is not None):
+            if (self.control.config['lock_db'] and self.state == 0 and 
+                self.db.filepath is not None):
                 self.lock_timer = threading.Timer(
-                    self.control.config['lock_delay'], self.pre_lock)
+                                    self.control.config['lock_delay'],
+                                    self.pre_lock)
                 self.lock_timer.start()
             try:
                 c = self.control.stdscr.getch()
@@ -1070,7 +1072,7 @@ class DBBrowser(object):
             if type(self.lock_timer) is threading.Timer:
                 self.lock_timer.cancel()
             if self.state == 0:
-                if c == ord('\t'):  # Switch group/entry view with tab.
+                if c == ord('\t'): # Switch group/entry view with tab.
                     if self.cur_win == 0:
                         c = cur.KEY_RIGHT
                     else:
@@ -1079,15 +1081,15 @@ class DBBrowser(object):
                     unlocked_state[c]()
                 if c == ord('e'):
                     return False
-                if self.state == 0:  # 'cause 'L' changes state
-                    self.control.show_groups(self.g_highlight, self.groups,
+                if self.state == 0: # 'cause 'L' changes state
+                    self.control.show_groups(self.g_highlight, self.groups, 
                                              self.cur_win, self.g_offset,
                                              self.changed, self.cur_root)
                     self.control.show_entries(self.e_highlight, self.entries,
                                               self.cur_win, self.e_offset)
             elif self.state == 1 and c in locked_state:
                 locked_state[c]()
-                if self.state == 1:  # 'cause 'L' changes state
+                if self.state == 1: # 'cause 'L' changes state
                     self.control.draw_lock_menu(self.changed,
                                                 self.lock_highlight,
                                                 (1, 0, 'Use a password (1)'),
@@ -1099,3 +1101,4 @@ class DBBrowser(object):
                 else:
                     self.pre_save()
                     self.lock_db()
+

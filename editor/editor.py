@@ -403,6 +403,10 @@ class Editor(object):
                 self.cur_pos_x = self.buf_length
             self.buffer_idx_x = self.cur_pos_x
             self.display()
+        try:
+            curses.curs_set(0)
+        except:
+            print('Invisible cursor not supported.')
         return "\n".join(self.text)
 
     def display(self):
