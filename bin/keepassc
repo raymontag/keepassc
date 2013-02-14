@@ -26,9 +26,8 @@ from os import geteuid
 from os.path import expanduser, realpath, splitext
 from sys import exit, stdout
 
+from keepassc.control import Control
 from kppy import KPDB, KPError
-
-from lib.control import Control
 
 
 __doc__ = '''This program gives you access to your KeePass 1.x or
