@@ -180,7 +180,8 @@ class DBBrowser(object):
                     else:
                         continue
                 else:
-                    self.save(False)
+                    self.save(self.control.cur_dir)
+            break
 
     def overwrite_file(self, filepath):
         '''Overwrite an existing file'''
@@ -1049,6 +1050,11 @@ class DBBrowser(object):
             try:
                 c = self.control.stdscr.getch()
             except KeyboardInterrupt:
+                cur.noraw()
+                self.stdscr.keypad(0)
+                cur.endwin()
+                print('foo')
+                exit()
                 c = 4
             if type(self.lock_timer) is threading.Timer:
                 self.lock_timer.cancel()
