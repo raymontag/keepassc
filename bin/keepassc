@@ -22,7 +22,7 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 import webbrowser
 import argparse
 import curses as cur
-from curses.ascii import NL, DEL, SP
+from curses.ascii import NL, DEL, SP, ETX
 from datetime import date
 from getpass import getpass
 from os import chdir, getcwd, geteuid, listdir, mkdir
@@ -33,6 +33,7 @@ from socket import gethostname
 from subprocess import Popen, PIPE
 from sys import exit, stdout
 
+from editor.editor import Editor
 from kppy import KPDB, KPError
 
 __doc__ = '''This program gives you access to your KeePass 1.x or
@@ -126,10 +127,10 @@ class App(object):
             try:
                 e = self.stdscr.getch()
             except KeyboardInterrupt:
-                e = 4
+                e = ETX
             if e == -1:
                 self.del_clipboard()
-            elif e == 4:
+            elif e == ETX:
                 self.del_clipboard()
                 if self.db is not None:
                     self.db_close()
@@ -167,44 +168,6 @@ class App(object):
         finally:
             self.stdscr.refresh()
 
-    def get_string(self, edit='', std=''):
-        '''This method is used to get user input.
-
-        edit is the string to edit and std is text
-        which should be displayed in front of edit.
-        (std edit)
-
-        '''
-
-        e = ''
-        while e != NL:
-            if e == cur.KEY_BACKSPACE or e == DEL and len(edit) != 0:
-                edit = edit[:-1]
-            elif e == cur.KEY_BACKSPACE or e == DEL:
-                pass
-            elif e == -1:
-                self.del_clipboard()
-            elif e == 4:
-                self.del_clipboard()
-                if self.db is not None:
-                    self.db_close()
-                self.close()
-            elif e == '':
-                pass
-            elif e == cur.KEY_RESIZE:
-                self.resize_all()
-            elif e == cur.KEY_F5:
-                return False
-            else:
-                edit += chr(e)
-
-            self.draw_text(False, (1, 0, std + edit))
-            try:
-                e = self.stdscr.getch()
-            except KeyboardInterrupt:
-                e = 4
-        return edit
-
     def get_password(self, std, needed=True):
         '''This method is used to get a password.
 
@@ -214,47 +177,12 @@ class App(object):
         is not possible to return an emptry string.
 
         '''
-
-        self.draw_text(False, (1, 0, std))
-
-        password = ''
-        e = ''
-        while e != NL or (len(password) == 0 and needed is True):
-            try:
-                e = self.stdscr.getch()
-            except KeyboardInterrupt:
-                e = 4
-            if e == cur.KEY_BACKSPACE or e == DEL and len(password) != 0:
-                password = password[:-1]
-            elif e == cur.KEY_BACKSPACE or e == DEL:
-                pass
-            elif e == '':
-                pass
-            elif e == -1:
-                self.del_clipboard()
-            elif e == 4:
-                self.del_clipboard()
-                if self.db is not None:
-                    self.db_close()
-                self.close()
-            elif e == cur.KEY_RESIZE:
-                self.ysize, self.xsize = self.stdscr.getmaxyx()
-                self.group_win.resize(self.ysize - 1, int(self.xsize / 3))
-                self.entry_win.resize(int(2 * (self.ysize - 1) / 3),
-                                      int(2 * self.xsize / 3))
-                self.info_win.resize(int((self.ysize - 1) / 3),
-                                     int(self.xsize / 3) - 2)
-                self.group_win.mvwin(1, 0)
-                self.entry_win.mvwin(1, int(self.ysize / 3))
-                self.info_win.mvwin(
-                    int(2 * (self.ysize - 1) / 3), int(self.ysize / 3))
-            elif e == cur.KEY_F5:
-                return False
-            else:
-                password += chr(e)
-                if ord(password[-1]) == NL:
-                    password = password[:-1]
-        return password
+        password = Editor(self.stdscr, max_text_size=1,
+                          win_size=(1, 80), title=std, pw_mode=True)()
+        if needed is True and not password:
+            return False
+        else:
+            return password
 
     def gen_pass(self):
         while True:
@@ -303,7 +231,7 @@ class App(object):
                         pass
                     elif e == -1:
                         self.del_clipboard()
-                    elif e == 4:
+                    elif e == ETX:
                         self.del_clipboard()
                         if self.db is not None:
                             self.db_close()
@@ -330,7 +258,7 @@ class App(object):
                     try:
                         e = self.stdscr.getch()
                     except KeyboardInterrupt:
-                        e = 4
+                        e = ETX
                     if e == NL and edit == '':
                         e = cur.KEY_BACKSPACE
                         continue
@@ -347,7 +275,7 @@ class App(object):
                         pass
                     elif e == -1:
                         self.del_clipboard()
-                    elif e == 4:
+                    elif e == ETX:
                         self.del_clipboard()
                         if self.db is not None:
                             self.db_close()
@@ -377,7 +305,7 @@ class App(object):
                     try:
                         e = self.stdscr.getch()
                     except KeyboardInterrupt:
-                        e = 4
+                        e = ETX
 
                     if e == NL and edit == '':
                         e = cur.KEY_BACKSPACE
@@ -403,7 +331,7 @@ class App(object):
                     pass
                 elif e == -1:
                     self.del_clipboard()
-                elif e == 4:
+                elif e == ETX:
                     self.del_clipboard()
                     if self.db is not None:
                         self.db_close()
@@ -434,7 +362,7 @@ class App(object):
                 try:
                     e = self.stdscr.getch()
                 except KeyboardInterrupt:
-                    e = 4
+                    e = ETX
 
                 if e == NL and edit == '':
                     e = cur.KEY_BACKSPACE
@@ -478,7 +406,7 @@ class App(object):
                 pass
             elif e == -1:
                 self.del_clipboard()
-            elif e == 4:
+            elif e == ETX:
                 self.del_clipboard()
                 if self.db is not None:
                     self.db_close()
@@ -494,7 +422,7 @@ class App(object):
             try:
                 e = self.stdscr.getch()
             except KeyboardInterrupt:
-                e = 4
+                e = ETX
             if e == NL and edit == '':
                 e = cur.KEY_BACKSPACE
                 continue
@@ -539,10 +467,10 @@ class App(object):
             try:
                 e = self.stdscr.getch()
             except KeyboardInterrupt:
-                e = 4
+                e = ETX
             if e == -1:
                 self.del_clipboard()
-            elif e == 4:
+            elif e == ETX:
                 self.del_clipboard()
                 if self.db is not None:
                     self.db_close()
@@ -600,10 +528,10 @@ class App(object):
             try:
                 e = self.stdscr.getch()
             except KeyboardInterrupt:
-                e = 4
+                e = ETX
             if e == -1:
                 self.del_clipboard()
-            elif e == 4:
+            elif e == ETX:
                 self.del_clipboard()
                 if self.db is not None:
                     self.db_close()
@@ -636,10 +564,11 @@ class App(object):
         while True:
             try:
                 handler = open(expanduser('~/.config/keepassc'), 'r')
-                self.last_file = handler.readline()  # TODO: Read other configs
-                handler.close()
             except:
                 self.last_file = None
+            else:
+                self.last_file = handler.readline()  # TODO: Read other configs
+                handler.close()
             menu = self.gen_menu(((1, 0, 'Open existing database (1)'),
                                   (2, 0, 'Create new database (2)'),
                                   (3, 0, 'Quit (3)')),
@@ -793,7 +722,8 @@ class App(object):
                 if filepath is False:
                     return False
                 if filepath[-4:] != '.kdb':
-                    filename = self.get_string('', 'Filename: ')
+                    filename = Editor(self.stdscr, max_text_size=1,
+                                      win_size=(1, 80), title="Filename:")()
                     filepath += '/' + filename + '.kdb'
             return filepath
 
@@ -818,7 +748,7 @@ class App(object):
                 pass
             elif e == -1:
                 self.del_clipboard()
-            elif e == 4:
+            elif e == ETX:
                 self.del_clipboard()
                 if self.db is not None:
                     self.db_close()
@@ -867,7 +797,7 @@ class App(object):
             try:
                 e = self.stdscr.getch()
             except KeyboardInterrupt:
-                e = 4
+                e = ETX
         return edit
 
     def browser(self, mode_new=False, keyfile=False):
@@ -928,7 +858,7 @@ class App(object):
             try:
                 c = self.stdscr.getch()
             except KeyboardInterrupt:
-                c = 4
+                c = ETX
             if c == cur.KEY_DOWN or c == ord('j'):
                 if highlight >= len(dir_cont) - 1:
                     continue
@@ -1077,7 +1007,7 @@ class App(object):
                     hidden = False
                 else:
                     hidden = True
-            elif c == 4:
+            elif c == ETX:
                 self.del_clipboard()
                 if self.db is not None:
                     self.db_close()
@@ -1172,14 +1102,14 @@ class App(object):
                     try:
                         e = self.stdscr.getch()
                     except KeyboardInterrupt:
-                        e = 4
+                        e = ETX
 
                     if e == ord('n'):
                         self.db = KPDB(self.cur_dir, password, keyfile, False)
                         break
                     elif e == -1:
                         self.del_clipboard()
-                    elif e == 4:
+                    elif e == ETX:
                         self.del_clipboard()
                         if self.db is not None:
                             self.db_close()
@@ -1209,6 +1139,7 @@ class App(object):
         cur.noraw()
         self.stdscr.keypad(0)
         cur.endwin()
+        cur.flushinp()
         exit()
 
     def save(self, cur_dir):
@@ -1277,7 +1208,7 @@ class App(object):
             try:
                 c = self.stdscr.getch()
             except KeyboardInterrupt:
-                c = 4
+                c = ETX
 
             if c == ord('\t'):
                 if cur_win == 0:
@@ -1309,7 +1240,7 @@ class App(object):
                 print('\'U\' - edit URL')
                 print('\'C\' - edit comment')
                 print('\'E\' - edit expiration date')
-                print('\'f\' - find entry by title')
+                print('\'f\' or \'/\' - find entry by title')
                 print('\'L\' - lock db')
                 print('Navigate with arrow keys or h/j/k/l like in vim')
                 print('Type \'F5\' in a dialog to return to the previous one')
@@ -1395,8 +1326,8 @@ class App(object):
                         try:
                             e = self.stdscr.getch()
                         except KeyboardInterrupt:
-                            e = 4
-                        if e == 4:
+                            e = ETX
+                        if e == ETX:
                             self.del_clipboard()
                             if self.db is not None:
                                 self.db_close()
@@ -1437,7 +1368,7 @@ class App(object):
                 self.info_win.noutrefresh()
                 cur.doupdate()
                 break
-            elif c == ord('q') or c == 4:
+            elif c == ord('q') or c == ETX:
                 for i in self.db.groups:
                     if i.id_ == 0:
                         try:
@@ -1471,8 +1402,8 @@ class App(object):
                         try:
                             e = self.stdscr.getch()
                         except KeyboardInterrupt:
-                            e = 4
-                        if e == 4:
+                            e = ETX
+                        if e == ETX:
                             self.del_clipboard()
                             if self.db is not None:
                                 self.db_close()
@@ -1637,12 +1568,12 @@ class App(object):
                             try:
                                 c = self.stdscr.getch()
                             except KeyboardInterrupt:
-                                c = 4
+                                c = ETX
                             if c == ord('y'):
                                 if self.save(filepath) is not False:
                                     changed = False
                                 break
-                            elif c == 4:
+                            elif c == ETX:
                                 self.del_clipboard()
                                 if self.db is not None:
                                     self.db_close()
@@ -1734,8 +1665,8 @@ class App(object):
                         try:
                             e = self.stdscr.getch()
                         except KeyboardInterrupt:
-                            e = 4
-                        if e == 4:
+                            e = ETX
+                        if e == ETX:
                             self.del_clipboard()
                             if self.db is not None:
                                 self.db_close()
@@ -1875,7 +1806,8 @@ class App(object):
                 self.show_entries(e_highlight, entries, cur_win, e_offset,
                                   hide)
             elif c == ord('g'):
-                edit = self.get_string('', 'Title: ')
+                edit = Editor(self.stdscr, title="Group Name:", max_text_size=1,
+                              win_size=(1, 80))()
                 if edit is not False:
                     if groups:
                         old_group = groups[g_highlight]
@@ -1910,7 +1842,8 @@ class App(object):
                                   hide)
             elif c == ord('G'):
                 if groups:
-                    edit = self.get_string('', 'Title: ')
+                    edit = Editor(self.stdscr, title="Group Name:", max_text_size=1,
+                                  win_size=(1, 80))()
                     if edit is not False:
                         try:
                             self.db.create_group(edit, groups[g_highlight])
@@ -1944,20 +1877,24 @@ class App(object):
                     goto_last = False
                     while True:
                         if pass_title is False:
-                            title = self.get_string('', 'Title: ')
+                            title = Editor(self.stdscr, title="Title:", max_text_size=1,
+                                           win_size=(1, 80))()
                         if title is False:
                             break
                         pass_title = True
 
                         if pass_url is False:
-                            url = self.get_string('', 'URL: ')
+                            url = Editor(self.stdscr, title="URL:", max_text_size=1,
+                                         win_size=(1, 80))()
                         if url is False:
                             pass_title = False
                             continue
                         pass_url = True
 
                         if pass_username is False:
-                            username = self.get_string('', 'Username: ')
+                            username = Editor(self.stdscr, title="Username:",
+                                              max_text_size=1,
+                                              win_size=(1, 80))()
                         if username is False:
                             pass_url = False
                             continue
@@ -2000,7 +1937,7 @@ class App(object):
                         pass_password = True
 
                         if pass_comment is False:
-                            comment = self.get_string('', 'Comment: ')
+                            comment = Editor(self.stdscr, title="Comment:")()
                         if comment is False:
                             pass_password = False
                             continue
@@ -2012,12 +1949,12 @@ class App(object):
                             try:
                                 e = self.stdscr.getch()
                             except KeyboardInterrupt:
-                                e = 4
+                                e = ETX
 
                             if e == ord('y'):
                                 exp_date = self.get_exp_date()
                                 break
-                            elif e == 4:
+                            elif e == ETX:
                                 self.del_clipboard()
                                 if self.db is not None:
                                     self.db_close()
@@ -2074,7 +2011,7 @@ class App(object):
                         try:
                             e = self.stdscr.getch()
                         except KeyboardInterrupt:
-                            e = 4
+                            e = ETX
                         if e == ord('y'):
                             try:
                                 groups[g_highlight].remove_group()
@@ -2095,7 +2032,7 @@ class App(object):
                                 e_highlight = 0
                             finally:
                                 break
-                        elif e == 4:
+                        elif e == ETX:
                             self.del_clipboard()
                             if self.db is not None:
                                 self.db_close()
@@ -2127,7 +2064,7 @@ class App(object):
                         try:
                             e = self.stdscr.getch()
                         except KeyboardInterrupt:
-                            e = 4
+                            e = ETX
                         if e == ord('y'):
                             try:
                                 entries[e_highlight].remove_entry()
@@ -2145,7 +2082,7 @@ class App(object):
                                     e_highlight -= 1
                             finally:
                                 break
-                        elif e == 4:
+                        elif e == ETX:
                             self.del_clipboard()
                             if self.db is not None:
                                 self.db_close()
@@ -2166,9 +2103,10 @@ class App(object):
                                      changed)
                     self.show_entries(e_highlight, entries, cur_win,
                                       e_offset, hide)
-            elif c == ord('f'):
+            elif c == ord('f') or c == ord('/'):
                 if self.db._entries:
-                    title = self.get_string('', 'Title: ')
+                    title = Editor(self.stdscr, title='Title:', max_text_size=1,
+                                   win_size=(1, 80))()
                     if title is not False:
                         for i in self.db.groups:
                             if i.id_ == 0:
@@ -2188,10 +2126,10 @@ class App(object):
                             if title.lower() in entry.title.lower():
                                 exp = entry.expire.timetuple()
                                 self.db.groups[-1].create_entry(
-                                        entry.title + ' ('+ entry.group.title + ')', 
+                                        entry.title + ' ('+ entry.group.title + ')',
                                                                 entry.image, entry.url,
                                                                 entry.username,
-                                                                entry.password, 
+                                                                entry.password,
                                                                 entry.comment,
                                                                 exp[0], exp[1], exp[2])
                                 self.cur_win = 1
@@ -2225,18 +2163,28 @@ class App(object):
                             edit = groups[g_highlight].title
                         elif cur_win == 1:
                             edit = entries[e_highlight].title
+                        edit_size = (1, 40)
+                        edit_max_size = 1
                     elif c == ord('u') and entries:
                         std = 'Username: '
                         edit = entries[e_highlight].username
+                        edit_size = (1, 40)
+                        edit_max_size = 1
                     elif c == ord('U') and entries:
                         std = 'URL: '
                         edit = entries[e_highlight].url
+                        edit_size = (1, 40)
+                        edit_max_size = 1
                     elif c == ord('C') and entries:
                         std = 'Comment: '
                         edit = entries[e_highlight].comment
+                        edit_size = (20, 80)
+                        edit_max_size = 0
                     else:
                         continue
-                    edit = self.get_string(edit, std)
+                    edit = Editor(self.stdscr, inittext=edit,
+                                  title=std, win_size=edit_size,
+                                  max_text_size=edit_max_size)()
                     changed = True
 
                     if edit is not False:
