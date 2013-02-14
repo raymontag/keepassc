@@ -43,8 +43,8 @@ class FileBrowser(object):
                 (1, 0, 'Use ' + last_file + ' (1)'),
                 (2, 0, 'Use the file browser (2)'),
                 (3, 0, 'Type direct path (3)')))
-        if ((ask_for_lf is True and last_file is not None and nav == 2) or 
-            ((last_file is None or ask_for_lf is False) and nav == 1)):
+        if ((ask_for_lf is True and last_file is not None and nav == 2) or
+                ((last_file is None or ask_for_lf is False) and nav == 1)):
             if keyfile is True:
                 filepath = self.browser(False, keyfile)
             else:
@@ -53,8 +53,8 @@ class FileBrowser(object):
                     filename = self.control.get_string('', 'Filename: ')
                     filepath += '/' + filename + '.kdb'
             return filepath
-        if ((ask_for_lf is True and last_file is not None and nav == 3) or 
-            ((last_file is None or ask_for_lf is False) and nav == 2)):
+        if ((ask_for_lf is True and last_file is not None and nav == 3) or
+                ((last_file is None or ask_for_lf is False) and nav == 2)):
             while True:
                 filepath = self.get_direct_filepath(last_file)
                 if filepath is False:
@@ -64,14 +64,14 @@ class FileBrowser(object):
                 elif ((filepath[-4:] != '.kdb' or isdir(filepath)) and
                       keyfile is False):
                     self.control.draw_text(False,
-                                   (1, 0, 'Need path to a kdb-file!'),
-                                   (3, 0, 'Press any key'))
+                                           (1, 0, 'Need path to a kdb-file!'),
+                                           (3, 0, 'Press any key'))
                     if self.control.any_key() == -1:
                         return -1
                     continue
                 else:
                     return filepath
-        elif nav == 1: # it was asked for last file
+        elif nav == 1:  # it was asked for last file
             return last_file
         elif nav == -1:
             return -1
@@ -194,7 +194,7 @@ class FileBrowser(object):
                     highlight = 0
                     dir_cont = self.get_dir_cont(hidden, keyfile)
                 elif isdir(self.control.cur_dir + '/' + dir_cont[highlight]):
-                    self.control.cur_dir = (self.control.cur_dir + '/' + 
+                    self.control.cur_dir = (self.control.cur_dir + '/' +
                                             dir_cont[highlight])
                     if self.control.cur_dir[:2] == '//':
                         self.control.cur_dir = self.control.cur_dir[1:]
@@ -238,8 +238,8 @@ class FileBrowser(object):
             dir_cont = listdir(self.control.cur_dir)
         except OSError:
             self.control.draw_text(False,
-                           (1, 0, 'Was not able to read directory'),
-                           (2, 0, 'Press any key.'))
+                                   (1, 0, 'Was not able to read directory'),
+                                   (2, 0, 'Press any key.'))
             if self.control.any_key() == -1:
                 return -1
             last = self.control.cur_dir.split('/')[-1]
@@ -250,9 +250,9 @@ class FileBrowser(object):
 
         rem = []
         for i in dir_cont:
-            if ((not isdir(self.control.cur_dir + '/' + i) and not 
-                i[-4:] == '.kdb' and keyfile is False) or 
-                (i[0] == '.' and hidden is True)):
+            if ((not isdir(self.control.cur_dir + '/' + i) and not
+                    i[-4:] == '.kdb' and keyfile is False) or
+                    (i[0] == '.' and hidden is True)):
                 rem.append(i)
         for i in rem:
             dir_cont.remove(i)
@@ -273,4 +273,3 @@ class FileBrowser(object):
         if not self.control.cur_dir == '/':
             dir_cont.insert(0, '..')
         return dir_cont
-
