@@ -21,6 +21,7 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 from os import makedirs, remove
 from os.path import isdir, isfile
 
+
 def parse_config(control):
     '''Parse the config file.
 
@@ -31,18 +32,17 @@ def parse_config(control):
      - 'foo = bar' is not a valid one
 
     '''
-   
-    config = {'del_clip': True, # standard config
+    config = {'del_clip': True,  # standard config
               'clip_delay': 20,
               'lock_db': True,
               'lock_delay': 60,
               'rem_db': True,
               'rem_key': False}
-              
+
     if isfile(control.config_home):
         try:
             handler = open(control.config_home, 'r')
-        except Exception as err: # don't know if this is good style
+        except Exception as err:  # don't know if this is good style
             print(err.__str__())
         else:
             for line in handler:
@@ -56,9 +56,10 @@ def parse_config(control):
                 if key in config:
                     config[key] = val
             handler.close()
-    else: # write standard config
+    else:  # write standard config
         write_config(control, config)
     return config
+
 
 def write_config(control, config):
     '''Function to write the config file'''
@@ -75,6 +76,6 @@ def write_config(control, config):
         return False
     else:
         for key, val in config.items():
-            handler.write(key+'='+str(val)+'\n')
+            handler.write(key + '=' + str(val) + '\n')
         handler.close()
     return True

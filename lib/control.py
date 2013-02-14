@@ -21,7 +21,7 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 import curses as cur
 from curses.ascii import NL, DEL, SP
 from datetime import date
-from os import chdir, getcwd, getenv, geteuid, remove
+from os import chdir, getcwd, getenv, geteuid, makedirs, remove
 from os.path import expanduser, isfile, isdir, realpath
 from pwd import getpwuid
 from random import sample
@@ -33,6 +33,7 @@ from kppy import KPDB, KPError
 from .helper import parse_config, write_config
 from .filebrowser import FileBrowser
 from .dbbrowser import DBBrowser
+
 
 class Control(object):
     '''This class represents the whole application.'''
@@ -64,8 +65,8 @@ class Control(object):
                 self.data_home += 'keepassc/'
             else:
                 self.data_home += '/keepassc/'
-        self.last_home = self.data_home+'last'
-        self.key_home = self.data_home+'key'
+        self.last_home = self.data_home + 'last'
+        self.key_home = self.data_home + 'key'
 
         self.config = parse_config(self)
 
@@ -171,7 +172,7 @@ class Control(object):
                 cur_dir)
             for i, j, k in misc:
                 self.stdscr.addstr(i, j, k)
-        except: # to prevent a crash if screen is small
+        except:  # to prevent a crash if screen is small
             pass
         finally:
             self.stdscr.refresh()
@@ -264,7 +265,7 @@ class Control(object):
                                           'Include capitalized letters'),
                                          (3, 0, 'Include special symbols')),
                                         (5, 0, 'Press space to un-/check'),
-                                        (6, 0, 
+                                        (6, 0,
                                          'Press return to enter options'))
             if items is False or items == -1:
                 return items
@@ -319,9 +320,9 @@ class Control(object):
                                    (3, 0, 'Year: ' + edit))
                     if exp:
                         try:
-                            self.stdscr.addstr(2, 0, 
+                            self.stdscr.addstr(2, 0,
                                                'Actual expiration date: ' +
-                                               str(exp[0]) + '-' + 
+                                               str(exp[0]) + '-' +
                                                str(exp[1]) + '-' +
                                                str(exp[2]))
                         except:
@@ -363,9 +364,9 @@ class Control(object):
                                    (4, 0, 'Month: ' + edit))
                     if exp:
                         try:
-                            self.stdscr.addstr(2, 0, 
+                            self.stdscr.addstr(2, 0,
                                                'Actual expiration date: ' +
-                                               str(exp[0]) + '-' + 
+                                               str(exp[0]) + '-' +
                                                str(exp[1]) + '-' +
                                                str(exp[2]))
                         except:
@@ -382,7 +383,7 @@ class Control(object):
                         continue
                     elif e == NL and (int(edit) > 12 or int(edit) < 1):
                         self.draw_text(False,
-                                       (1, 0, 
+                                       (1, 0,
                                         'Month must be between 1 and 12. '
                                         'Press any key.'))
                         if self.any_key() == -1:
@@ -420,7 +421,7 @@ class Control(object):
                 if exp:
                     try:
                         self.stdscr.addstr(2, 0, 'Actual expiration date: ' +
-                                           str(exp[0]) + '-' + 
+                                           str(exp[0]) + '-' +
                                            str(exp[1]) + '-' +
                                            str(exp[2]))
                     except:
@@ -435,21 +436,21 @@ class Control(object):
                 if e == NL and edit == '':
                     e = cur.KEY_BACKSPACE
                     continue
-                elif (e == NL and (mon == 1 or mon == 3 or mon == 5 or 
-                                   mon == 7 or mon == 8 or mon == 10 or 
-                                   mon == 12) and 
+                elif (e == NL and (mon == 1 or mon == 3 or mon == 5 or
+                                   mon == 7 or mon == 8 or mon == 10 or
+                                   mon == 12) and
                       (int(edit) > 31 or int(edit) < 0)):
                     self.draw_text(False,
-                                   (1, 0, 
+                                   (1, 0,
                                     'Day must be between 1 and 31. Press '
                                     'any key.'))
                     if self.any_key() == -1:
                         return -1
                     e = ''
-                elif (e == NL and mon == 2 and (int(edit) > 28 or 
+                elif (e == NL and mon == 2 and (int(edit) > 28 or
                                                 int(edit) < 0)):
                     self.draw_text(False,
-                                   (1, 0, 
+                                   (1, 0,
                                     'Day must be between 1 and 28. Press '
                                     'any key.'))
                     if self.any_key() == -1:
@@ -458,7 +459,7 @@ class Control(object):
                 elif (e == NL and (mon == 4 or mon == 6 or mon == 9 or
                       mon == 11) and (int(edit) > 30 or int(edit) < 0)):
                     self.draw_text(False,
-                                   (1, 0, 
+                                   (1, 0,
                                     'Day must be between 1 and 30. Press '
                                     'any key.'))
                     if self.any_key() == -1:
@@ -621,29 +622,29 @@ class Control(object):
         '''The configuration menu'''
 
         while True:
-            menu = self.gen_menu(((1, 0, 'Delete clipboard automatically: ' + 
-                                   str(self.config['del_clip'])),
-                                  (2, 0, 'Waiting time (seconds): ' +
-                                   str(self.config['clip_delay'])),
-                                  (3, 0, 'Lock database automatically: ' +
-                                   str(self.config['lock_db'])),
-                                  (4, 0, 'Waiting time (seconds): ' +
-                                   str(self.config['lock_delay'])),
-                                  (5, 0, 'Remember last database: ' +
-                                   str(self.config['rem_db'])),
-                                  (6, 0, 'Remember last keyfile: ' +
-                                   str(self.config['rem_key'])),
-                                  (7, 0, 'Generate default configuration'),
-                                  (8, 0, 'Write config')),
-                                  (10, 0, 'Automatic locking works only for '
-                                         'saved databases!'))
+            menu = self.gen_menu(
+                ((1, 0, 'Delete clipboard automatically: ' +
+                  str(self.config['del_clip'])),
+                 (2, 0, 'Waiting time (seconds): ' +
+                  str(self.config['clip_delay'])),
+                 (3, 0, 'Lock database automatically: ' +
+                  str(self.config['lock_db'])),
+                 (4, 0, 'Waiting time (seconds): ' +
+                  str(self.config['lock_delay'])),
+                 (5, 0, 'Remember last database: ' +
+                  str(self.config['rem_db'])),
+                 (6, 0, 'Remember last keyfile: ' +
+                  str(self.config['rem_key'])),
+                 (7, 0, 'Generate default configuration'),
+                 (8, 0, 'Write config')),
+                (10, 0, 'Automatic locking works only for saved databases!'))
             if menu == 1:
                 if self.config['del_clip'] is True:
-                    self.config['del_clip'] = False                
+                    self.config['del_clip'] = False
                 elif self.config['del_clip'] is False:
-                    self.config['del_clip'] = True              
+                    self.config['del_clip'] = True
             elif menu == 2:
-                delay = self.get_num('Waiting time: ', 
+                delay = self.get_num('Waiting time: ',
                                      str(self.config['clip_delay']))
                 if delay is False:
                     continue
@@ -653,11 +654,11 @@ class Control(object):
                     self.config['clip_delay'] = delay
             elif menu == 3:
                 if self.config['lock_db'] is True:
-                    self.config['lock_db'] = False                
+                    self.config['lock_db'] = False
                 elif self.config['lock_db'] is False:
-                    self.config['lock_db'] = True              
+                    self.config['lock_db'] = True
             elif menu == 4:
-                delay = self.get_num('Waiting time: ', 
+                delay = self.get_num('Waiting time: ',
                                      str(self.config['lock_delay']))
                 if delay is False:
                     continue
@@ -667,16 +668,16 @@ class Control(object):
                     self.config['lock_delay'] = delay
             elif menu == 5:
                 if self.config['rem_db'] is True:
-                    self.config['rem_db'] = False                
+                    self.config['rem_db'] = False
                 elif self.config['rem_db'] is False:
-                    self.config['rem_db'] = True              
+                    self.config['rem_db'] = True
             elif menu == 6:
                 if self.config['rem_key'] is True:
-                    self.config['rem_key'] = False                
+                    self.config['rem_key'] = False
                 elif self.config['rem_key'] is False:
-                    self.config['rem_key'] = True              
+                    self.config['rem_key'] = True
             elif menu == 7:
-                self.config = {'del_clip': True, # standard config
+                self.config = {'del_clip': True,  # standard config
                                'clip_delay': 20,
                                'lock_db': True,
                                'lock_delay': 60,
@@ -763,7 +764,7 @@ class Control(object):
                 del db
                 last = self.cur_dir.split('/')[-1]
                 self.cur_dir = self.cur_dir[:-len(last) - 1]
-            
+
         while True:
             self.get_last_db()
             menu = self.gen_menu(((1, 0, 'Open existing database (1)'),
@@ -857,11 +858,11 @@ class Control(object):
             elif menu == 4 or menu is False or menu == -1:
                 self.close()
 
-    def open_db(self, skip_fb = False):
+    def open_db(self, skip_fb=False):
         ''' This method opens a database.'''
-        
+
         if skip_fb is False:
-            filepath = self.fb.get_filepath(last_file = self.last_file)
+            filepath = self.fb.get_filepath(last_file=self.last_file)
             if filepath is False:
                 return False
             elif filepath == -1:
@@ -894,13 +895,13 @@ class Control(object):
                 while True:
                     if self.config['rem_key'] is True:
                         self.get_last_key()
-                    if (self.last_key is None or 
-                        self.config['rem_key'] is False):
+                    if (self.last_key is None or
+                            self.config['rem_key'] is False):
                         ask_for_lf = False
                     else:
                         ask_for_lf = True
-                    
-                    keyfile = self.fb.get_filepath(ask_for_lf, True, 
+
+                    keyfile = self.fb.get_filepath(ask_for_lf, True,
                                                    self.last_key)
                     if keyfile is False:
                         break
@@ -1031,7 +1032,7 @@ class Control(object):
     def show_dir(self, highlight, dir_cont):
         '''List a directory with highlighting.'''
 
-        self.draw_text(changed = False)
+        self.draw_text(changed=False)
         for i in range(len(dir_cont)):
             if i == highlight:
                 if isdir(self.cur_dir + '/' + dir_cont[i]):
@@ -1063,7 +1064,6 @@ class Control(object):
     def open_file(self):
         '''Method to open a database.'''
 
-
     def close(self):
         '''Close the program correctly.'''
 
@@ -1073,7 +1073,6 @@ class Control(object):
         self.stdscr.keypad(0)
         cur.endwin()
         exit()
-
 
     def show_groups(self, highlight, groups, cur_win, offset, changed, parent):
         '''Just print all groups in a column'''
