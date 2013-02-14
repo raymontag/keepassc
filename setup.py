@@ -27,7 +27,7 @@ setup(name = "keepassc",
       url = "www.nongnu.org/keepassc",
       download_url = "http://download-mirror.savannah.gnu.org/releases/keepassc/",
       description = "A password manager that is fully compatible to KeePass v.1.x and KeePassX",
-      packages = ['editor'],
+      packages = ['editor', 'lib'],
       scripts = ['bin/keepassc'],
       classifiers = [
           'Operating System :: POSIX',
