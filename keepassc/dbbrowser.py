@@ -670,7 +670,7 @@ class DBBrowser(object):
                         self.cur_root = self.cur_root.parent
                     self.changed = True
 
-                    if (self.g_highlight >= len(self.groups) and
+                    if (self.g_highlight >= len(self.groups) - 1 and
                             self.g_highlight != 0):
                         self.g_highlight -= 1
                     self.e_highlight = 0
