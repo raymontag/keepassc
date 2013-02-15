@@ -53,8 +53,8 @@ class Editor(object):
         text:   text string
 
     Usage:
-        import editor
-        editor.editor(box=False, inittext="Hi", win_location=(5, 5))
+        import keepassc
+        keepassc.editor(box=False, inittext="Hi", win_location=(5, 5))
 
     TODO: fix pageup/pagedown for single line text entry
 

@@ -26,7 +26,7 @@ from curses.ascii import NL, DEL
 from os.path import isfile, isdir
 from subprocess import Popen, PIPE
 
-from editor.editor import Editor
+from keepassc.editor import Editor
 from kppy import KPError
 
 
