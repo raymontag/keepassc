@@ -306,7 +306,16 @@ class DBBrowser(object):
                 keyfile = None
         if self.lock_highlight == 2 or self.lock_highlight == 3:
             while True:
-                keyfile = self.control.fb.get_filepath(False, True)
+                if self.control.config['rem_key'] is True:
+                    self.control.get_last_key()
+                if (self.control.last_key is None or
+                        self.control.config['rem_key'] is False):
+                    ask_for_lf = False
+                else:
+                    ask_for_lf = True
+
+                keyfile = self.control.fb.get_filepath(ask_for_lf, True,
+                                                       self.control.last_key)
                 if keyfile is False:
                     return False
                 elif keyfile == -1:

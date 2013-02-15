@@ -999,9 +999,6 @@ class Control(object):
                         pass
         self.stdscr.refresh()
 
-    def open_file(self):
-        '''Method to open a database.'''
-
     def close(self):
         '''Close the program correctly.'''
 
