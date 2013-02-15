@@ -30,7 +30,7 @@ from sys import exit
 
 from kppy import KPDB, KPError
 
-from editor.editor import Editor
+from keepassc.editor import Editor
 from .helper import parse_config, write_config
 from .filebrowser import FileBrowser
 from .dbbrowser import DBBrowser
