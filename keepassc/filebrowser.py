@@ -23,6 +23,8 @@ from curses.ascii import NL, DEL
 from os import listdir
 from os.path import expanduser, isdir
 
+from keepassc.editor import Editor
+
 class FileBrowser(object):
     '''This class represents the file browser'''
 
@@ -50,7 +52,8 @@ class FileBrowser(object):
                 filepath = self.browser(True)
                 if type(filepath) is str:
                     if filepath[-4:] != '.kdb' and filepath is not False:
-                        filename = self.control.get_string('', 'Filename: ')
+                        filename = Editor(self.control.stdscr, max_text_size=1, win_location=(0, 1),
+                                          win_size=(1, 80), title="Filename: ")()
                         filepath += '/' + filename + '.kdb'
             return filepath
         if ((ask_for_lf is True and last_file is not None and nav == 3) or
