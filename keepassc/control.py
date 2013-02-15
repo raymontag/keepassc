@@ -440,7 +440,7 @@ class Control(object):
                 continue
         return int(edit)
 
-    def gen_menu(self, misc, *add):
+    def gen_menu(self, highlight, misc, *add):
         '''A universal method to generate a menu.
 
         misc is a tupel of triples (y, x, 'text')
@@ -451,7 +451,6 @@ class Control(object):
 
         if len(misc) == 0:
             return False
-        highlight = 1
         h_color = 6
         n_color = 1
         e = ''
@@ -560,8 +559,9 @@ class Control(object):
         '''The configuration menu'''
 
         self.config = parse_config(self)
+        menu = 1
         while True:
-            menu = self.gen_menu(
+            menu = self.gen_menu(menu,
                 ((1, 0, 'Delete clipboard automatically: ' +
                   str(self.config['del_clip'])),
                  (2, 0, 'Waiting time (seconds): ' +
@@ -715,7 +715,7 @@ class Control(object):
 
         while True:
             self.get_last_db()
-            menu = self.gen_menu(((1, 0, 'Open existing database (1)'),
+            menu = self.gen_menu(1, ((1, 0, 'Open existing database (1)'),
                                   (2, 0, 'Create new database (2)'),
                                   (3, 0, 'Configuration (3)'),
                                   (4, 0, 'Quit (4)')),
@@ -732,7 +732,7 @@ class Control(object):
                 self.cur_dir = self.cur_dir[:-len(last) - 1]
             elif menu == 2:
                 while True:
-                    auth = self.gen_menu((
+                    auth = self.gen_menu(1, (
                                          (1, 0, 'Use a password (1)'),
                                          (2, 0, 'Use a keyfile (2)'),
                                          (3, 0, 'Use both (3)')))
@@ -822,7 +822,7 @@ class Control(object):
             if (self.config['skip_menu'] is False or 
                 (self.config['rem_db'] is False and
                  self.config['rem_key'] is False)):
-                auth = self.gen_menu((
+                auth = self.gen_menu(1, (
                                      (1, 0, 'Use a password (1)'),
                                      (2, 0, 'Use a keyfile (2)'),
                                      (3, 0, 'Use both (3)')),

@@ -364,7 +364,7 @@ class DBBrowser(object):
         '''Change the master key of the database'''
 
         while True:
-            auth = self.control.gen_menu((
+            auth = self.control.gen_menu(1, (
                                          (1, 0, 'Use a password (1)'),
                                          (2, 0, 'Use a keyfile (2)'),
                                          (3, 0, 'Use both (3)')))
@@ -521,7 +521,7 @@ class DBBrowser(object):
                 pass_username = True
 
                 if pass_password is False:
-                    nav = self.control.gen_menu(
+                    nav = self.control.gen_menu(1, 
                         ((1, 0, 'Use password generator (1)'),
                          (2, 0, 'Type password by hand (2)'),
                          (3, 0, 'No password (3)')))
@@ -839,7 +839,7 @@ class DBBrowser(object):
     def edit_password(self):
         '''Edit password of marked entry'''
 
-        nav = self.control.gen_menu(((1, 0, 'Use password generator (1)'),
+        nav = self.control.gen_menu(1, ((1, 0, 'Use password generator (1)'),
                                      (2, 0, 'Type password by hand (2)'),
                                      (3, 0, 'No password (3)')))
         if nav == 1:

@@ -36,11 +36,11 @@ class FileBrowser(object):
         '''This method is used to get a filepath, e.g. for 'Save as' '''
 
         if ask_for_lf is False or last_file is None:
-            nav = self.control.gen_menu((
+            nav = self.control.gen_menu(1, (
                 (1, 0, 'Use the file browser (1)'),
                 (2, 0, 'Type direct path (2)')))
         else:
-            nav = self.control.gen_menu((
+            nav = self.control.gen_menu(1, (
                 (1, 0, 'Use ' + last_file + ' (1)'),
                 (2, 0, 'Use the file browser (2)'),
                 (3, 0, 'Type direct path (3)')))
