@@ -87,7 +87,10 @@ class Editor(object):
     def __call__(self):
         self.run()
         curses.flushinp()
-        return "\n".join(self.text)
+        if self.text == -1:
+            return -1
+        else:
+            return "\n".join(self.text)
 
     def box_init(self):
         """Clear the main screen and redraw the box and/or title
@@ -99,7 +102,7 @@ class Editor(object):
         self.scr.refresh()
         self.stdscr.clear()
         self.stdscr.refresh()
-        quick_help = "   (F2 or Enter: Save, F3: Cancel)"
+        quick_help = "   (F2 or Enter: Save, F5: Cancel)"
         if self.box is True:
             self.boxscr.clear()
             self.boxscr.box()
@@ -144,32 +147,33 @@ class Editor(object):
 
         """
         self.keys = {
-            curses.KEY_BACKSPACE:           self.backspace,
-            curses.KEY_DOWN:                self.down,
-            curses.KEY_END:                 self.end,
-            curses.KEY_ENTER:               self.insert_line_or_quit,
-            curses.KEY_HOME:                self.home,
-            curses.KEY_DC:                  self.del_char,
-            curses.KEY_LEFT:                self.left,
-            curses.KEY_NPAGE:               self.page_down,
-            curses.KEY_PPAGE:               self.page_up,
-            curses.KEY_RIGHT:               self.right,
-            curses.KEY_UP:                  self.up,
-            curses.KEY_F1:                  self.help,
-            curses.KEY_F2:                  self.quit,
-            curses.KEY_F3:                  self.quit_nosave,
-            curses.KEY_RESIZE:              self.resize,
-            curses.ascii.ctrl(ord('x')):    self.quit,
-            curses.ascii.ctrl(ord('u')):    self.del_to_bol,
-            curses.ascii.ctrl(ord('k')):    self.del_to_eol,
-            curses.ascii.DEL:               self.backspace,
-            curses.ascii.NL:                self.insert_line_or_quit,
-            curses.ascii.LF:                self.insert_line_or_quit,
-            curses.ascii.BS:                self.backspace,
-            curses.ascii.ESC:               self.quit_nosave,
-            curses.ascii.ETX:               self.close,
-            ord("\n"):                      self.insert_line_or_quit,
-            -1:                             self.resize,
+            curses.KEY_BACKSPACE:                self.backspace,
+            curses.KEY_DOWN:                     self.down,
+            curses.KEY_END:                      self.end,
+            curses.KEY_ENTER:                    self.insert_line_or_quit,
+            curses.KEY_HOME:                     self.home,
+            curses.KEY_DC:                       self.del_char,
+            curses.KEY_LEFT:                     self.left,
+            curses.KEY_NPAGE:                    self.page_down,
+            curses.KEY_PPAGE:                    self.page_up,
+            curses.KEY_RIGHT:                    self.right,
+            curses.KEY_UP:                       self.up,
+            curses.KEY_F1:                       self.help,
+            curses.KEY_F2:                       self.quit,
+            curses.KEY_F5:                       self.quit_nosave,
+            curses.KEY_RESIZE:                   self.resize,
+            chr(curses.ascii.ctrl(ord('x'))):    self.quit,
+            chr(curses.ascii.ctrl(ord('u'))):    self.del_to_bol,
+            chr(curses.ascii.ctrl(ord('k'))):    self.del_to_eol,
+            chr(curses.ascii.DEL):               self.backspace,
+            chr(curses.ascii.NL):                self.insert_line_or_quit,
+            chr(curses.ascii.LF):                self.insert_line_or_quit,
+            chr(curses.ascii.BS):                self.backspace,
+            chr(curses.ascii.ESC):               self.quit_nosave,
+            chr(curses.ascii.ETX):               self.close,
+            "\x04":                              self.close,
+            "\n":                                self.insert_line_or_quit,
+            -1:                                  self.resize,
         }
 
     def win_init(self):
@@ -284,7 +288,6 @@ class Editor(object):
         line. Stop when the maximum line length is reached.
 
         """
-        c = chr(c)
         if not c.isprintable():
             return
         line = list(self.text[self.buffer_idx_y])
@@ -381,7 +384,7 @@ class Editor(object):
         help_txt = """
         Save and exit                               : F2 or Ctrl-x
                                        (Enter if single-line entry)
-        Exit without saving                         : F3 or ESC
+        Exit without saving                         : F5 or ESC
         Cursor movement                             : Arrow keys
         Move to beginning of line                   : Home
         Move to end of line                         : End
@@ -440,7 +443,10 @@ class Editor(object):
             curses.curs_set(0)
         except:
             print('Invisible cursor not supported.')
-        return "\n".join(self.text)
+        if self.text == -1:
+            return -1
+        else:
+            return "\n".join(self.text)
 
     def display(self):
         """Display the editor window and the current contents.
@@ -463,13 +469,14 @@ class Editor(object):
     def close(self):
         curses.endwin()
         curses.flushinp()
+        self.text = -1
         return False
 
     def get_key(self):
         try:
-            c = self.stdscr.getch()
+            c = self.stdscr.get_wch()
         except KeyboardInterrupt:
-            return self.close()
+            c = "\x04"
         try:
             loop = self.keys[c]()
         except KeyError:

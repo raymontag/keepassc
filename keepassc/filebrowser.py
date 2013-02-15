@@ -54,6 +54,8 @@ class FileBrowser(object):
                     if filepath[-4:] != '.kdb' and filepath is not False:
                         filename = Editor(self.control.stdscr, max_text_size=1, win_location=(0, 1),
                                           win_size=(1, 80), title="Filename: ")()
+                        if filename == "":
+                            return False
                         filepath += '/' + filename + '.kdb'
             return filepath
         if ((ask_for_lf is True and last_file is not None and nav == 3) or

@@ -559,6 +559,7 @@ class Control(object):
     def gen_config_menu(self):
         '''The configuration menu'''
 
+        self.config = parse_config(self)
         while True:
             menu = self.gen_menu(
                 ((1, 0, 'Delete clipboard automatically: ' +
@@ -573,9 +574,12 @@ class Control(object):
                   str(self.config['rem_db'])),
                  (6, 0, 'Remember last keyfile: ' +
                   str(self.config['rem_key'])),
-                 (7, 0, 'Generate default configuration'),
-                 (8, 0, 'Write config')),
-                (10, 0, 'Automatic locking works only for saved databases!'))
+                 (7, 0, 'Use directly password and key if one of the two '
+                        'above is True: ' +
+                  str(self.config['skip_menu'])),
+                 (8, 0, 'Generate default configuration'),
+                 (9, 0, 'Write config')),
+                (11, 0, 'Automatic locking works only for saved databases!'))
             if menu == 1:
                 if self.config['del_clip'] is True:
                     self.config['del_clip'] = False
@@ -615,13 +619,19 @@ class Control(object):
                 elif self.config['rem_key'] is False:
                     self.config['rem_key'] = True
             elif menu == 7:
+                if self.config['skip_menu'] is True:
+                    self.config['skip_menu'] = False
+                elif self.config['skip_menu'] is False:
+                    self.config['skip_menu'] = True
+            elif menu == 8:
                 self.config = {'del_clip': True,  # standard config
                                'clip_delay': 20,
                                'lock_db': True,
                                'lock_delay': 60,
                                'rem_db': True,
-                               'rem_key': False}
-            elif menu == 8:
+                               'rem_key': False,
+                               'skip_menu': False}
+            elif menu == 9:
                 write_config(self, self.config)
                 return True
             elif menu is False:
@@ -809,10 +819,18 @@ class Control(object):
                 self.cur_dir = filepath
 
         while True:
-            auth = self.gen_menu((
-                                 (1, 0, 'Use a password (1)'),
-                                 (2, 0, 'Use a keyfile (2)'),
-                                 (3, 0, 'Use both (3)')))
+            if (self.config['skip_menu'] is False or 
+                (self.config['rem_db'] is False and
+                 self.config['rem_key'] is False)):
+                auth = self.gen_menu((
+                                     (1, 0, 'Use a password (1)'),
+                                     (2, 0, 'Use a keyfile (2)'),
+                                     (3, 0, 'Use both (3)')),
+                                    (5, 0, 'Press \'F5\' to go back to main '
+                                           'menu'))
+            else:
+                self.draw_text(False)
+                auth = 3
             if auth is False:
                 return False
             elif auth == -1:
@@ -820,6 +838,7 @@ class Control(object):
             if auth == 1 or auth == 3:
                 password = self.get_password('Password: ')
                 if password is False:
+                    self.config['skip_menu'] = False
                     continue
                 elif password == -1:
                     self.close()
@@ -953,7 +972,7 @@ class Control(object):
         print('\'U\' - edit URL')
         print('\'C\' - edit comment')
         print('\'E\' - edit expiration date')
-        print('\'f\' - find entry by title')
+        print('\'f\' or \'/\' - find entry by title')
         print('\'L\' - lock db')
         print('Navigate with arrow keys or h/j/k/l like in vim')
         print('Type \'F5\' in a dialog to return to the previous one')
