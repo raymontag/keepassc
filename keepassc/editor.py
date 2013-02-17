@@ -170,6 +170,7 @@ class Editor(object):
             chr(curses.ascii.ctrl(ord('x'))):    self.quit,
             chr(curses.ascii.ctrl(ord('u'))):    self.del_to_bol,
             chr(curses.ascii.ctrl(ord('k'))):    self.del_to_eol,
+            chr(curses.ascii.ctrl(ord('d'))):    self.quit,
             chr(curses.ascii.DEL):               self.backspace,
             chr(curses.ascii.NL):                self.insert_line_or_quit,
             chr(curses.ascii.LF):                self.insert_line_or_quit,
