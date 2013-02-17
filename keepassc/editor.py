@@ -76,7 +76,6 @@ class Editor(object):
             curses.curs_set(1)
             curses.echo()
         locale.setlocale(locale.LC_ALL, '')
-        curses.raw()
         curses.use_default_colors()
         #encoding = locale.getpreferredencoding()
         self.resize_flag = False
@@ -177,7 +176,6 @@ class Editor(object):
             chr(curses.ascii.BS):                self.backspace,
             chr(curses.ascii.ESC):               self.quit_nosave,
             chr(curses.ascii.ETX):               self.close,
-            "\x04":                              self.close,
             "\n":                                self.insert_line_or_quit,
             -1:                                  self.resize,
         }
@@ -439,18 +437,20 @@ class Editor(object):
         """Main program loop.
 
         """
-        while True:
-            self.stdscr.move(self.cur_pos_y, self.cur_pos_x)
-            loop = self.get_key()
-            if loop is False:
-                break
-            self.buffer_idx_y = self.cur_pos_y + self.y_offset
-            self.buf_length = len(self.text[self.buffer_idx_y])
-            if self.cur_pos_x > self.buf_length:
-                self.cur_pos_x = self.buf_length
-            self.buffer_idx_x = self.cur_pos_x
-            if self.display() is False:
-                break
+        try:
+            while True:
+                self.stdscr.move(self.cur_pos_y, self.cur_pos_x)
+                loop = self.get_key()
+                if loop is False:
+                    break
+                self.buffer_idx_y = self.cur_pos_y + self.y_offset
+                self.buf_length = len(self.text[self.buffer_idx_y])
+                if self.cur_pos_x > self.buf_length:
+                    self.cur_pos_x = self.buf_length
+                self.buffer_idx_x = self.cur_pos_x
+                self.display()
+        except KeyboardInterrupt:
+            self.close()
         if self.text == -1:
             return -1
         else:
@@ -460,7 +460,7 @@ class Editor(object):
         """Display the editor window and the current contents.
 
         """
-        s = self.text[self.y_offset:self.y_offset + self.win_size_y + 1]
+        s = self.text[self.y_offset:(self.y_offset + self.win_size_y) or 1]
         for y, line in enumerate(s):
             try:
                 self.stdscr.move(y, 0)
@@ -468,7 +468,7 @@ class Editor(object):
                 if not self.pw_mode:
                     self.stdscr.addstr(y, 0, line)
             except:
-                return self.close()
+                self.close()
         self.stdscr.refresh()
         if self.box:
             self.boxscr.refresh()
@@ -484,7 +484,7 @@ class Editor(object):
         try:
             c = self.stdscr.get_wch()
         except KeyboardInterrupt:
-            c = "\x04"
+            return self.close()
         try:
             loop = self.keys[c]()
         except KeyError:
