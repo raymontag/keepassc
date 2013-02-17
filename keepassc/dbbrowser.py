@@ -521,7 +521,7 @@ class DBBrowser(object):
                 pass_username = True
 
                 if pass_password is False:
-                    nav = self.control.gen_menu(1, 
+                    nav = self.control.gen_menu(1,
                         ((1, 0, 'Use password generator (1)'),
                          (2, 0, 'Type password by hand (2)'),
                          (3, 0, 'No password (3)')))
@@ -789,7 +789,7 @@ class DBBrowser(object):
                     self.changed = True
             elif self.cur_win == 1:
                 edit = Editor(self.control.stdscr, max_text_size=1,
-                              inittext=self.groups[self.e_highlight].title,
+                              inittext=self.entries[self.e_highlight].title,
                               win_location=(0, 1),
                               win_size=(1, 80), title=std)()
                 if edit == -1:
