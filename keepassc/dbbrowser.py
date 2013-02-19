@@ -27,6 +27,7 @@ from os.path import isfile, isdir
 from subprocess import Popen, PIPE
 
 from keepassc.editor import Editor
+from keepassc.filebrowser import FileBrowser
 from kppy import KPError
 
 
@@ -86,7 +87,7 @@ class DBBrowser(object):
         '''Prepare saving'''
 
         if self.db.filepath is None:
-            filepath = self.control.fb.get_filepath()
+            filepath = FileBrowser(self.control, False, False, None, True)()
             if filepath == -1:
                 self.close()
             elif filepath is not False:
@@ -105,7 +106,7 @@ class DBBrowser(object):
     def pre_save_as(self):
         '''Prepare "Save as"'''
 
-        filepath = self.control.fb.get_filepath(False)
+        filepath = FileBrowser(self.control, False, False, None, True)()
         if filepath == -1:
             self.close()
         elif filepath is not False:
@@ -143,7 +144,7 @@ class DBBrowser(object):
         '''Save database and close KeePassC'''
 
         if self.db.filepath is None:
-            filepath = self.control.fb.get_filepath()
+            filepath = FileBrowser(self.control, False, False, None, True)()
             if filepath == -1:
                 self.close()
             elif filepath is not False:
@@ -173,7 +174,8 @@ class DBBrowser(object):
                 break
             else:
                 if self.db.filepath is None:
-                    filepath = self.control.fb.get_filepath()
+                    filepath = FileBrowser(self.control, False, False, None, 
+                                           True)()
                     if filepath == -1:
                         self.close()
                     elif filepath is not False:
@@ -314,8 +316,8 @@ class DBBrowser(object):
                 else:
                     ask_for_lf = True
 
-                keyfile = self.control.fb.get_filepath(ask_for_lf, True,
-                                                       self.control.last_key)
+                keyfile = FileBrowser(self.control, ask_for_lf, True, 
+                                      self.control.last_key)()
                 if keyfile is False:
                     return False
                 elif keyfile == -1:
@@ -370,7 +372,7 @@ class DBBrowser(object):
                                          (3, 0, 'Use both (3)')))
             if auth == 2 or auth == 3:
                 while True:
-                    filepath = self.control.fb.get_filepath(False, True)
+                    filepath = FileBrowser(self.control, False, True, None)()
                     if filepath == -1:
                         self.close()
                     elif not isfile(filepath):
@@ -412,6 +414,7 @@ class DBBrowser(object):
             elif auth == -1:
                 self.close()
             else:
+                self.changed = True
                 return True
 
     def create_group(self):
@@ -440,6 +443,7 @@ class DBBrowser(object):
                     self.close()
             else:
                 self.changed = True
+
             self.sort_tables(True, True)
             if (self.groups and
                 self.groups[self.g_highlight] is not old_group and
@@ -521,7 +525,7 @@ class DBBrowser(object):
                 pass_username = True
 
                 if pass_password is False:
-                    nav = self.control.gen_menu(1, 
+                    nav = self.control.gen_menu(1,
                         ((1, 0, 'Use password generator (1)'),
                          (2, 0, 'Type password by hand (2)'),
                          (3, 0, 'No password (3)')))
@@ -614,13 +618,15 @@ class DBBrowser(object):
                                                                exp_date[0],
                                                                exp_date[1],
                                                                exp_date[2])
-                    self.changed = True
                 except KPError as err:
                     self.control.draw_text(self.changed,
                                            (1, 0, err.__str__()),
                                            (4, 0, 'Press any key.'))
                     if self.control.any_key() == -1:
                         self.close()
+                else:
+                    self.changed = True
+
                 self.sort_tables(True, True)
                 if (self.entries and
                     self.entries[self.e_highlight] is not old_entry and
@@ -789,7 +795,7 @@ class DBBrowser(object):
                     self.changed = True
             elif self.cur_win == 1:
                 edit = Editor(self.control.stdscr, max_text_size=1,
-                              inittext=self.groups[self.e_highlight].title,
+                              inittext=self.entries[self.e_highlight].title,
                               win_location=(0, 1),
                               win_size=(1, 80), title=std)()
                 if edit == -1:
@@ -809,6 +815,7 @@ class DBBrowser(object):
             if edit == -1:
                 self.close()
             elif edit is not False:
+                self.changed = True
                 self.entries[self.e_highlight].set_username(edit)
 
     def edit_url(self):
@@ -822,6 +829,7 @@ class DBBrowser(object):
             if edit == -1:
                 self.close()
             elif edit is not False:
+                self.changed = True
                 self.entries[self.e_highlight].set_url(edit)
 
     def edit_comment(self):
@@ -834,6 +842,7 @@ class DBBrowser(object):
             if edit == -1:
                 self.close()
             elif edit is not False:
+                self.changed = True
                 self.entries[self.e_highlight].set_comment(edit)
 
     def edit_password(self):
