@@ -96,6 +96,7 @@ class Editor(object):
             curses.curs_set(0)
         except:
             print('Invisible cursor not supported.')
+        curses.noecho()
         if self.text == -1:
             return -1
         else:
