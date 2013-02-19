@@ -28,46 +28,67 @@ from keepassc.editor import Editor
 class FileBrowser(object):
     '''This class represents the file browser'''
 
-    def __init__(self, control):
+    def __init__(self, control, ask_for_lf, keyfile, last_file, mode_new = False):
 
         self.control = control
+        self.ask_for_lf = ask_for_lf
+        self.keyfile = keyfile
+        self.last_file = last_file
+        self.mode_new = mode_new
+        self.highlight = 0
+        self.kdb_file = None
+        if self.control.cur_dir[-4:] == '.kdb':
+            self.kdb_file = self.control.cur_dir.split('/')[-1]
+            self.control.cur_dir = self.control.cur_dir[:-len(self.kdb_file) - 1]
+            self.kdb_file = self.control.cur_dir + '/' + self.kdb_file
+        self.hidden = True
+        self.dir_cont = []
+        self.return_flag = False
 
-    def get_filepath(self, ask_for_lf=True, keyfile=False, last_file=None):
+    def __call__(self):
+        return self.get_filepath()
+
+    def get_filepath(self):
         '''This method is used to get a filepath, e.g. for 'Save as' '''
 
-        if ask_for_lf is False or last_file is None:
+        if self.ask_for_lf is False or self.last_file is None:
             nav = self.control.gen_menu(1, (
-                (1, 0, 'Use the file browser (1)'),
-                (2, 0, 'Type direct path (2)')))
+                    (1, 0, 'Use the file browser (1)'),
+                    (2, 0, 'Type direct path (2)')))
         else:
             nav = self.control.gen_menu(1, (
-                (1, 0, 'Use ' + last_file + ' (1)'),
-                (2, 0, 'Use the file browser (2)'),
-                (3, 0, 'Type direct path (3)')))
-        if ((ask_for_lf is True and last_file is not None and nav == 2) or
-                ((last_file is None or ask_for_lf is False) and nav == 1)):
-            if keyfile is True:
-                filepath = self.browser(False, keyfile)
+                    (1, 0, 'Use ' + self.last_file + ' (1)'),
+                    (2, 0, 'Use the file browser (2)'),
+                    (3, 0, 'Type direct path (3)')))
+        if ((self.ask_for_lf is True and self.last_file is not None and 
+             nav == 2) or
+            ((self.last_file is None or self.ask_for_lf is False) and 
+             nav == 1)):
+            if self.keyfile is True:
+                filepath = self.browser()
             else:
-                filepath = self.browser(True)
+                filepath = self.browser()
                 if type(filepath) is str:
                     if filepath[-4:] != '.kdb' and filepath is not False:
-                        filename = Editor(self.control.stdscr, max_text_size=1, win_location=(0, 1),
-                                          win_size=(1, 80), title="Filename: ")()
+                        filename = Editor(self.control.stdscr, max_text_size=1,
+                                          win_location=(0, 1), win_size=(1, 80),
+                                          title="Filename: ")()
                         if filename == "":
                             return False
                         filepath += '/' + filename + '.kdb'
             return filepath
-        if ((ask_for_lf is True and last_file is not None and nav == 3) or
-                ((last_file is None or ask_for_lf is False) and nav == 2)):
+        if ((self.ask_for_lf is True and self.last_file is not None and 
+             nav == 3) or
+            ((self.last_file is None or self.ask_for_lf is False) and 
+             nav == 2)):
             while True:
-                filepath = self.get_direct_filepath(last_file)
+                filepath = self.get_direct_filepath(self.last_file)
                 if filepath is False:
                     return False
                 elif filepath == -1:
                     return -1
                 elif ((filepath[-4:] != '.kdb' or isdir(filepath)) and
-                      keyfile is False):
+                      self.keyfile is False):
                     self.control.draw_text(False,
                                            (1, 0, 'Need path to a kdb-file!'),
                                            (3, 0, 'Press any key'))
@@ -77,21 +98,21 @@ class FileBrowser(object):
                 else:
                     return filepath
         elif nav == 1:  # it was asked for last file
-            return last_file
+            return self.last_file
         elif nav == -1:
             return -1
         else:
             return False
 
-    def get_direct_filepath(self, last_file=None):
+    def get_direct_filepath(self):
         '''Get a direct filepath.'''
 
         e = ''
         show = 0
         rem = []
         cur_dir = ''
-        if last_file is not None:
-            edit = last_file
+        if self.last_file is not None:
+            edit = self.last_file
         else:
             edit = ''
         while e != '\n':
@@ -151,92 +172,130 @@ class FileBrowser(object):
                 e = '\x04'
         return edit
 
-    def browser(self, mode_new=False, keyfile=False):
-        '''A simple file browser.
+    def nav_down(self):
+        '''Navigate down'''
 
-        mode_new is needed to get a filepath to a new database file.
+        if self.highlight < len(self.dir_cont) - 1:
+            self.highlight += 1
 
-        '''
+    def nav_up(self):
+        '''Navigate up'''
 
-        kdb_file = None
-        if self.control.cur_dir[-4:] == '.kdb':
-            kdb_file = self.control.cur_dir.split('/')[-1]
-            self.control.cur_dir = self.control.cur_dir[:-len(kdb_file) - 1]
-            kdb_file = self.control.cur_dir + '/' + kdb_file
+        if self.highlight > 0:
+            self.highlight -= 1
 
-        hidden = True
-        highlight = 0
-        dir_cont = self.get_dir_cont(hidden, keyfile)
-        if dir_cont == -1 or dir_cont is False:
-            return dir_cont
+    def nav_left(self):
+        '''Navigate left'''
+
+        last = self.control.cur_dir.split('/')[-1]
+        self.control.cur_dir = self.control.cur_dir[:-len(last) - 1]
+        if self.control.cur_dir == '':
+            self.control.cur_dir = '/'
+        self.highlight = 0
+        self.get_dir_cont()
+
+    def nav_right(self):
+        '''Navigate right'''
+
+        if self.dir_cont[self.highlight] == '..':
+            last = self.control.cur_dir.split('/')[-1]
+            self.control.cur_dir = self.control.cur_dir[:-len(last) - 1]
+            if self.control.cur_dir == '':
+                self.control.cur_dir = '/'
+            self.highlight = 0
+            self.get_dir_cont()
+        elif isdir(self.control.cur_dir + '/' + self.dir_cont[self.highlight]):
+            self.control.cur_dir = (self.control.cur_dir + '/' +
+                                    self.dir_cont[self.highlight])
+            if self.control.cur_dir[:2] == '//':
+                self.control.cur_dir = self.control.cur_dir[1:]
+            self.highlight = 0
+            self.get_dir_cont()
+        else:
+            ret = self.control.cur_dir + '/' + self.dir_cont[self.highlight]
+            if self.kdb_file is not None:
+                self.control.cur_dir = self.kdb_file
+            self.return_flag = True
+            return ret
+
+    def show_hidden(self):
+        '''Show hidden files'''
+
+        if self.hidden is True:
+            self.hidden = False
+        else:
+            self.hidden = True
+        self.get_dir_cont()
+
+    def browser_help(self):
+        '''Show help'''
+
+        self.control.browser_help(self.mode_new)
+
+    def open_file(self):
+        '''Return dir or file for "save as..."'''
+
+        if self.mode_new is True:
+            if self.kdb_file is not None:
+                ret = self.control.cur_dir
+                self.control.cur_dir = self.kdb_file
+                self.return_flag = True
+                return ret
+            else:
+                self.return_flag = True
+                return self.control.cur_dir
+
+    def cancel(self):
+        '''Cancel browser'''
+
+        self.return_flag = True
+        return False
+
+    def close(self):
+        '''Close KeePassC'''
+
+        self.return_flag = True
+        return -1
+
+    def browser(self):
+        '''A simple file browser.'''
+
+        lookup = {
+            cur.KEY_DOWN:   self.nav_down,
+            ord('j'):       self.nav_down,
+            cur.KEY_UP:     self.nav_up,
+            ord('k'):       self.nav_up,
+            cur.KEY_LEFT:   self.nav_left,
+            ord('h'):       self.nav_left,
+            cur.KEY_RIGHT:  self.nav_right,
+            ord('l'):       self.nav_right,
+            NL:             self.nav_right,
+            cur.KEY_RESIZE: self.control.resize_all,
+            cur.KEY_F1:     self.browser_help,
+            ord('H'):       self.show_hidden,
+            ord('o'):       self.open_file,
+            cur.KEY_F5:     self.cancel,
+            ord('e'):       self.cancel,
+            4:              self.close,
+            ord('q'):       self.close}
+
+        self.get_dir_cont()
+        if self.dir_cont == -1 or self.dir_cont is False:
+            return self.dir_cont
+
         while True:
-            self.control.show_dir(highlight, dir_cont)
+            self.control.show_dir(self.highlight, self.dir_cont)
             try:
                 c = self.control.stdscr.getch()
             except KeyboardInterrupt:
                 c = 4
-            if c == cur.KEY_DOWN or c == ord('j'):
-                if highlight >= len(dir_cont) - 1:
-                    continue
-                highlight += 1
-            elif c == cur.KEY_UP or c == ord('k'):
-                if highlight <= 0:
-                    continue
-                highlight -= 1
-            elif c == cur.KEY_LEFT or c == ord('h'):
-                last = self.control.cur_dir.split('/')[-1]
-                self.control.cur_dir = self.control.cur_dir[:-len(last) - 1]
-                if self.control.cur_dir == '':
-                    self.control.cur_dir = '/'
-                highlight = 0
-                dir_cont = self.get_dir_cont(hidden, keyfile)
-            elif c == NL or c == cur.KEY_RIGHT or c == ord('l'):
-                if dir_cont[highlight] == '..':
-                    last = self.control.cur_dir.split('/')[-1]
-                    self.control.cur_dir = self.control.cur_dir[:-len(last) - 1]
-                    if self.control.cur_dir == '':
-                        self.control.cur_dir = '/'
-                    highlight = 0
-                    dir_cont = self.get_dir_cont(hidden, keyfile)
-                elif isdir(self.control.cur_dir + '/' + dir_cont[highlight]):
-                    self.control.cur_dir = (self.control.cur_dir + '/' +
-                                            dir_cont[highlight])
-                    if self.control.cur_dir[:2] == '//':
-                        self.control.cur_dir = self.control.cur_dir[1:]
-                    highlight = 0
-                    dir_cont = self.get_dir_cont(hidden, keyfile)
-                else:
-                    ret = self.control.cur_dir + '/' + dir_cont[highlight]
-                    if kdb_file is not None:
-                        self.control.cur_dir = kdb_file
-                    return ret
-            elif c == cur.KEY_RESIZE:
-                self.control.resize_all()
-            elif c == cur.KEY_F1:
-                self.control.browser_help(mode_new)
-            elif c == cur.KEY_F5:
-                return False
-            elif c == ord('H'):
-                if hidden is True:
-                    hidden = False
-                else:
-                    hidden = True
-                dir_cont = self.get_dir_cont(hidden, keyfile)
-            elif c == 4:
-                return -1
-            elif c == ord('q') and mode_new is not True:
-                return -1
-            elif c == ord('e'):
-                return False
-            elif c == ord('o') and mode_new is True:
-                if kdb_file is not None:
-                    ret = self.control.cur_dir
-                    self.control.cur_dir = kdb_file
-                    return ret
-                else:
-                    return self.control.cur_dir
 
-    def get_dir_cont(self, hidden, keyfile):
+            if c in lookup:
+                ret = lookup[c]()
+                if self.return_flag is True:
+                    return ret
+
+    def get_dir_cont(self):
         '''Get the content of the current dir'''
 
         try:
@@ -256,8 +315,8 @@ class FileBrowser(object):
         rem = []
         for i in dir_cont:
             if ((not isdir(self.control.cur_dir + '/' + i) and not
-                    i[-4:] == '.kdb' and keyfile is False) or
-                    (i[0] == '.' and hidden is True)):
+                    i[-4:] == '.kdb' and self.keyfile is False) or
+                    (i[0] == '.' and self.hidden is True)):
                 rem.append(i)
         for i in rem:
             dir_cont.remove(i)
@@ -272,9 +331,8 @@ class FileBrowser(object):
         dirs.sort()
         files.sort()
 
-        dir_cont = []
-        dir_cont.extend(dirs)
-        dir_cont.extend(files)
+        self.dir_cont = []
+        self.dir_cont.extend(dirs)
+        self.dir_cont.extend(files)
         if not self.control.cur_dir == '/':
-            dir_cont.insert(0, '..')
-        return dir_cont
+            self.dir_cont.insert(0, '..')

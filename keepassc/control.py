@@ -31,9 +31,9 @@ from sys import exit
 from kppy import KPDB, KPError
 
 from keepassc.editor import Editor
-from .helper import parse_config, write_config
-from .filebrowser import FileBrowser
-from .dbbrowser import DBBrowser
+from keepassc.helper import parse_config, write_config
+from keepassc.filebrowser import FileBrowser
+from keepassc.dbbrowser import DBBrowser
 
 
 class Control(object):
@@ -82,8 +82,6 @@ class Control(object):
         self.cur_dir = getcwd()
         chdir('/var/empty')
         self.db = None
-
-        self.fb = FileBrowser(self)
 
     def initialize_cur(self):
         '''Method to initialize curses functionality'''
@@ -773,7 +771,7 @@ class Control(object):
                         continue
                     if auth == 2 or auth == 3:
                         while True:
-                            filepath = self.fb.get_filepath(False, True)
+                            filepath = FileBrowser(self, False, True, None)()
                             if filepath is False:
                                 break
                             elif filepath == -1:
@@ -810,7 +808,7 @@ class Control(object):
         ''' This method opens a database.'''
 
         if skip_fb is False:
-            filepath = self.fb.get_filepath(last_file=self.last_file)
+            filepath = FileBrowser(self, True, False, self.last_file)()
             if filepath is False:
                 return False
             elif filepath == -1:
@@ -858,8 +856,7 @@ class Control(object):
                     else:
                         ask_for_lf = True
 
-                    keyfile = self.fb.get_filepath(ask_for_lf, True,
-                                                   self.last_key)
+                    keyfile = FileBrowser(self, ask_for_lf, True, self.last_key)()
                     if keyfile is False:
                         break
                     elif keyfile == -1:
