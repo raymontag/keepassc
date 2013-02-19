@@ -92,6 +92,10 @@ class Editor(object):
     def __call__(self):
         self.run()
         curses.flushinp()
+        try:
+            curses.curs_set(0)
+        except:
+            print('Invisible cursor not supported.')
         if self.text == -1:
             return -1
         else:

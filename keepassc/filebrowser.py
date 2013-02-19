@@ -44,9 +44,34 @@ class FileBrowser(object):
         self.hidden = True
         self.dir_cont = []
         self.return_flag = False
+        self.lookup = {
+            cur.KEY_DOWN:   self.nav_down,
+            ord('j'):       self.nav_down,
+            cur.KEY_UP:     self.nav_up,
+            ord('k'):       self.nav_up,
+            cur.KEY_LEFT:   self.nav_left,
+            ord('h'):       self.nav_left,
+            cur.KEY_RIGHT:  self.nav_right,
+            ord('l'):       self.nav_right,
+            NL:             self.nav_right,
+            cur.KEY_RESIZE: self.control.resize_all,
+            cur.KEY_F1:     self.browser_help,
+            ord('H'):       self.show_hidden,
+            ord('o'):       self.open_file,
+            cur.KEY_F5:     self.cancel,
+            ord('e'):       self.cancel,
+            4:              self.close,
+            ord('q'):       self.close,
+            ord('G'):       self.G_typed,
+            ord('/'):       self.find}
+        self.find_rem = []
+        self.find_pos = 0
 
     def __call__(self):
-        return self.get_filepath()
+        ret = self.get_filepath()
+        if self.kdb_file is not None:
+            self.control.cur_dir = self.kdb_file
+        return ret
 
     def get_filepath(self):
         '''This method is used to get a filepath, e.g. for 'Save as' '''
@@ -193,10 +218,14 @@ class FileBrowser(object):
             self.control.cur_dir = '/'
         self.highlight = 0
         self.get_dir_cont()
+        self.find_rem = []
+        self.find_pos = 0
 
     def nav_right(self):
         '''Navigate right'''
 
+        self.find_rem = []
+        self.find_pos = 0
         if self.dir_cont[self.highlight] == '..':
             last = self.control.cur_dir.split('/')[-1]
             self.control.cur_dir = self.control.cur_dir[:-len(last) - 1]
@@ -257,27 +286,58 @@ class FileBrowser(object):
         self.return_flag = True
         return -1
 
+    def start_gg(self, c):
+        '''Enable gg like in vim'''
+
+        gg = chr(c)
+        while True:
+            try:
+                c = self.control.stdscr.getch()
+            except KeyboardInterrupt:
+                c = 4
+
+            if gg[-1] == 'g' and c == ord('g') and gg[:-1] != '':
+                if int(gg[:-1]) > len(self.dir_cont):
+                    self.highlight = len(self.dir_cont) -1
+                else:
+                    self.highlight = int(gg[:-1]) -1
+                return True
+            elif gg[-1] == 'g' and c == ord('g') and gg[:-1] == '':
+                self.highlight = 0
+                return True
+            elif gg[-1] != 'g' and c == ord('g'):
+                gg += 'g'
+            elif 48 <= c <= 57 and gg[-1] != 'g':
+                gg += chr(c)
+            elif c in self.lookup:
+                return c
+
+    def G_typed(self):
+        '''G typed => last entry (like in vim)'''
+
+        self.highlight = len(self.dir_cont) - 1
+
+    def find(self):
+        '''Find a directory or file like in ranger'''
+
+        filename = Editor(self.control.stdscr, max_text_size=1,
+                          win_location=(0, 1), win_size=(1, 80),
+                          title="Filename to find: ")()
+        if filename == '' and self.find_pos < len(self.find_rem) - 1:
+            self.find_pos += 1
+        elif filename == '':
+            self.find_pos = 0
+        else:
+            self.find_rem = []
+            self.find_pos = 0
+            for i in self.dir_cont:
+                if filename.lower() in i.lower():
+                    self.find_rem.append(i)
+        if self.find_rem:
+            self.highlight = self.dir_cont.index(self.find_rem[self.find_pos])
+
     def browser(self):
         '''A simple file browser.'''
-
-        lookup = {
-            cur.KEY_DOWN:   self.nav_down,
-            ord('j'):       self.nav_down,
-            cur.KEY_UP:     self.nav_up,
-            ord('k'):       self.nav_up,
-            cur.KEY_LEFT:   self.nav_left,
-            ord('h'):       self.nav_left,
-            cur.KEY_RIGHT:  self.nav_right,
-            ord('l'):       self.nav_right,
-            NL:             self.nav_right,
-            cur.KEY_RESIZE: self.control.resize_all,
-            cur.KEY_F1:     self.browser_help,
-            ord('H'):       self.show_hidden,
-            ord('o'):       self.open_file,
-            cur.KEY_F5:     self.cancel,
-            ord('e'):       self.cancel,
-            4:              self.close,
-            ord('q'):       self.close}
 
         self.get_dir_cont()
         if self.dir_cont == -1 or self.dir_cont is False:
@@ -290,8 +350,11 @@ class FileBrowser(object):
             except KeyboardInterrupt:
                 c = 4
 
-            if c in lookup:
-                ret = lookup[c]()
+            if 49 <= c <= 57 or c == ord('g'):
+                c = self.start_gg(c)
+
+            if c in self.lookup:
+                ret = self.lookup[c]()
                 if self.return_flag is True:
                     return ret
 
