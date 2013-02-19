@@ -50,7 +50,7 @@ class Editor(object):
                             (e.g. for passwords)
 
     Returns:
-        text:   text string
+        text:   text string  or -1 on a KeyboardInterrupt
 
     Usage:
         import keepassc
@@ -68,10 +68,15 @@ class Editor(object):
         self.max_text_size = max_text_size
         self.pw_mode = pw_mode
         if self.pw_mode is True:
-            curses.curs_set(0)
+            try:
+                curses.curs_set(0)
+            except:
+                print('Invisible cursor not supported.')
         else:
             curses.curs_set(1)
+            curses.echo()
         locale.setlocale(locale.LC_ALL, '')
+        curses.use_default_colors()
         #encoding = locale.getpreferredencoding()
         self.resize_flag = False
         self.win_location_x, self.win_location_y = win_location
@@ -122,8 +127,8 @@ class Editor(object):
         window size. Sets the dimensions of the text buffer.
 
         """
-        t = text.split('\n')
-        t = [wrap(i, self.win_size_x) for i in t]
+        t = str(text).split('\n')
+        t = [wrap(i, self.win_size_x - 1) for i in t]
         self.text = []
         for line in t:
             # This retains any empty lines
@@ -165,13 +170,13 @@ class Editor(object):
             chr(curses.ascii.ctrl(ord('x'))):    self.quit,
             chr(curses.ascii.ctrl(ord('u'))):    self.del_to_bol,
             chr(curses.ascii.ctrl(ord('k'))):    self.del_to_eol,
+            chr(curses.ascii.ctrl(ord('d'))):    self.quit,
             chr(curses.ascii.DEL):               self.backspace,
             chr(curses.ascii.NL):                self.insert_line_or_quit,
             chr(curses.ascii.LF):                self.insert_line_or_quit,
             chr(curses.ascii.BS):                self.backspace,
             chr(curses.ascii.ESC):               self.quit_nosave,
             chr(curses.ascii.ETX):               self.close,
-            "\x04":                              self.close,
             "\n":                                self.insert_line_or_quit,
             -1:                                  self.resize,
         }
@@ -284,11 +289,13 @@ class Editor(object):
         self.y_offset = max(0, self.y_offset)
 
     def insert_char(self, c):
-        """Given an integer character, insert that character in the current
+        """Given a curses wide character, insert that character in the current
         line. Stop when the maximum line length is reached.
 
         """
-        if not c.isprintable():
+        # Skip non-handled special characters (get_wch returns int value for
+        # certain special characters)
+        if isinstance(c, int):
             return
         line = list(self.text[self.buffer_idx_y])
         line.insert(self.buffer_idx_x, c)
@@ -396,7 +403,10 @@ class Editor(object):
         Delete to beginning of line                 : Ctrl-u
         Help                                        : F1
         """
-        curses.curs_set(0)
+        try:
+            curses.curs_set(0)
+        except:
+            pass
         txt = help_txt.split('\n')
         lines = min(self.max_win_size_y, len(txt) + 2)
         cols = min(self.max_win_size_x, max([len(i) for i in txt]) + 2)
@@ -428,21 +438,20 @@ class Editor(object):
         """Main program loop.
 
         """
-        while True:
-            self.stdscr.move(self.cur_pos_y, self.cur_pos_x)
-            loop = self.get_key()
-            if loop is False:
-                break
-            self.buffer_idx_y = self.cur_pos_y + self.y_offset
-            self.buf_length = len(self.text[self.buffer_idx_y])
-            if self.cur_pos_x > self.buf_length:
-                self.cur_pos_x = self.buf_length
-            self.buffer_idx_x = self.cur_pos_x
-            self.display()
         try:
-            curses.curs_set(0)
-        except:
-            print('Invisible cursor not supported.')
+            while True:
+                self.stdscr.move(self.cur_pos_y, self.cur_pos_x)
+                loop = self.get_key()
+                if loop is False:
+                    break
+                self.buffer_idx_y = self.cur_pos_y + self.y_offset
+                self.buf_length = len(self.text[self.buffer_idx_y])
+                if self.cur_pos_x > self.buf_length:
+                    self.cur_pos_x = self.buf_length
+                self.buffer_idx_x = self.cur_pos_x
+                self.display()
+        except KeyboardInterrupt:
+            self.close()
         if self.text == -1:
             return -1
         else:
@@ -452,7 +461,7 @@ class Editor(object):
         """Display the editor window and the current contents.
 
         """
-        s = self.text[self.y_offset:self.y_offset + self.win_size_y + 1]
+        s = self.text[self.y_offset:(self.y_offset + self.win_size_y) or 1]
         for y, line in enumerate(s):
             try:
                 self.stdscr.move(y, 0)
@@ -476,7 +485,7 @@ class Editor(object):
         try:
             c = self.stdscr.get_wch()
         except KeyboardInterrupt:
-            c = "\x04"
+            return self.close()
         try:
             loop = self.keys[c]()
         except KeyError:
