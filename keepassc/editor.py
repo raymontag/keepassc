@@ -90,17 +90,7 @@ class Editor(object):
         self.display()
 
     def __call__(self):
-        self.run()
-        curses.flushinp()
-        try:
-            curses.curs_set(0)
-        except:
-            print('Invisible cursor not supported.')
-        curses.noecho()
-        if self.text == -1:
-            return -1
-        else:
-            return "\n".join(self.text)
+        return self.run()
 
     def box_init(self):
         """Clear the main screen and redraw the box and/or title
@@ -457,10 +447,7 @@ class Editor(object):
                 self.display()
         except KeyboardInterrupt:
             self.close()
-        if self.text == -1:
-            return -1
-        else:
-            return "\n".join(self.text)
+        return self.exit()
 
     def display(self):
         """Display the editor window and the current contents.
@@ -480,17 +467,34 @@ class Editor(object):
             self.boxscr.refresh()
         self.scr.refresh()
 
-    def close(self):
-        curses.endwin()
+    def exit(self):
+        """Normal exit procedure.
+
+        """
         curses.flushinp()
+        try:
+            curses.curs_set(0)
+        except:  # If invisible cursor not supported
+            pass
+        curses.noecho()
+        if self.text == -1:
+            return -1
+        else:
+            return "\n".join(self.text)
+
+    def close(self):
+        """Exiting on keyboard interrupt or other curses display errors.
+
+        """
+        curses.endwin()
         self.text = -1
-        return False
+        self.exit()
 
     def get_key(self):
         try:
             c = self.stdscr.get_wch()
         except KeyboardInterrupt:
-            return self.close()
+            self.close()
         try:
             loop = self.keys[c]()
         except KeyError:
