@@ -186,7 +186,7 @@ class Control(object):
 
         '''
         password = Editor(self.stdscr, max_text_size=1, win_location=(0, 1),
-                          win_size=(1, 80), title=std, pw_mode=True)()
+                          win_size=(1, self.xsize), title=std, pw_mode=True)()
         if needed is True and not password:
             return False
         else:
@@ -1111,21 +1111,30 @@ class Control(object):
 
         try:
             if entries:
+                xsize = self.entry_win.getmaxyx()[1]
                 entry = entries[e_highlight]
                 if entry.title is None:
                     title = ""
+                elif len(entry.title) > xsize:
+                    title = entry.title[:xsize - 2] + '\\'
                 else:
                     title = entry.title
                 if entry.group.title is None:
                     group_title = ""
+                elif len(entry.group.title) > xsize:
+                    group_title = entry.group.title[:xsize - 9] + '\\'
                 else:
                     group_title = entry.group.title
                 if entry.username is None:
                     username = ""
+                elif len(entry.username) > xsize:
+                    username = entry.username[:xsize - 12] + '\\'
                 else:
                     username = entry.username
                 if entry.url is None:
                     url = ""
+                elif len(entry.url) > xsize:
+                    url = entry.title[:xsize - 7] + '\\'
                 else:
                     url = entry.url
                 if entry.creation is None:

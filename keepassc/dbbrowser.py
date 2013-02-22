@@ -826,7 +826,7 @@ class DBBrowser(object):
                 edit = Editor(self.control.stdscr, max_text_size=1,
                               inittext=self.groups[self.g_highlight].title,
                               win_location=(0, 1),
-                              win_size=(1, 80), title=std)()
+                              win_size=(1, self.control.xsize), title=std)()
                 if edit == -1:
                     self.close()
                 elif edit is not False:
@@ -836,7 +836,7 @@ class DBBrowser(object):
                 edit = Editor(self.control.stdscr, max_text_size=1,
                               inittext=self.entries[self.e_highlight].title,
                               win_location=(0, 1),
-                              win_size=(1, 80), title=std)()
+                              win_size=(1, self.control.xsize), title=std)()
                 if edit == -1:
                     self.close()
                 elif edit is not False:
@@ -850,7 +850,7 @@ class DBBrowser(object):
             std = 'Username: '
             edit = Editor(self.control.stdscr, max_text_size=1,
                           inittext=self.entries[self.e_highlight].username,
-                          win_location=(0, 1), win_size=(1, 80), title=std)()
+                          win_location=(0, 1), win_size=(1, self.control.xsize), title=std)()
             if edit == -1:
                 self.close()
             elif edit is not False:
@@ -864,7 +864,7 @@ class DBBrowser(object):
             std = 'URL: '
             edit = Editor(self.control.stdscr, max_text_size=1,
                           inittext=self.entries[self.e_highlight].url,
-                          win_location=(0, 1), win_size=(1, 80), title=std)()
+                          win_location=(0, 1), win_size=(1, self.control.xsize), title=std)()
             if edit == -1:
                 self.close()
             elif edit is not False:
