@@ -931,11 +931,17 @@ class Control(object):
             print('\'o\' - choose directory')
             print('\'e\' - abort')
             print('\'H\' - show/hide hidden files')
+            print('\'ngg\' - move to line n')
+            print('\'G\' - move to last line')
+            print('/text - go to \'text\' (like in vim/ranger)')
         else:
             print('Navigate with arrow keys.')
             print('\'q\' - close program')
             print('\'e\' - abort')
             print('\'H\' - show/hide hidden files')
+            print('\'ngg\' - move to line n')
+            print('\'G\' - move to last line')
+            print('/text - go to \'text\' (like in vim/ranger)')
         try:
             input('Press return')
         except EOFError:
