@@ -1,15 +1,15 @@
-KeePassC v.1.4
+KeePassC v.1.5
 ==============
 
 * License: GPL v3 or later
 * Author: Karsten-Kai König <kkoenig@posteo.de>
-* Stable download: http://download.savannah.gnu.org/releases/keepassc/
-* Website: http://www.nongnu.org/keepassc
-* Bug tracker: https://savannah.nongnu.org/bugs/?group=keepassc&func=additem
-* Git: 
-** Savannah: git://git.sv.gnu.org/keepassc.git
-** Gitorious: git://gitorious.org/keepassc/keepassc.git
-** Github: git://github.com/raymontag/keepassc.git
+** License of editor.py: MIT
+** Author of editor.py: Scott Hansen <firecat four one five three at gmail dot com>
+** Github: https://github.com/firecat53/py_curses_editor
+* Stable download: https://github.com/raymontag/keepassc/tarball/master
+* Website: http://raymontag.github.com/keepassc
+* Bug tracker: https://github.com/raymontag/keepassc/issues?state=open
+* Git: git://github.com/raymontag/keepassc.git
 
 Features:
 ---------

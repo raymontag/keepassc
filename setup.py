@@ -21,20 +21,21 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 from distutils.core import setup
 
 setup(name = "keepassc",
-      version = "1.4.1",
-      author = "Karsten-Kai König",
+      version = "1.5",
+      author = "Karsten-Kai König, Scott Hansen",
       author_email = "kkoenig@posteo.de",
-      url = "www.nongnu.org/keepassc",
-      download_url = "http://download-mirror.savannah.gnu.org/releases/keepassc/",
+      url = "http://raymontag.github.com/keepassc",
+      download_url = "https://github.com/raymontag/keepassc/tarball/master",
       description = "A password manager that is fully compatible to KeePass v.1.x and KeePassX",
       packages = ['keepassc'],
       scripts = ['bin/keepassc'],
       classifiers = [
+          'Programming Language :: Python :: 3'
           'Operating System :: POSIX',
           'License :: OSI Approved :: GNU Lesser General Public License v3 or later (GPLv3+)',
           'Development Status :: 5 - Production/Stable',
           'Environment :: Console :: Curses'],
-      license = "GPL v3 or later",
+      license = "GPL v3 or later, MIT",
       data_files = [('share/man/man1', ['keepassc.1']),
                     ('share/doc/keepassc', ['README', 'COPYING'])]
 )
