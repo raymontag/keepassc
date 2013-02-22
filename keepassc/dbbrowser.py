@@ -58,7 +58,10 @@ class DBBrowser(object):
         self.sort_tables(True, False)
         self.changed = False
         self.cur_win = 0
-        self.state = 0  # 0 = unlocked, 1 = locked, 2 = pre_lock
+        # 0 = unlocked, 1 = locked, 2 = pre_lock,
+        # 3 = move group, 4 = move entry
+        self.state = 0
+        self.move_object = None
 
         self.control.show_groups(self.g_highlight, self.groups,
                                  self.cur_win, self.g_offset,
@@ -282,16 +285,19 @@ class DBBrowser(object):
 
     def unlock_with_password(self):
         '''Unlock the database with a password'''
+
         self.lock_highlight = 1
         self.unlock_db()
 
     def unlock_with_keyfile(self):
         '''Unlock the database with a keyfile'''
+
         self.lock_highlight = 2
         self.unlock_db()
 
     def unlock_with_both(self):
         '''Unlock the database with both'''
+
         self.lock_highlight = 3
         self.unlock_db()
 
@@ -726,6 +732,32 @@ class DBBrowser(object):
             else:
                 break
 
+    def move(self):
+        '''Enable move state'''
+
+        if self.cur_win == 0:
+            self.state = 3
+            self.move_object = self.groups[self.g_highlight]
+        elif self.cur_win == 1:
+            self.state = 4
+            self.cur_win = 0
+            self.move_object = self.entries[self.e_highlight]
+
+    def move_group_or_entry(self):
+        '''Move group to subgroup or entry to new group'''
+        
+        if (self.state == 3 and 
+            self.groups[self.g_highlight] is not self.move_object and
+            self.groups):  # e.g. there is actually a group
+            self.move_object.move_group(self.groups[self.g_highlight])
+        elif (self.state == 4 and 
+              self.groups[self.g_highlight] is not self.move_object.group and
+              self.groups):
+            self.move_object.move_entry(self.groups[self.g_highlight])
+        self.move_object = None
+        self.state = 0
+        self.sort_tables(True, True)
+            
     def find_entries(self):
         '''Find entries by title'''
 
@@ -1030,6 +1062,11 @@ class DBBrowser(object):
     def go2sub(self):
         '''Change to subgroups of current root'''
 
+        # To prevent that a parent group is moved to a subgroup
+        if (self.state == 3 and 
+            self.move_object is self.groups[self.g_highlight]):
+            return 
+
         if self.groups and self.groups[self.g_highlight].children:
             self.cur_root = self.groups[self.g_highlight]
             self.g_highlight = 0
@@ -1076,6 +1113,7 @@ class DBBrowser(object):
             ord('p'): self.edit_password,
             ord('E'): self.edit_date,
             ord('H'): self.show_password,
+            ord('m'): self.move,
             cur.KEY_RESIZE: self.control.resize_all,
             NL: self.go2sub,
             cur.KEY_BACKSPACE: self.go2parent,
@@ -1101,6 +1139,17 @@ class DBBrowser(object):
             ord('2'): self.unlock_with_keyfile,
             ord('3'): self.unlock_with_both}
 
+        move_states = {
+            cur.KEY_DOWN: self.nav_down,
+            ord('j'): self.nav_down,
+            cur.KEY_UP: self.nav_up,
+            ord('k'): self.nav_up,
+            cur.KEY_LEFT: self.go2parent,
+            ord('h'): self.go2parent,
+            cur.KEY_RIGHT: self.go2sub,
+            ord('l'): self.go2sub,
+            NL: self.move_group_or_entry}
+
         while True:
             if (self.control.config['lock_db'] and self.state == 0 and
                     self.db.filepath is not None):
@@ -1124,7 +1173,7 @@ class DBBrowser(object):
                     unlocked_state[c]()
                 if c == ord('e'):
                     return False
-                if self.state == 0:  # 'cause 'L' changes state
+                if self.state == 0 or self.state == 4:  # 'cause 'L' changes state
                     self.control.show_groups(self.g_highlight, self.groups,
                                              self.cur_win, self.g_offset,
                                              self.changed, self.cur_root)
@@ -1144,3 +1193,10 @@ class DBBrowser(object):
                 else:
                     self.pre_save()
                     self.lock_db()
+            elif self.state > 2 and c in move_states:
+                move_states[c]()
+                self.control.show_groups(self.g_highlight, self.groups,
+                                         self.cur_win, self.g_offset,
+                                         self.changed, self.cur_root)
+                self.control.show_entries(self.e_highlight, self.entries,
+                                          self.cur_win, self.e_offset)
