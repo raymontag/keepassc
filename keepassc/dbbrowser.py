@@ -758,6 +758,13 @@ class DBBrowser(object):
         self.state = 0
         self.sort_tables(True, True)
             
+    def move2root(self):
+        if self.state == 3:
+            self.move_object.move_group(self.db._root_group)
+            self.move_object = None
+            self.state = 0
+            self.sort_tables(True, True)
+
     def find_entries(self):
         '''Find entries by title'''
 
@@ -1148,7 +1155,8 @@ class DBBrowser(object):
             ord('h'): self.go2parent,
             cur.KEY_RIGHT: self.go2sub,
             ord('l'): self.go2sub,
-            NL: self.move_group_or_entry}
+            NL: self.move_group_or_entry,
+            cur.KEY_BACKSPACE: self.move2root}
 
         while True:
             if (self.control.config['lock_db'] and self.state == 0 and
