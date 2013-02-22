@@ -128,7 +128,7 @@ class Control(object):
         self.entry_win.resize(
             int(2 * (self.ysize - 1) / 3), int(2 * self.xsize / 3))
         self.info_win.resize(
-            int((self.ysize - 1) / 3), int(self.xsize / 3) - 2)
+            int((self.ysize - 1) / 3), int(2 * self.xsize / 3))
         self.group_win.mvwin(1, 0)
         self.entry_win.mvwin(1, int(self.xsize / 3))
         self.info_win.mvwin(int(2 * (self.ysize - 1) / 3), int(self.xsize / 3))
