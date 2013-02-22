@@ -107,7 +107,11 @@ class FileBrowser(object):
             ((self.last_file is None or self.ask_for_lf is False) and 
              nav == 2)):
             while True:
-                filepath = self.get_direct_filepath(self.last_file)
+                if self.last_file:
+                    init = self.last_file
+                else:
+                    init = ''
+                filepath = self.get_direct_filepath()
                 if filepath is False:
                     return False
                 elif filepath == -1:

@@ -165,7 +165,7 @@ class Editor(object):
             chr(curses.ascii.ctrl(ord('x'))):    self.quit,
             chr(curses.ascii.ctrl(ord('u'))):    self.del_to_bol,
             chr(curses.ascii.ctrl(ord('k'))):    self.del_to_eol,
-            chr(curses.ascii.ctrl(ord('d'))):    self.quit,
+            chr(curses.ascii.ctrl(ord('d'))):    self.close,
             chr(curses.ascii.DEL):               self.backspace,
             chr(curses.ascii.NL):                self.insert_line_or_quit,
             chr(curses.ascii.LF):                self.insert_line_or_quit,
@@ -437,7 +437,7 @@ class Editor(object):
             while True:
                 self.stdscr.move(self.cur_pos_y, self.cur_pos_x)
                 loop = self.get_key()
-                if loop is False:
+                if loop is False or loop == -1:
                     break
                 self.buffer_idx_y = self.cur_pos_y + self.y_offset
                 self.buf_length = len(self.text[self.buffer_idx_y])
@@ -488,7 +488,7 @@ class Editor(object):
         """
         curses.endwin()
         self.text = -1
-        self.exit()
+        return self.exit()
 
     def get_key(self):
         try:
