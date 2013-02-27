@@ -30,7 +30,7 @@ setup(name = "keepassc",
       packages = ['keepassc'],
       scripts = ['bin/keepassc'],
       classifiers = [
-          'Programming Language :: Python :: 3'
+          'Programming Language :: Python :: 3',
           'Operating System :: POSIX',
           'License :: OSI Approved :: GNU Lesser General Public License v3 or later (GPLv3+)',
           'Development Status :: 5 - Production/Stable',
