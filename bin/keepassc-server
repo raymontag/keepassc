@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+import argparse
+import sys
+from getpass import getpass
+from os import getenv
+from os.path import expanduser, realpath
+
+from keepassc.daemon import Daemon
+from keepassc.server import Server
+
+def arg_parse():
+    "Parse the command line arguments"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--database', default=None,
+                        help='Path to database file.', type=str)
+    parser.add_argument('-k', '--keyfile', default=None,
+                        help='Path to keyfile.', type=str)
+    parser.add_argument('-a', '--address', default='localhost',
+                        help='Address for the server.', type=str)
+    parser.add_argument('-p', '--port', default=50000,
+                        help='Address for the server.', type=int)
+    parser.add_argument('cmd', default=None,
+                        help='Daemon command: start|stop|restart', type=str)
+    return parser.parse_args()
+
+if __name__ == '__main__':
+    args = arg_parse()
+    try:
+        pidfile = realpath(expanduser(getenv('XDG_DATA_HOME')))
+    except:
+        pidfile = realpath(expanduser('~/.local/share/keepassc/'))
+    else:
+        if pidfile[-1] != '/':
+            pidfile += '/'
+    finally:
+        pidfile += 'keepassc/pidfile'
+    if args.cmd == 'start':
+        if args.database is None:
+            print('Need database path!')
+            sys.exit(1)
+        print("Leave blank if you use a keyfile only")
+        password = getpass()
+        if password == '':
+            password = None
+        server = Server(pidfile, args.address, args.port, args.database, password, args.keyfile)
+        server.start()
+    elif args.cmd == 'stop':
+        daemon = Daemon(pidfile)
+        daemon.stop()
+

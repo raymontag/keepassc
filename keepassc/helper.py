@@ -21,6 +21,8 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 from os import makedirs, remove
 from os.path import isdir, isfile
 
+from Crypto.Hash import SHA256
+from Crypto.Cipher import AES
 
 def parse_config(control):
     '''Parse the config file.
@@ -80,3 +82,99 @@ def write_config(control, config):
             handler.write(key + '=' + str(val) + '\n')
         handler.close()
     return True
+
+def transform_key(masterkey, seed1, seed2, rounds):
+    """This method creates the key to decrypt the database"""
+
+    aes = AES.new(seed1, AES.MODE_ECB)
+
+    # Encrypt the created hash
+    for i in range(rounds):
+        masterkey = aes.encrypt(masterkey)
+
+    # Finally, hash it again...
+    sha_obj = SHA256.new()
+    sha_obj.update(masterkey)
+    masterkey = sha_obj.digest()
+    # ...and hash the result together with the randomseed
+    sha_obj = SHA256.new()
+    sha_obj.update(seed2 + masterkey)
+    return sha_obj.digest()
+
+def get_passwordkey(key):
+    """This method hashes key"""
+
+    sha = SHA256.new()
+    sha.update(key.encode('utf-8'))
+    return sha.digest()
+
+def get_filekey(keyfile):
+    """This method creates a key from a keyfile."""
+
+    try:
+        handler = open(keyfile, 'rb')
+        buf = handler.read()
+    except:
+        raise KPError('Could not open file.')
+        return False
+    finally:
+        handler.close()
+    sha = SHA256.new()
+    if len(buf) == 33:
+        sha.update(buf)
+        return sha.digest()
+    elif len(buf) == 65:
+        sha.update(struct.unpack('<65s', buf)[0].decode())
+        return sha.digest()
+    else:
+        while buf:
+            if len(buf) <= 2049:
+                sha.update(buf)
+                buf = []
+            else:
+                sha.update(buf[:2048])
+                buf = buf[2048:]
+        return sha.digest()
+
+def cbc_decrypt(final_key, crypted_content, vec):
+    """This method decrypts the content with AES-CBC"""
+
+    # Just decrypt the content with the created key
+    aes = AES.new(final_key, AES.MODE_CBC, vec)
+    decrypted_content = aes.decrypt(crypted_content)
+    padding = decrypted_content[-1]
+    decrypted_content = decrypted_content[:len(decrypted_content)-padding]
+    
+    return decrypted_content
+
+def cbc_encrypt(content, final_key, vec):
+    """This method encrypts the content with AES-CBC."""
+
+    aes = AES.new(final_key, AES.MODE_CBC, vec)
+    padding = (16 - len(content) % AES.block_size)
+
+    for i in range(padding):
+        content += chr(padding).encode()
+
+    return aes.encrypt(content)
+
+def ecb_decrypt(key, content):
+    """This method decrypts the content with AES-ECB"""
+
+    aes = AES.new(key, AES.MODE_ECB)
+    decrypted_content = aes.decrypt(content)
+    padding = decrypted_content[-1]
+    decrypted_content = decrypted_content[:len(decrypted_content)-padding]
+    return decrypted_content
+
+def ecb_encrypt(content, key):
+    """This method encrypts the content with AES-ECB."""
+
+    aes = AES.new(key, AES.MODE_ECB)
+    padding = (16 - len(content) % AES.block_size)
+
+    for i in range(padding):
+        content += chr(padding).encode()
+
+    return aes.encrypt(content)
+
