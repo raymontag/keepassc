@@ -1,18 +1,15 @@
 #!/usr/bin/env python
 import argparse
-import sys
 from getpass import getpass
 from os import getenv
 from os.path import expanduser, realpath
 
 from keepassc.daemon import Daemon
-from keepassc.server import Server
+from keepassc.client import Client
 
 def arg_parse():
     "Parse the command line arguments"
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--database', default=None,
-                        help='Path to database file.', type=str)
     parser.add_argument('-k', '--keyfile', default=None,
                         help='Path to keyfile.', type=str)
     parser.add_argument('-a', '--address', default='localhost',
@@ -33,17 +30,14 @@ if __name__ == '__main__':
         if pidfile[-1] != '/':
             pidfile += '/'
     finally:
-        pidfile += 'keepassc/server.pid'
+        pidfile += 'keepassc/client.pid'
     if args.cmd == 'start':
-        if args.database is None:
-            print('Need database path!')
-            sys.exit(1)
         print("Leave blank if you use a keyfile only")
         password = getpass()
         if password == '':
             password = None
-        server = Server(pidfile, args.address, args.port, args.database, password, args.keyfile)
-        server.start()
+        client = Client(pidfile, args.address, args.port, password, args.keyfile)
+        client.start()
     elif args.cmd == 'stop':
         daemon = Daemon(pidfile)
         daemon.stop()

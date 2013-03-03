@@ -136,6 +136,22 @@ def get_filekey(keyfile):
                 buf = buf[2048:]
         return sha.digest()
 
+def get_key(password, keyfile):
+    """Get a key generated from KeePass-password and -keyfile"""
+
+    if password is None:
+        masterkey = get_filekey(keyfile)
+    elif password is not None and keyfile is not None:
+        passwordkey = get_passwordkey(password)
+        filekey = get_filekey(keyfile)
+        sha = SHA256.new()
+        sha.update(passwordkey+filekey)
+        masterkey = sha.digest()
+    else:
+        masterkey = get_passwordkey(password)
+
+    return masterkey
+
 def cbc_decrypt(final_key, crypted_content, vec):
     """This method decrypts the content with AES-CBC"""
 

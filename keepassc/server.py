@@ -1,9 +1,11 @@
 import sys
 import socket
+import struct
 
 from keepassc.daemon import Daemon
-from keepassc.helper import (get_passwordkey, get_filekey, transform_key, 
-                             cbc_decrypt, cbc_encrypt, ecb_encrypt)
+from keepassc.helper import (get_passwordkey, get_filekey, get_key, 
+                             transform_key, cbc_decrypt, cbc_encrypt, 
+                             ecb_encrypt)
 
 from Crypto.Hash import SHA256
 from kppy import KPDB, KPError
@@ -37,13 +39,15 @@ class Server(Daemon):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind(self.address)
         sock.listen(1)
-        conn, client = sock.accept()
         while True:
+            conn, client = sock.accept()
             cmd = self.receive(conn)
-            if cmd is b'NEW':
-                msg = bytes(self.seed1+'\n'+self.seed2+'\n'+self.rounds+'\n'+
-                            str(self.vec))
-                conn.sendall(ecb_encrypt(msg, self.get_key()))
+            if cmd == b'NEW':
+                msg = (self.seed1+self.seed2+
+                       struct.pack('<I',self.rounds)+self.vec)
+                masterkey = get_key(self.db.password, self.db.keyfile)
+                conn.sendall(ecb_encrypt(msg, masterkey))
+                conn.sendall(b'END')
             elif cmd in self.lookup:
                 lookup[cmd](conn)
             else:
@@ -56,32 +60,22 @@ class Server(Daemon):
         data = b''
         while True:
             received = conn.recv(16)
-            if received:
-                data += received
-            else:
+            if b'END' in received:
+                data += received[:received.find(b'END')]
                 break
-        if data == b'NEW':
+            else:
+                data += received
+                if data[-3:] == b'END':
+                    data = data[:-3]
+                    break
+        if data == b'NEW': # New connection established
             return data
         else:
             # Return decrypted data
-            return cbc_decrypt(self.get_key(), data, self.vec)
-
-    def get_key(self):
-        """Get a key generated from KeePass-password and -keyfile"""
-
-        if self.db.password is None:
-            masterkey = get_filekey(self.db.keyfile)
-        elif self.db.password is not None and self.db.keyfile is not None:
-            passwordkey = get_passwordkey(self.db.password)
-            filekey = get_filekey(self.db.keyfile)
-            sha = SHA256.new()
-            sha.update(passwordkey+filekey)
-            masterkey = sha.digest()
-        else:
-            masterkey = get_passwordkey(self.db.password)
-
-        final_key = transform_key(masterkey, self.seed1, self.seed2, self.rounds)
-        return final_key
+            masterkey = get_key(self.db.password, self.db.keyfile)
+            final_key = transform_key(masterkey, self.seed1, self.seed2, 
+                                      self.rounds)
+            return cbc_decrypt(final_key, data, self.vec)
 
     def find(self, conn):
         """Find entries and send them to connection"""
@@ -106,5 +100,8 @@ class Server(Daemon):
                     msg += bytes('Expiration\n'+i.expire.__str__()+'\n\n')
                 if i.comment is not None:
                     msg += bytes('Comment\n'+i.comment+'\n\n')
-                conn.sendall(cbc_encrypt(msg, self.get_key(), self.vec))
+                masterkey = get_key(self.db.password, self.db.keyfile)
+                final_key = transform_key(masterkey, self.seed1, self.seed2, 
+                                          self.rounds)
+                conn.sendall(cbc_encrypt(msg, final_key, self.vec))
 
