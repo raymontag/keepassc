@@ -20,14 +20,19 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 import argparse
+import socket
 from curses import wrapper
 from getpass import getpass
 from os import geteuid
 from os.path import expanduser, realpath, splitext
 from sys import exit, stdout
 
-from keepassc.control import Control
 from kppy import KPDB, KPError
+
+from keepassc.client import Client
+from keepassc.conn import Connection
+from keepassc.control import Control
+from keepassc.helper import cbc_decrypt, cbc_encrypt
 
 
 __doc__ = '''This program gives you access to your KeePass 1.x or
@@ -47,6 +52,18 @@ def arg_parse():
                         help='Path to database file.')
     parser.add_argument('-k', '--keyfile', default=None,
                         help='Path to keyfile.')
+    parser.add_argument('-as', '--address_server', default='localhost',
+                        help='Server address (not required if using agent)',
+                        type=str)
+    parser.add_argument('-ps', '--port_server', default=50000,
+                        help='Server port (not required if using agent)',
+                        type=int)
+    parser.add_argument('-pa', '--port_agent', default=50001,
+                        help='Agent port', type=int)
+    parser.add_argument('-a', '--agent', action='store_true', default=False,
+                        help='Use agent for remote connection')
+    parser.add_argument('-dc', '--direct_conn', action='store_true', default=False,
+                        help='Connect directly to server')
     parser.add_argument('-e', '--entry', help='Print entry with parsed '
                         'title\nYou will see a password prompt; leave it '
                         'blank if you only want to use a key-file\nJust '
@@ -102,7 +119,48 @@ if __name__ == '__main__':
               '\'keepassc --asroot\'')
         print('Warning: This will annul a security concept of keepassc')
     else:
-        if args.entry:
+        if args.direct_conn is True:
+            print("Leave blank if you use a keyfile only")
+            password = getpass()
+            if password == '':
+                password = None
+            client = Client(args.address_server, args.port_server,
+                           None, password, args.keyfile)
+            if client.init_connection(client.server_address) is False:
+                print("Can't init connection. Wrong password?")
+                exit(0)
+            if args.entry:
+                data = client.find(args.entry.encode())
+            else:
+                entry = input('Part of title: ').encode()
+                data = client.find(entry)
+            data = data.decode().split('\n')
+            for i in data:
+                stdout.write(i + '\n')
+            stdout.flush()
+        elif args.agent is True:
+            conn = Connection('', None)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect(('localhost', args.port_agent))
+            sock.sendall(b'FINDEND')
+            answer = conn.receive(sock)
+            if answer[:4] == b'FAIL':
+                print(answer.decode())
+            else:
+                if args.entry:
+                    sock.sendall(args.entry.encode()+b'END')
+                else:
+                    entry = input('Part of title: ').encode()
+                    sock.sendall(entry+b'END')
+                data = conn.receive(sock)
+                if data[:4] == b'FAIL':
+                    print(data.decode())
+                else:
+                    data = data.decode().split('\n')
+                    for i in data:
+                        stdout.write(i + '\n')
+                    stdout.flush()
+        elif args.entry:
             password = getpass()
             if password == '':
                 password = None

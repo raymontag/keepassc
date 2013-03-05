@@ -5,17 +5,20 @@ from os import getenv
 from os.path import expanduser, realpath
 
 from keepassc.daemon import Daemon
-from keepassc.client import Client
+from keepassc.agent import Agent
 
 def arg_parse():
     "Parse the command line arguments"
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-k', '--keyfile', default=None,
                         help='Path to keyfile.', type=str)
-    parser.add_argument('-a', '--address', default='localhost',
+    parser.add_argument('-as', '--address', default='localhost',
                         help='Address for the server.', type=str)
-    parser.add_argument('-p', '--port', default=50000,
-                        help='Address for the server.', type=int)
+    parser.add_argument('-ps', '--port', default=50000,
+                        help='Port for the server.', type=int)
+    parser.add_argument('-pc', '--port_agent', default=50001,
+                        help='Port for the agent.', type=int)
     parser.add_argument('cmd', default=None,
                         help='Daemon command: start|stop|restart', type=str)
     return parser.parse_args()
@@ -30,14 +33,15 @@ if __name__ == '__main__':
         if pidfile[-1] != '/':
             pidfile += '/'
     finally:
-        pidfile += 'keepassc/client.pid'
+        pidfile += 'keepassc/agent.pid'
     if args.cmd == 'start':
         print("Leave blank if you use a keyfile only")
         password = getpass()
         if password == '':
             password = None
-        client = Client(pidfile, args.address, args.port, password, args.keyfile)
-        client.start()
+        agent = Agent(pidfile, args.address, args.port, args.port_agent,
+                      password, args.keyfile)
+        agent.start()
     elif args.cmd == 'stop':
         daemon = Daemon(pidfile)
         daemon.stop()
