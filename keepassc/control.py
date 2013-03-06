@@ -50,7 +50,7 @@ class Control(object):
         try:
             self.config_home = realpath(expanduser(getenv('XDG_CONFIG_HOME')))
         except:
-            self.config_home = realpath(expanduser('~/.config/keepassc/'))
+            self.config_home = realpath(expanduser('~/.config/keepassc/config'))
         else:
             if self.config_home[-1] == '/':
                 self.config_home += 'keepassc/config'

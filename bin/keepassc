@@ -122,7 +122,10 @@ if __name__ == '__main__':
         if args.direct_conn is True:
             print("Leave blank if you use a keyfile only")
             password = getpass()
-            if password == '':
+            if password == '' and args.keyfile is None:
+                print('A password or keyfile is needed!')
+                exit(0)
+            elif password == '':
                 password = None
             client = Client(args.address_server, args.port_server,
                            None, password, args.keyfile)
@@ -146,20 +149,20 @@ if __name__ == '__main__':
             answer = conn.receive(sock)
             if answer[:4] == b'FAIL':
                 print(answer.decode())
+                exit(0)
+            if args.entry:
+                sock.sendall(args.entry.encode()+b'END')
             else:
-                if args.entry:
-                    sock.sendall(args.entry.encode()+b'END')
-                else:
-                    entry = input('Part of title: ').encode()
-                    sock.sendall(entry+b'END')
-                data = conn.receive(sock)
-                if data[:4] == b'FAIL':
-                    print(data.decode())
-                else:
-                    data = data.decode().split('\n')
-                    for i in data:
-                        stdout.write(i + '\n')
-                    stdout.flush()
+                entry = input('Part of title: ').encode()
+                sock.sendall(entry+b'END')
+            data = conn.receive(sock)
+            if data[:4] == b'FAIL':
+                print(data.decode())
+                exit(0)
+            data = data.decode().split('\n')
+            for i in data:
+                stdout.write(i + '\n')
+            stdout.flush()
         elif args.entry:
             password = getpass()
             if password == '':
