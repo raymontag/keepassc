@@ -28,7 +28,7 @@ if __name__ == '__main__':
     try:
         pidfile = realpath(expanduser(getenv('XDG_DATA_HOME')))
     except:
-        pidfile = realpath(expanduser('~/.local/share/keepassc/'))
+        pidfile = realpath(expanduser('~/.local/share/'))
     else:
         if pidfile[-1] != '/':
             pidfile += '/'
