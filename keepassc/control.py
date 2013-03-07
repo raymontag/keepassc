@@ -47,25 +47,19 @@ class Control(object):
 
         '''
 
-        try:
-            self.config_home = realpath(expanduser(getenv('XDG_CONFIG_HOME')))
-        except:
+        self.config_home = realpath(expanduser(getenv('XDG_CONFIG_HOME')))
+        if self.config_home is None:
             self.config_home = realpath(expanduser('~/.config/keepassc/config'))
-        else:
-            if self.config_home[-1] == '/':
-                self.config_home += 'keepassc/config'
-            else:
-                self.config_home += '/keepassc/config'
+        elif self.config_home[-1] == '/':
+            self.config_home += 'keepassc/config'
+        self.config_home += '/keepassc/config'
 
-        try:
-            self.data_home = realpath(expanduser(getenv('XDG_DATA_HOME')))
-        except:
+        self.data_home = realpath(expanduser(getenv('XDG_DATA_HOME')))
+        if self.data_home is None:
             self.data_home = realpath(expanduser('~/.local/share/keepassc/'))
-        else:
-            if self.data_home[-1] == '/':
-                self.data_home += 'keepassc/'
-            else:
-                self.data_home += '/keepassc/'
+        elif self.data_home[-1] == '/':
+            self.data_home += 'keepassc/'
+        self.data_home += '/keepassc/'
         self.last_home = self.data_home + 'last'
         self.key_home = self.data_home + 'key'
 
