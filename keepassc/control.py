@@ -49,17 +49,17 @@ class Control(object):
 
         self.config_home = realpath(expanduser(getenv('XDG_CONFIG_HOME')))
         if self.config_home is None:
-            self.config_home = realpath(expanduser('~/.config/keepassc/config'))
-        elif self.config_home[-1] == '/':
-            self.config_home += 'keepassc/config'
-        self.config_home += '/keepassc/config'
+            self.config_home = realpath(expanduser('~/.config/keepassc/config/'))
+        elif self.config_home[-1] != '/':
+            self.config_home += '/'
+        self.config_home += 'keepassc/config'
 
         self.data_home = realpath(expanduser(getenv('XDG_DATA_HOME')))
         if self.data_home is None:
             self.data_home = realpath(expanduser('~/.local/share/keepassc/'))
-        elif self.data_home[-1] == '/':
-            self.data_home += 'keepassc/'
-        self.data_home += '/keepassc/'
+        elif self.data_home[-1] != '/':
+            self.data_home += '/'
+        self.data_home += 'keepassc/'
         self.last_home = self.data_home + 'last'
         self.key_home = self.data_home + 'key'
 
