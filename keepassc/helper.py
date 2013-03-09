@@ -86,6 +86,8 @@ def write_config(control, config):
 def transform_key(masterkey, seed1, seed2, rounds):
     """This method creates the key to decrypt the database"""
 
+    if masterkey is None or seed1 is None or seed2 is None or rounds is None:
+        raise TypeError('None type not allowed')
     aes = AES.new(seed1, AES.MODE_ECB)
 
     # Encrypt the created hash
@@ -104,6 +106,8 @@ def transform_key(masterkey, seed1, seed2, rounds):
 def get_passwordkey(key):
     """This method hashes key"""
 
+    if key is None:
+        raise TypeError('None type not allowed')
     sha = SHA256.new()
     sha.update(key.encode('utf-8'))
     return sha.digest()
@@ -115,8 +119,7 @@ def get_filekey(keyfile):
         handler = open(keyfile, 'rb')
         buf = handler.read()
     except:
-        raise KPError('Could not open file.')
-        return False
+        raise OSError('Could not open or read file.')
     finally:
         handler.close()
     sha = SHA256.new()
@@ -139,7 +142,9 @@ def get_filekey(keyfile):
 def get_key(password, keyfile):
     """Get a key generated from KeePass-password and -keyfile"""
 
-    if password is None:
+    if password is None and keyfile is None:
+        raise TypeError('None type not allowed')
+    elif password is None:
         masterkey = get_filekey(keyfile)
     elif password is not None and keyfile is not None:
         passwordkey = get_passwordkey(password)
@@ -156,6 +161,8 @@ def cbc_decrypt(final_key, crypted_content, vec):
     """This method decrypts the content with AES-CBC"""
 
     # Just decrypt the content with the created key
+    if final_key is None or crypted_content is None or vec is None:
+        raise TypeError('None type not allowed')
     aes = AES.new(final_key, AES.MODE_CBC, vec)
     decrypted_content = aes.decrypt(crypted_content)
     padding = decrypted_content[-1]
@@ -166,6 +173,8 @@ def cbc_decrypt(final_key, crypted_content, vec):
 def cbc_encrypt(content, final_key, vec):
     """This method encrypts the content with AES-CBC."""
 
+    if content is None or final_key is None or vec is None:
+        raise TypeError('None type not allowed')
     aes = AES.new(final_key, AES.MODE_CBC, vec)
     padding = (16 - len(content) % AES.block_size)
 
@@ -177,6 +186,8 @@ def cbc_encrypt(content, final_key, vec):
 def ecb_decrypt(key, content):
     """This method decrypts the content with AES-ECB"""
 
+    if key is None or content is None:
+        raise TypeError('None type not allowed')
     aes = AES.new(key, AES.MODE_ECB)
     decrypted_content = aes.decrypt(content)
     padding = decrypted_content[-1]
@@ -186,6 +197,8 @@ def ecb_decrypt(key, content):
 def ecb_encrypt(content, key):
     """This method encrypts the content with AES-ECB."""
 
+    if content is None or key is None:
+        raise TypeError('None type not allowed')
     aes = AES.new(key, AES.MODE_ECB)
     padding = (16 - len(content) % AES.block_size)
 

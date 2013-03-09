@@ -1,4 +1,5 @@
 import socket
+import sys
 
 from Crypto.Hash import SHA256
 
@@ -12,12 +13,18 @@ class Connection(object):
         self.vec = None
         self.password = password
         self.keyfile = keyfile
-        self.masterkey = get_key(self.password, self.keyfile)
+        try:
+            self.masterkey = get_key(self.password, self.keyfile)
+        except TypeError as err:
+            print(err) # TODO log err
+            sys.exit(0)
         self.final_key = None
 
     def create_hash(self, msg):
         """Create hash to verify decrypted message"""
 
+        if type(msg) is not bytes:
+            raise TypeError('msg has to be bytes')
         sha_obj = SHA256.new()
         sha_obj.update(msg)
         return sha_obj.digest()
@@ -25,29 +32,43 @@ class Connection(object):
     def verify_decryption(self, msg, test_hash):
         """Verify decryption"""
 
+        if type(msg) is not bytes or type(test_hash) is not bytes:
+            raise TypeError('msg and test_hash has to be bytes')
         sha_obj = SHA256.new()
         sha_obj.update(msg)
         # Test if decrypted data is correct
         return (test_hash == sha_obj.digest())
 
     def encrypt_msg(self, msg):
-        test_hash = self.create_hash(msg)
-        msg = cbc_encrypt(msg, self.final_key, self.vec)
-        return msg+test_hash
+        try:
+            test_hash = self.create_hash(msg)
+            msg = cbc_encrypt(msg, self.final_key, self.vec)
+        except TypeError as err:
+            raise err
+        else:
+            return msg+test_hash
 
     def decrypt_msg(self, msg):
-        decrypted_msg = cbc_decrypt(self.final_key, msg[:-32], self.vec)
-        if self.verify_decryption(decrypted_msg, msg[-32:]) is True:
-            return decrypted_msg
-        else:
-            return False
+        if type(msg) is not bytes:
+            raise TypeError('msg has to be bytes')
+        try:
+            decrypted_msg = cbc_decrypt(self.final_key, msg[:-32], self.vec)
+            if self.verify_decryption(decrypted_msg, msg[-32:]) is True:
+                return decrypted_msg
+            else:
+                return False
+        except TypeError as err:
+            raise err
 
     def receive(self, conn):
         """Receive a message"""
 
         data = b''
         while True:
-            received = conn.recv(16)
+            try:
+                received = conn.recv(16)
+            except OSError:
+                return False
             if b'END' in received:
                 data += received[:received.find(b'END')]
                 break
@@ -61,5 +82,10 @@ class Connection(object):
     def sendmsg(self, sock, msg):
         """Send message"""
 
-        sock.sendall(self.encrypt_msg(msg) + b'END')
+        try:
+            sock.sendall(self.encrypt_msg(msg) + b'END')
+        except OSError as err:
+            raise err
+        except TypeError as err:
+            raise err
 
