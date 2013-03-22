@@ -1,22 +1,36 @@
-.TH KeePassC v.1.4
+.TH KeePassC v.1.5.1
 .SH NAME
 KeePassC \- KeePassC is a curses-based password manager compatible to KeePass v.1.x and KeePassX
 .SH SYNOPSIS
-keepassc [--asroot] [filepath to .kdb-file]
+keepassc [options]
 .SH DESCRIPTION
 KeePassC is a password manager fully compatible to KeePass v.1.x and KeePassX. That is, your password database is fully encrypted with AES.
 .PP
 KeePassC is written in Python 3 and comes with a curses-interface. It is completely controlled with the keyboard.
 .PP
-Actually KeePassC provides everything to read and edit the password databases but it lacks a password generator which will follow in a later release.
+Actually KeePassC provides everything to read and edit the password databases. Watch http://raymontag.github.com/keepassc/ for a full feature list.
 .SH OPTIONS
 .TP
-\ --asroot
+.B --asroot
 Using the program as root user, what is not recommend because it makes core dumps easy.
-.PP
-It's possible to parse a filepath to a .kdb-file to open it directly.
+.TP
+.B -h, --help
+Show help.
+.TP
+.B -d DATABASE, --database DATABASE
+Path to a database file to open it directly.
+.TP
+.B -k KEYFILE, --keyfile KEYFILE
+Path to keyfile.
+.TP
+.B -e ENTRY, --entry ENTRY
+Print entry with parsed title. 
+You will see a password promt; leave it blank if you only want to use a key-file. 
+Just type a part of the entry title lower-case, it's case-insensitive and will search for matching string parts.
+
+WARNING: Your passwords will be displayed directly on your command line!
 .SH USAGE
-For a short introduction have a look at http://www.nongnu.org/keepassc/docu.html.
+For a short introduction have a look at http://raymontag.github.com/keepassc/docu.html.
 .PP
 You can get help at any time by pressing F1 in the file or database browser.
 .SH AUTHOR

@@ -977,7 +977,8 @@ class DBBrowser(object):
                 if self.control.config['del_clip'] is True:
                     self.clip_timer = threading.Timer(
                         self.control.config['clip_delay'],
-                        self.del_clipboard).start()
+                        self.del_clipboard)
+                    self.clip_timer.start()
             except FileNotFoundError as err:
                 self.control.draw_text(False,
                                        (1, 0, err.__str__()),
