@@ -112,6 +112,75 @@ def parse_entry(entry, database, password, keyfile):
                 stdout.write('Comment: ' + i.comment + '\n\n')
             stdout.flush()
 
+def direct_connection():
+    '''Direct connection to a KeePassC-server.
+
+    Establish a direct connection to a KeePassC-server and find
+    entries.
+
+    '''
+
+    # Get password
+    print("Leave blank if you use a keyfile only")
+    password = getpass()
+    if password == '' and args.keyfile is None:
+        print('A password or keyfile is needed!')
+        exit(0)
+    elif password == '':
+        password = None
+
+    # Get entry title
+    if args.entry:
+        entry = args.entry.encode()
+    else:
+        entry = input('Part of title: ').encode()
+
+    # Establish connection and find entry
+    client = Client(args.address_server, args.port_server,
+                   None, password, args.keyfile)
+    if client.init_connection(client.server_address) is False:
+        print("Can't init connection. Wrong password?")
+        exit(0)
+
+    data = client.find(entry)
+    data = data.decode().split('\n')
+    for i in data:
+        stdout.write(i + '\n')
+    stdout.flush()
+
+def use_agent():
+    '''Use the KeePassC-agent to find entries on a server.'''
+
+    # Get entry title
+    if args.entry:
+        entry = args.entry.encode()
+    else:
+        entry = input('Part of title: ').encode()
+        
+    # Establish connect to agent
+    conn = Connection('', None)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect(('localhost', args.port_agent))
+
+    # Find entry
+    # Init sequence
+    sock.sendall(b'FINDEND')
+    answer = conn.receive(sock)
+    if answer[:4] == b'FAIL':
+        print(answer.decode())
+        exit(0)
+
+    # Receive information
+    sock.sendall(entry+b'END')
+    data = conn.receive(sock)
+    if data[:4] == b'FAIL':
+        print(data.decode())
+        exit(0)
+    data = data.decode().split('\n')
+    for i in data:
+        stdout.write(i + '\n')
+    stdout.flush()
+
 if __name__ == '__main__':
     args = arg_parse()
     if geteuid() == 0 and args.asroot is False:
@@ -120,49 +189,9 @@ if __name__ == '__main__':
         print('Warning: This will annul a security concept of keepassc')
     else:
         if args.direct_conn is True:
-            print("Leave blank if you use a keyfile only")
-            password = getpass()
-            if password == '' and args.keyfile is None:
-                print('A password or keyfile is needed!')
-                exit(0)
-            elif password == '':
-                password = None
-            client = Client(args.address_server, args.port_server,
-                           None, password, args.keyfile)
-            if client.init_connection(client.server_address) is False:
-                print("Can't init connection. Wrong password?")
-                exit(0)
-            if args.entry:
-                data = client.find(args.entry.encode())
-            else:
-                entry = input('Part of title: ').encode()
-                data = client.find(entry)
-            data = data.decode().split('\n')
-            for i in data:
-                stdout.write(i + '\n')
-            stdout.flush()
+            direct_connection()
         elif args.agent is True:
-            conn = Connection('', None)
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect(('localhost', args.port_agent))
-            sock.sendall(b'FINDEND')
-            answer = conn.receive(sock)
-            if answer[:4] == b'FAIL':
-                print(answer.decode())
-                exit(0)
-            if args.entry:
-                sock.sendall(args.entry.encode()+b'END')
-            else:
-                entry = input('Part of title: ').encode()
-                sock.sendall(entry+b'END')
-            data = conn.receive(sock)
-            if data[:4] == b'FAIL':
-                print(data.decode())
-                exit(0)
-            data = data.decode().split('\n')
-            for i in data:
-                stdout.write(i + '\n')
-            stdout.flush()
+            use_agent()
         elif args.entry:
             password = getpass()
             if password == '':
