@@ -143,6 +143,13 @@ def direct_connection():
         exit(0)
 
     data = client.find(entry)
+    if data is False:
+        print("An error occured")
+        exit(0)
+    elif answer[:4] == b'FAIL':
+        print(answer.decode())
+        exit(0)
+
     data = data.decode().split('\n')
     for i in data:
         stdout.write(i + '\n')
@@ -160,22 +167,37 @@ def use_agent():
     # Establish connect to agent
     conn = Connection('', None)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(('localhost', args.port_agent))
+    try:
+        sock.connect(('localhost', args.port_agent))
+        # Init sequence
+        sock.sendall(b'FINDEND')
+    except OSError as err:
+        print(err.__str__())
+        exit(0)
 
-    # Find entry
-    # Init sequence
-    sock.sendall(b'FINDEND')
     answer = conn.receive(sock)
-    if answer[:4] == b'FAIL':
+    if answer is False:
+        print("An error occured")
+        exit(0)
+    elif answer[:4] == b'FAIL':
         print(answer.decode())
         exit(0)
 
     # Receive information
-    sock.sendall(entry+b'END')
+    try:
+        sock.sendall(entry+b'END')
+    except OSError as err:
+        print(err.__str__())
+        exit(0)
+
     data = conn.receive(sock)
-    if data[:4] == b'FAIL':
+    if data is False:
+        print("An error occured")
+        exit(0)
+    elif data[:4] == b'FAIL':
         print(data.decode())
         exit(0)
+
     data = data.decode().split('\n')
     for i in data:
         stdout.write(i + '\n')

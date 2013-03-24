@@ -24,15 +24,19 @@ class Server(Connection, Daemon):
         try:
             self.db = KPDB(db, password, keyfile)
         except KPError as err:
-            print(err)
+            print(err) # TODO log err
             sys.exit(1)
         self.seed1 = self.db._transf_randomseed
         self.seed2 = self.db._final_randomseed
         self.rounds = self.db._key_transf_rounds
         self.vec = self.db._enc_iv
-        self.masterkey = get_key(self.db.password, self.db.keyfile)
-        self.final_key = transform_key(self.masterkey, self.seed1, self.seed2,
-                                       self.rounds)
+        try:
+            self.masterkey = get_key(self.db.password, self.db.keyfile)
+            self.final_key = transform_key(self.masterkey, self.seed1, 
+                                           self.seed2, self.rounds)
+        except TypeError as err:
+            print(err) # TODO log err
+            sys.exit(1)
         self.lookup = {
             b'NEW': self.new_connection,
             b'FIND': self.find}
