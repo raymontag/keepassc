@@ -30,6 +30,7 @@ class Agent(Client, Daemon):
             
             # Listen for commands
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(5)
             sock.bind(self.agent_address)
             sock.listen(1)
         except OSError:
@@ -40,20 +41,20 @@ class Agent(Client, Daemon):
                 conn, client = sock.accept()
             except OSError:
                 continue
-            cmd = self.receive(conn)
-            if cmd in self.lookup:
-                self.lookup[cmd](conn)
-            elif cmd is False:
-                try:
-                    conn.sendall(b'Message receive failed') 
-                except OSError:
-                    pass # conn seems to have a problem; go to close
             else:
                 try:
-                    conn.sendall(b'Command isn\'t available')
+                    conn.settimeout(5)
+                    cmd = self.receive(conn)
+                    if cmd in self.lookup:
+                        self.lookup[cmd](conn)
+                    elif cmd is False:
+                        conn.sendall(b'Message receive failed') 
+                    else:
+                        conn.sendall(b'Command isn\'t available')
                 except OSError:
-                    pass
-            conn.close()
+                    continue # log error
+                finally:
+                    conn.close()
 
     def find(self, conn):
         """Find Entries"""
@@ -90,7 +91,7 @@ class Agent(Client, Daemon):
                 conn.sendall(b'FAIL: Decryption failed. Wrong password?END')
             else:
                 conn.sendall(data+b'END')
-            serv.close()
         except (OSError, TypeError):
-            serv.close() # TODO log err
-            return False
+            return False # TODO log err
+        finally:
+            serv.close()

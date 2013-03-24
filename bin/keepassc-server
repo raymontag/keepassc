@@ -25,12 +25,16 @@ def arg_parse():
 
 if __name__ == '__main__':
     args = arg_parse()
-    pidfile = realpath(expanduser(getenv('XDG_DATA_HOME')))
-    if pidfile is None:
-        pidfile = realpath(expanduser('~/.local/share/'))
-    elif pidfile[-1] != '/':
-        pidfile += '/'
-    pidfile += 'keepassc/server.pid'
+    try:
+        pidfile = realpath(expanduser(getenv('XDG_DATA_HOME')))
+    except:
+        pidfile = realpath(expanduser('~/.local/share/keepassc/'))
+    else:
+        if pidfile[-1] != '/':
+            pidfile += '/'
+        pidfile += 'keepassc/'
+    finally:
+        pidfile += 'agent.pid'
 
     if args.cmd == 'start':
         if args.database is None:

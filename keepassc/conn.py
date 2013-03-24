@@ -43,8 +43,8 @@ class Connection(object):
         try:
             test_hash = self.create_hash(msg)
             msg = cbc_encrypt(msg, self.final_key, self.vec)
-        except TypeError as err:
-            raise err
+        except:
+            raise
         else:
             return msg+test_hash
 
@@ -57,8 +57,8 @@ class Connection(object):
                 return decrypted_msg
             else:
                 return False
-        except TypeError as err:
-            raise err
+        except:
+            raise
 
     def receive(self, conn):
         """Receive a message"""
@@ -67,8 +67,8 @@ class Connection(object):
         while True:
             try:
                 received = conn.recv(16)
-            except OSError:
-                return False
+            except:
+                raise
             if b'END' in received:
                 data += received[:received.find(b'END')]
                 break
@@ -84,8 +84,6 @@ class Connection(object):
 
         try:
             sock.sendall(self.encrypt_msg(msg) + b'END')
-        except OSError as err:
-            raise err
-        except TypeError as err:
-            raise err
+        except:
+            raise
 

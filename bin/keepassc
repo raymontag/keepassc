@@ -138,16 +138,21 @@ def direct_connection():
     # Establish connection and find entry
     client = Client(args.address_server, args.port_server,
                    None, password, args.keyfile)
-    if client.init_connection(client.server_address) is False:
-        print("Can't init connection. Wrong password?")
+    try:
+        if client.init_connection(client.server_address) is False:
+            print("Hash test failed while initializing connection. "
+                  "Probably wrong password used.")
+            exit(0)
+    except (OSError, TypeError) as err:
+        print(err)
         exit(0)
 
     data = client.find(entry)
     if data is False:
-        print("An error occured")
+        print("Hash test failed while entry information received.")
         exit(0)
-    elif answer[:4] == b'FAIL':
-        print(answer.decode())
+    elif data[:4] == b'FAIL':
+        print(data.decode())
         exit(0)
 
     data = data.decode().split('\n')

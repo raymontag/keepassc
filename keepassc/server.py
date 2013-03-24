@@ -26,6 +26,7 @@ class Server(Connection, Daemon):
         except KPError as err:
             print(err) # TODO log err
             sys.exit(1)
+
         self.seed1 = self.db._transf_randomseed
         self.seed2 = self.db._final_randomseed
         self.rounds = self.db._key_transf_rounds
@@ -37,6 +38,7 @@ class Server(Connection, Daemon):
         except TypeError as err:
             print(err) # TODO log err
             sys.exit(1)
+
         self.lookup = {
             b'NEW': self.new_connection,
             b'FIND': self.find}
@@ -46,20 +48,33 @@ class Server(Connection, Daemon):
         """Overide Daemon.run() and provide sockets"""
         
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(5)
         sock.bind(self.address)
         sock.listen(1)
         while True:
-            conn, client = sock.accept()
-            cmd = self.receive(conn)
-            if cmd != b'NEW':
-                cmd = self.decrypt_msg(cmd)
-            if cmd in self.lookup:
-                self.lookup[cmd](conn)
-            elif cmd is False:
-                conn.sendall(b'FAIL: Decryption failedEND')
+            try:
+                conn, client = sock.accept()
+            except OSError:
+                continue
+            conn.settimeout(5)
+            try:
+                cmd = self.receive(conn)
+            except OSError:
+                pass # TODO log error
             else:
-                conn.sendall(b'FAIL: Command isn\'t availableEND')
-            conn.close()
+                try:
+                    if cmd != b'NEW':
+                        cmd = self.decrypt_msg(cmd)
+                    if cmd in self.lookup:
+                        self.lookup[cmd](conn)
+                    elif cmd is False:
+                        conn.sendall(b'FAIL: Decryption of command failedEND')
+                    else:
+                        conn.sendall(b'FAIL: Command isn\'t availableEND')
+                except OSError:
+                    pass # TODO log error; connection will close
+            finally:
+                conn.close()
 
     def new_connection(self, conn):
         msg = (self.seed1+self.seed2+
@@ -73,7 +88,8 @@ class Server(Connection, Daemon):
         conn.sendall(b'ACKEND')
         title = self.decrypt_msg(self.receive(conn))
         if title is False: # TODO logging
-            conn.sendall(b'FAIL: Decryption failedEND')
+            conn.sendall(b'FAIL: Decryption of entry title failedEND')
+            return False
         msg = ''
         for i in self.db._entries:
             if title.decode().lower() in i.title.lower():
