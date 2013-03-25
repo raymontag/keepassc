@@ -76,7 +76,8 @@ class FileBrowser(object):
     def get_filepath(self):
         '''This method is used to get a filepath, e.g. for 'Save as' '''
 
-        if self.ask_for_lf is False or self.last_file is None:
+        if (self.ask_for_lf is False or self.last_file is None or 
+            self.control.config['rem_db'] is False):
             nav = self.control.gen_menu(1, (
                     (1, 0, 'Use the file browser (1)'),
                     (2, 0, 'Type direct path (2)')))

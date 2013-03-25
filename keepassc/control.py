@@ -659,7 +659,10 @@ class Control(object):
             self.stdscr.refresh()
 
     def get_last_db(self):
-        if isfile(self.last_home):
+        if isfile(self.last_home) and self.config['rem_db'] is False:
+            remove(self.last_home)
+            self.last_file = None
+        elif isfile(self.last_home):
             try:
                 handler = open(self.last_home, 'r')
             except Exception as err:
@@ -672,17 +675,20 @@ class Control(object):
             self.last_file = None
 
     def get_last_key(self):
-        if isfile(self.key_home):
+        if isfile(self.key_home) and self.config['rem_key'] is False:
+            remove(self.key_home)
+            self.last_key = None
+        elif isfile(self.key_home):
             try:
                 handler = open(self.key_home, 'r')
             except Exception as err:
-                self.key_file = None
+                self.last_key = None
                 print(err.__str__())
             else:
                 self.last_key = handler.readline()
                 handler.close()
         else:
-            self.key_file = None
+            self.last_key = None
 
     def main_loop(self, kdb_file=None):
         '''The main loop. The program alway return to this method.'''
@@ -842,8 +848,7 @@ class Control(object):
                 # return to previous screen stuff
                 # Use similar constructs elsewhere
                 while True:
-                    if self.config['rem_key'] is True:
-                        self.get_last_key()
+                    self.get_last_key()
                     if (self.last_key is None or
                             self.config['rem_key'] is False):
                         ask_for_lf = False

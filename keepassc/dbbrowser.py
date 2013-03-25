@@ -36,7 +36,8 @@ class DBBrowser(object):
 
     def __init__(self, control):
         self.control = control
-        if self.control.cur_dir[-4:] == '.kdb':
+        if (self.control.cur_dir[-4:] == '.kdb' and 
+            self.control.config['rem_db'] is True):
             if not isdir(self.control.last_home[:-5]):
                 if isfile(self.control.last_home[:-5]):
                     os.remove(self.control.last_home[:-5])
