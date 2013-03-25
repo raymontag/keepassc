@@ -22,7 +22,7 @@ import curses as cur
 from curses.ascii import NL, DEL, SP
 from datetime import date
 from os import chdir, getcwd, getenv, geteuid, makedirs, remove
-from os.path import expanduser, isfile, isdir, realpath
+from os.path import expanduser, isfile, isdir, realpath, join
 from pwd import getpwuid
 from random import sample
 from socket import gethostname
@@ -50,24 +50,18 @@ class Control(object):
         try:
             self.config_home = realpath(expanduser(getenv('XDG_CONFIG_HOME')))
         except:
-            self.config_home = realpath(expanduser('~/.config/keepassc/'))
-        else:
-            if self.config_home[-1] == '/':
-                self.config_home += 'keepassc/config'
-            else:
-                self.config_home += '/keepassc/config'
+            self.config_home = realpath(expanduser('~/.config'))
+        finally:
+            self.config_home = join(self.config_home, 'keepassc', 'config')
 
         try:
             self.data_home = realpath(expanduser(getenv('XDG_DATA_HOME')))
         except:
-            self.data_home = realpath(expanduser('~/.local/share/keepassc/'))
-        else:
-            if self.data_home[-1] == '/':
-                self.data_home += 'keepassc/'
-            else:
-                self.data_home += '/keepassc/'
-        self.last_home = self.data_home + 'last'
-        self.key_home = self.data_home + 'key'
+            self.data_home = realpath(expanduser('~/.local/share/'))
+        finally:
+            self.data_home = join(self.data_home, 'keepassc')
+        self.last_home = join(self.data_home, 'last')
+        self.key_home = join(self.data_home, 'key')
 
         self.config = parse_config(self)
 
@@ -817,7 +811,7 @@ class Control(object):
                 self.cur_dir = filepath
 
         while True:
-            if (self.config['skip_menu'] is False or 
+            if (self.config['skip_menu'] is False or
                 (self.config['rem_db'] is False and
                  self.config['rem_key'] is False)):
                 auth = self.gen_menu(1, (
