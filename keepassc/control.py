@@ -22,7 +22,7 @@ import curses as cur
 from curses.ascii import NL, DEL, SP
 from datetime import date
 from os import chdir, getcwd, getenv, geteuid, makedirs, remove
-from os.path import expanduser, isfile, isdir, realpath
+from os.path import expanduser, isfile, isdir, realpath, join
 from pwd import getpwuid
 from random import sample
 from socket import gethostname
@@ -47,21 +47,21 @@ class Control(object):
 
         '''
 
-        self.config_home = realpath(expanduser(getenv('XDG_CONFIG_HOME')))
-        if self.config_home is None:
-            self.config_home = realpath(expanduser('~/.config/keepassc/config/'))
-        elif self.config_home[-1] != '/':
-            self.config_home += '/'
-        self.config_home += 'keepassc/config'
+        try:
+            self.config_home = realpath(expanduser(getenv('XDG_CONFIG_HOME')))
+        except:
+            self.config_home = realpath(expanduser('~/.config'))
+        finally:
+            self.config_home = join(self.config_home, 'keepassc', 'config')
 
-        self.data_home = realpath(expanduser(getenv('XDG_DATA_HOME')))
-        if self.data_home is None:
-            self.data_home = realpath(expanduser('~/.local/share/keepassc/'))
-        elif self.data_home[-1] != '/':
-            self.data_home += '/'
-        self.data_home += 'keepassc/'
-        self.last_home = self.data_home + 'last'
-        self.key_home = self.data_home + 'key'
+        try:
+            self.data_home = realpath(expanduser(getenv('XDG_DATA_HOME')))
+        except:
+            self.data_home = realpath(expanduser('~/.local/share/'))
+        finally:
+            self.data_home = join(self.data_home, 'keepassc')
+        self.last_home = join(self.data_home, 'last')
+        self.key_home = join(self.data_home, 'key')
 
         self.config = parse_config(self)
 
@@ -659,7 +659,10 @@ class Control(object):
             self.stdscr.refresh()
 
     def get_last_db(self):
-        if isfile(self.last_home):
+        if isfile(self.last_home) and self.config['rem_db'] is False:
+            remove(self.last_home)
+            self.last_file = None
+        elif isfile(self.last_home):
             try:
                 handler = open(self.last_home, 'r')
             except Exception as err:
@@ -672,17 +675,20 @@ class Control(object):
             self.last_file = None
 
     def get_last_key(self):
-        if isfile(self.key_home):
+        if isfile(self.key_home) and self.config['rem_key'] is False:
+            remove(self.key_home)
+            self.last_key = None
+        elif isfile(self.key_home):
             try:
                 handler = open(self.key_home, 'r')
             except Exception as err:
-                self.key_file = None
+                self.last_key = None
                 print(err.__str__())
             else:
                 self.last_key = handler.readline()
                 handler.close()
         else:
-            self.key_file = None
+            self.last_key = None
 
     def main_loop(self, kdb_file=None):
         '''The main loop. The program alway return to this method.'''
@@ -811,7 +817,7 @@ class Control(object):
                 self.cur_dir = filepath
 
         while True:
-            if (self.config['skip_menu'] is False or 
+            if (self.config['skip_menu'] is False or
                 (self.config['rem_db'] is False and
                  self.config['rem_key'] is False)):
                 auth = self.gen_menu(1, (
@@ -842,8 +848,7 @@ class Control(object):
                 # return to previous screen stuff
                 # Use similar constructs elsewhere
                 while True:
-                    if self.config['rem_key'] is True:
-                        self.get_last_key()
+                    self.get_last_key()
                     if (self.last_key is None or
                             self.config['rem_key'] is False):
                         ask_for_lf = False

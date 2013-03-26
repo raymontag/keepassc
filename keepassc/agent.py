@@ -1,3 +1,4 @@
+import logging
 import socket
 import struct
 import sys
@@ -12,11 +13,11 @@ from keepassc.helper import (cbc_encrypt, cbc_decrypt, ecb_decrypt, get_key,
 class Agent(Client, Daemon):
     """The KeePassC agent daemon"""
 
-    def __init__(self, pidfile, server_address = 'localhost', 
-                 server_port = 50000, agent_port = 50001, password = None,
-                 keyfile = None):
-        Client.__init__(self, server_address, server_port, agent_port, 
-                        password, keyfile)
+    def __init__(self, pidfile, loglevel, logfile, 
+                 server_address = 'localhost', server_port = 50000, 
+                 agent_port = 50001, password = None, keyfile = None):
+        Client.__init__(self, loglevel, logfile, server_address, server_port,
+                        agent_port, password, keyfile)
         Daemon.__init__(self, pidfile)
         self.lookup = {
             b'FIND': self.find}
@@ -30,31 +31,31 @@ class Agent(Client, Daemon):
             
             # Listen for commands
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(5)
             sock.bind(self.agent_address)
             sock.listen(1)
-        except OSError:
-            self.stop() # TODO log err
+        except OSError as err:
+            logging.error(err.__str__())
+            self.stop()
+        else:
+            logging.info('Agent socket created on '+self.agent_address[0]+':'+
+                         str(self.agent_address[1]))
 
         while True:
+            conn, client = sock.accept()
+            logging.info('Connected to '+client[0]+':'+str(client[1]))
             try:
-                conn, client = sock.accept()
-            except OSError:
-                continue
-            else:
-                try:
-                    conn.settimeout(5)
-                    cmd = self.receive(conn)
-                    if cmd in self.lookup:
-                        self.lookup[cmd](conn)
-                    elif cmd is False:
-                        conn.sendall(b'Message receive failed') 
-                    else:
-                        conn.sendall(b'Command isn\'t available')
-                except OSError:
-                    continue # log error
-                finally:
-                    conn.close()
+                conn.settimeout(5)
+                cmd = self.receive(conn)
+                if cmd in self.lookup:
+                    self.lookup[cmd](conn)
+                else:
+                    logging.error('Received a wrong command')
+                    conn.sendall(b'Command isn\'t available')
+            except OSError as err:
+                logging.error(err.__str__())
+                continue # log error
+            finally:
+                conn.close()
 
     def find(self, conn):
         """Find Entries"""
@@ -88,10 +89,13 @@ class Agent(Client, Daemon):
                 raise OSError
             data = self.decrypt_msg(answer)
             if data is False:
-                conn.sendall(b'FAIL: Decryption failed. Wrong password?END')
+                msg = 'Decryption failed. Wrong password?'
+                logging.error(msg)
+                conn.sendall(b'FAIL: '+msg.encode()+'END')
             else:
                 conn.sendall(data+b'END')
-        except (OSError, TypeError):
-            return False # TODO log err
+        except (OSError, TypeError) as err:
+            logging.error(err.__str__())
+            return False
         finally:
             serv.close()

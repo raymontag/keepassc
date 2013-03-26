@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import argparse
+import logging
 from getpass import getpass
 from os import getenv
-from os.path import expanduser, realpath
+from os.path import expanduser, realpath, join
 
 from keepassc.daemon import Daemon
 from keepassc.agent import Agent
@@ -19,6 +20,11 @@ def arg_parse():
                         help='Port for the server.', type=int)
     parser.add_argument('-pc', '--port_agent', default=50001,
                         help='Port for the agent.', type=int)
+    parser.add_argument('-l', '--log_level', default = False,
+                        help='Set logging level. Default is ERROR but for'
+                             'analyzing network flow INFO could be useful. '
+                             'Set it with keepassc-agent [...] -l [...] to '
+                             'INFO', action='store_true')
     parser.add_argument('cmd', default=None,
                         help='Daemon command: start|stop|restart', type=str)
     return parser.parse_args()
@@ -28,21 +34,21 @@ if __name__ == '__main__':
     try:
         pidfile = realpath(expanduser(getenv('XDG_DATA_HOME')))
     except:
-        pidfile = realpath(expanduser('~/.local/share/'))
-    else:
-        if pidfile[-1] != '/':
-            pidfile += '/'
-        pidfile += 'keepassc/'
+        pidfile = realpath(expanduser('~/.local/share'))
     finally:
-        pidfile += 'agent.pid'
+        pidfile = join(pidfile, 'keepassc', 'agent.pid')
 
     if args.cmd == 'start':
+        if args.log_level is True:
+            loglevel = logging.INFO
+        else:
+            loglevel = logging.ERROR
         print("Leave blank if you use a keyfile only")
         password = getpass()
         if password == '':
             password = None
-        agent = Agent(pidfile, args.address, args.port, args.port_agent,
-                      password, args.keyfile)
+        agent = Agent(pidfile, loglevel, 'agent.log', args.address, args.port,
+                      args.port_agent, password, args.keyfile)
         agent.start()
     elif args.cmd == 'stop':
         daemon = Daemon(pidfile)

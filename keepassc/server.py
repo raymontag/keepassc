@@ -1,6 +1,7 @@
-import sys
+import logging
 import socket
 import struct
+import sys
 
 from Crypto.Hash import SHA256
 from kppy import KPDB, KPError
@@ -14,9 +15,9 @@ from keepassc.helper import (get_passwordkey, get_filekey, get_key,
 class Server(Connection, Daemon):
     """The KeePassC server daemon"""
 
-    def __init__(self, pidfile, address = 'localhost', port = 50000, db = None,
-                 password = None, keyfile = None):
-        Connection.__init__(self, password, keyfile)
+    def __init__(self, pidfile, loglevel, logfile, address = 'localhost', 
+                 port = 50000, db = None, password = None, keyfile = None):
+        Connection.__init__(self, password, keyfile, loglevel, logfile)
         Daemon.__init__(self, pidfile)
         if db is None:
             print('Need a database path')
@@ -24,7 +25,8 @@ class Server(Connection, Daemon):
         try:
             self.db = KPDB(db, password, keyfile)
         except KPError as err:
-            print(err) # TODO log err
+            print(err)
+            logging.error(err.__str__())
             sys.exit(1)
 
         self.seed1 = self.db._transf_randomseed
@@ -36,7 +38,8 @@ class Server(Connection, Daemon):
             self.final_key = transform_key(self.masterkey, self.seed1, 
                                            self.seed2, self.rounds)
         except TypeError as err:
-            print(err) # TODO log err
+            print(err)
+            logging.error(err.__str__())
             sys.exit(1)
 
         self.lookup = {
@@ -48,19 +51,19 @@ class Server(Connection, Daemon):
         """Overide Daemon.run() and provide sockets"""
         
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(5)
         sock.bind(self.address)
         sock.listen(1)
+        logging.info('Server socket created on '+self.address[0]+':'+
+                     str(self.address[1]))
         while True:
-            try:
-                conn, client = sock.accept()
-            except OSError:
-                continue
+            conn, client = sock.accept()
+            logging.info('Connection from '+client[0]+':'+str(client[1]))
             conn.settimeout(5)
             try:
                 cmd = self.receive(conn)
-            except OSError:
-                pass # TODO log error
+            except OSError as err:
+                logging.error(err.__str__())
+                pass
             else:
                 try:
                     if cmd != b'NEW':
@@ -68,15 +71,19 @@ class Server(Connection, Daemon):
                     if cmd in self.lookup:
                         self.lookup[cmd](conn)
                     elif cmd is False:
+                        logging.error('Decryption of a command failed')
                         conn.sendall(b'FAIL: Decryption of command failedEND')
                     else:
+                        logging.error('Received a wrong command')
                         conn.sendall(b'FAIL: Command isn\'t availableEND')
                 except OSError:
-                    pass # TODO log error; connection will close
+                    logging.error(err.__str__())
+                    pass # connection will close
             finally:
                 conn.close()
 
     def new_connection(self, conn):
+        logging.info('Sended information for new connection')
         msg = (self.seed1+self.seed2+
                struct.pack('<I',self.rounds)+self.vec)
         test_hash = self.create_hash(msg)
@@ -87,7 +94,8 @@ class Server(Connection, Daemon):
 
         conn.sendall(b'ACKEND')
         title = self.decrypt_msg(self.receive(conn))
-        if title is False: # TODO logging
+        if title is False:
+            logging.error('Decryption of title failed')
             conn.sendall(b'FAIL: Decryption of entry title failedEND')
             return False
         msg = ''
