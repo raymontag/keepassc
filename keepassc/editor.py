@@ -376,7 +376,7 @@ class Editor(object):
         return False
 
     def quit_nosave(self):
-        self.text = self.text_orig
+        self.text = False
         return False
 
     def help(self):
@@ -479,6 +479,8 @@ class Editor(object):
         curses.noecho()
         if self.text == -1:
             return -1
+        elif self.text is False:
+            return False
         else:
             return "\n".join(self.text)
 
