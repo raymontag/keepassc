@@ -812,7 +812,7 @@ class DBBrowser(object):
                         self.close()
                     return False
                 else:
-                    if (self.g_highlight >= len(self.db.groups) and
+                    if (self.g_highlight >= len(self.cur_root.children) and
                             self.g_highlight != 0):
                         self.g_highlight -= 1
                     self.e_highlight = 0
