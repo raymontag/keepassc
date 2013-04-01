@@ -22,18 +22,25 @@ class Agent(Client, Daemon):
         self.lookup = {
             b'FIND': self.find}
 
+        try:
+            if self.init_connection(self.server_address) is False:
+                raise OSError('Decryption of encryption information failed.'
+                              ' Wrong password?')
+        except OSError as err:
+            print(err)
+            logging.error(err.__str__())
+            sys.exit(1)
+
     def run(self):
         """Overide Daemon.run() and provide sockets"""
 
         try:
-            if self.init_connection(self.server_address) is False:
-                self.stop()
-            
             # Listen for commands
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.bind(self.agent_address)
             sock.listen(1)
         except OSError as err:
+            print(err)
             logging.error(err.__str__())
             self.stop()
         else:
