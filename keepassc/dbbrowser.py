@@ -83,9 +83,10 @@ class DBBrowser(object):
         if go2results is True:
             self.g_highlight = len(self.groups) - 1
         self.entries = []
-        if self.groups and self.groups[self.g_highlight].entries:
-            self.entries = sorted(self.groups[self.g_highlight].entries,
-                                  key=lambda entry: entry.title.lower())
+        if self.groups:
+            if self.groups[self.g_highlight].entries:
+                self.entries = sorted(self.groups[self.g_highlight].entries,
+                                      key=lambda entry: entry.title.lower())
 
     def pre_save(self):
         '''Prepare saving'''
@@ -349,6 +350,9 @@ class DBBrowser(object):
                 self.close()
         else:
             self.cur_root = self.db._root_group
+            # If last shown group was Results
+            if self.g_highlight >= len(self.groups):
+                self.g_highlight = len(self.groups) - 1
             self.sort_tables(True, False)
             self.state = 0
             self.control.show_groups(self.g_highlight, self.groups,
