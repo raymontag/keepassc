@@ -22,7 +22,9 @@ with the keyboard.
 Install:
 --------
 
-If all dependencies are fulfilled type 'python setup.py install' in the root directory of KeePassC.
+First check if Python 3 is executed on your system with 'python' (e.g. ArchLinux) or with 'python3' (e.g. Fedora). If the latter applies open bin/keepassc with an editor of your choice and edit the first line to '#!/usr/bin/env python3', if the former do nothing.
+
+If all dependencies are fulfilled type 'python setup.py install' resp. 'python3 setup.py install' in the root directory of KeePassC.
 
 Usage:
 ------
