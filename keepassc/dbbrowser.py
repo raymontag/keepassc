@@ -722,6 +722,9 @@ class DBBrowser(object):
                     if self.control.any_key() == -1:
                         self.close()
                 else:
+                    if self.groups[self.g_highlight].id_ == 0:
+                        del (self.groups[self.g_highlight]
+                                 .entries[self.e_highlight])
                     self.sort_tables(True, True)
                     self.changed = True
                     if not self.entries:
@@ -782,20 +785,12 @@ class DBBrowser(object):
             elif title is not False and title != '':
                 self.remove_results()
                 self.db.create_group('Results')
-                self.db.groups[-1].id_ = 0
+                result_group = self.db.groups[-1]
+                result_group.id_ = 0
 
-                # Necessary construct to prevent inf loop
-                for i in range(len(self.db._entries)):
-                    entry = self.db._entries[i]
-                    if title.lower() in entry.title.lower():
-                        exp = entry.expire.timetuple()
-                        self.db.groups[-1].create_entry(
-                            entry.title + ' (' + entry.group.title + ')',
-                            entry.image, entry.url,
-                            entry.username,
-                            entry.password,
-                            entry.comment,
-                            exp[0], exp[1], exp[2])
+                for i in self.db._entries:
+                    if title.lower() in i.title.lower():
+                        result_group.entries.append(i)
                         self.cur_win = 1
                 self.cur_root = self.db._root_group
                 self.sort_tables(True, True, True)
@@ -807,6 +802,7 @@ class DBBrowser(object):
         for i in self.db.groups:
             if i.id_ == 0:
                 try:
+                    i.entries.clear()
                     i.remove_group()
                 except KPError as err:
                     self.control.draw_text(self.changed,
@@ -845,7 +841,8 @@ class DBBrowser(object):
                 if edit == -1:
                     self.close()
                 elif edit is not False:
-                    self.entries[self.e_highlight].set_title(edit)
+                    entry = self.entries[self.e_highlight]
+                    entry.set_title(edit)
                     self.changed = True
 
     def edit_username(self):
@@ -859,8 +856,9 @@ class DBBrowser(object):
             if edit == -1:
                 self.close()
             elif edit is not False:
+                entry = self.entries[self.e_highlight]
+                entry.set_username(edit)
                 self.changed = True
-                self.entries[self.e_highlight].set_username(edit)
 
     def edit_url(self):
         '''Edit URL of marked entry'''
@@ -873,8 +871,9 @@ class DBBrowser(object):
             if edit == -1:
                 self.close()
             elif edit is not False:
+                entry = self.entries[self.e_highlight]
+                entry.set_url(edit)
                 self.changed = True
-                self.entries[self.e_highlight].set_url(edit)
 
     def edit_comment(self):
         '''Edit comment of marked entry'''
@@ -886,8 +885,9 @@ class DBBrowser(object):
             if edit == -1:
                 self.close()
             elif edit is not False:
+                entry = self.entries[self.e_highlight]
+                entry.set_comment(edit)
                 self.changed = True
-                self.entries[self.e_highlight].set_comment(edit)
 
     def edit_password(self):
         '''Edit password of marked entry'''
@@ -901,7 +901,8 @@ class DBBrowser(object):
                 self.close()
             elif password is False:
                 return False
-            self.entries[self.e_highlight].set_password(password)
+            entry = self.entries[self.e_highlight]
+            entry.set_password(password)
             self.changed = True
         elif nav == 2:
             while True:
@@ -917,7 +918,8 @@ class DBBrowser(object):
                     self.close()
 
                 if password == confirm:
-                    self.entries[self.e_highlight].set_password(password)
+                    entry = self.entries[self.e_highlight]
+                    entry.set_password(password)
                     self.changed = True
                     break
                 else:
@@ -939,9 +941,9 @@ class DBBrowser(object):
         if exp_date == -1:
             self.close()
         elif exp_date is not False:
-            self.entries[self.e_highlight].set_expire(
-                exp_date[0], exp_date[1], exp_date[2],
-                exp[3], exp[4], exp[5])
+            entry = self.entries[self.e_highlight]
+            entry.set_expire(exp_date[0], exp_date[1], exp_date[2],
+                             exp[3], exp[4], exp[5])
             self.changed = True
 
     def show_password(self):
