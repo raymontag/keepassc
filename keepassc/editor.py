@@ -73,7 +73,10 @@ class Editor(object):
             except:
                 print('Invisible cursor not supported.')
         else:
-            curses.curs_set(1)
+            try:
+                curses.curs_set(1)
+            except:
+                pass
             curses.echo()
         locale.setlocale(locale.LC_ALL, '')
         curses.use_default_colors()
