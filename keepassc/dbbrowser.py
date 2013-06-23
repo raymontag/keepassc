@@ -22,7 +22,7 @@ import curses as cur
 import os
 import threading
 import webbrowser
-from curses.ascii import NL, DEL
+from curses.ascii import NL, DEL, ESC
 from os.path import isfile, isdir
 from subprocess import Popen, PIPE
 
@@ -83,10 +83,9 @@ class DBBrowser(object):
         if go2results is True:
             self.g_highlight = len(self.groups) - 1
         self.entries = []
-        if self.groups:
-            if self.groups[self.g_highlight].entries:
-                self.entries = sorted(self.groups[self.g_highlight].entries,
-                                      key=lambda entry: entry.title.lower())
+        if self.groups and self.groups[self.g_highlight].entries:
+            self.entries = sorted(self.groups[self.g_highlight].entries,
+                                  key=lambda entry: entry.title.lower())
 
     def pre_save(self):
         '''Prepare saving'''
@@ -350,9 +349,6 @@ class DBBrowser(object):
                 self.close()
         else:
             self.cur_root = self.db._root_group
-            # If last shown group was Results
-            if self.g_highlight >= len(self.groups):
-                self.g_highlight = len(self.groups) - 1
             self.sort_tables(True, False)
             self.state = 0
             self.control.show_groups(self.g_highlight, self.groups,
@@ -722,9 +718,6 @@ class DBBrowser(object):
                     if self.control.any_key() == -1:
                         self.close()
                 else:
-                    if self.groups[self.g_highlight].id_ == 0:
-                        del (self.groups[self.g_highlight]
-                                 .entries[self.e_highlight])
                     self.sort_tables(True, True)
                     self.changed = True
                     if not self.entries:
@@ -773,6 +766,11 @@ class DBBrowser(object):
             self.state = 0
             self.sort_tables(True, True)
 
+    def move_abort(self):
+        self.move_object = None
+        self.state = 0
+        self.sort_tables(True, True)
+
     def find_entries(self):
         '''Find entries by title'''
 
@@ -785,12 +783,20 @@ class DBBrowser(object):
             elif title is not False and title != '':
                 self.remove_results()
                 self.db.create_group('Results')
-                result_group = self.db.groups[-1]
-                result_group.id_ = 0
+                self.db.groups[-1].id_ = 0
 
-                for i in self.db._entries:
-                    if title.lower() in i.title.lower():
-                        result_group.entries.append(i)
+                # Necessary construct to prevent inf loop
+                for i in range(len(self.db._entries)):
+                    entry = self.db._entries[i]
+                    if title.lower() in entry.title.lower():
+                        exp = entry.expire.timetuple()
+                        self.db.groups[-1].create_entry(
+                            entry.title + ' (' + entry.group.title + ')',
+                            entry.image, entry.url,
+                            entry.username,
+                            entry.password,
+                            entry.comment,
+                            exp[0], exp[1], exp[2])
                         self.cur_win = 1
                 self.cur_root = self.db._root_group
                 self.sort_tables(True, True, True)
@@ -802,7 +808,6 @@ class DBBrowser(object):
         for i in self.db.groups:
             if i.id_ == 0:
                 try:
-                    i.entries.clear()
                     i.remove_group()
                 except KPError as err:
                     self.control.draw_text(self.changed,
@@ -841,8 +846,7 @@ class DBBrowser(object):
                 if edit == -1:
                     self.close()
                 elif edit is not False:
-                    entry = self.entries[self.e_highlight]
-                    entry.set_title(edit)
+                    self.entries[self.e_highlight].set_title(edit)
                     self.changed = True
 
     def edit_username(self):
@@ -856,9 +860,8 @@ class DBBrowser(object):
             if edit == -1:
                 self.close()
             elif edit is not False:
-                entry = self.entries[self.e_highlight]
-                entry.set_username(edit)
                 self.changed = True
+                self.entries[self.e_highlight].set_username(edit)
 
     def edit_url(self):
         '''Edit URL of marked entry'''
@@ -871,9 +874,8 @@ class DBBrowser(object):
             if edit == -1:
                 self.close()
             elif edit is not False:
-                entry = self.entries[self.e_highlight]
-                entry.set_url(edit)
                 self.changed = True
+                self.entries[self.e_highlight].set_url(edit)
 
     def edit_comment(self):
         '''Edit comment of marked entry'''
@@ -885,9 +887,8 @@ class DBBrowser(object):
             if edit == -1:
                 self.close()
             elif edit is not False:
-                entry = self.entries[self.e_highlight]
-                entry.set_comment(edit)
                 self.changed = True
+                self.entries[self.e_highlight].set_comment(edit)
 
     def edit_password(self):
         '''Edit password of marked entry'''
@@ -901,8 +902,7 @@ class DBBrowser(object):
                 self.close()
             elif password is False:
                 return False
-            entry = self.entries[self.e_highlight]
-            entry.set_password(password)
+            self.entries[self.e_highlight].set_password(password)
             self.changed = True
         elif nav == 2:
             while True:
@@ -918,8 +918,7 @@ class DBBrowser(object):
                     self.close()
 
                 if password == confirm:
-                    entry = self.entries[self.e_highlight]
-                    entry.set_password(password)
+                    self.entries[self.e_highlight].set_password(password)
                     self.changed = True
                     break
                 else:
@@ -941,9 +940,9 @@ class DBBrowser(object):
         if exp_date == -1:
             self.close()
         elif exp_date is not False:
-            entry = self.entries[self.e_highlight]
-            entry.set_expire(exp_date[0], exp_date[1], exp_date[2],
-                             exp[3], exp[4], exp[5])
+            self.entries[self.e_highlight].set_expire(
+                exp_date[0], exp_date[1], exp_date[2],
+                exp[3], exp[4], exp[5])
             self.changed = True
 
     def show_password(self):
@@ -1073,6 +1072,9 @@ class DBBrowser(object):
 
         if self.entries:
             self.cur_win = 1
+            self.control.show_groups(self.g_highlight, self.groups,
+                                     self.cur_win, self.g_offset,
+                                     self.changed, self.cur_root)
 
     def go2sub(self):
         '''Change to subgroups of current root'''
@@ -1155,6 +1157,9 @@ class DBBrowser(object):
             ord('3'): self.unlock_with_both}
 
         move_states = {
+            ord('e'): self.exit2main,
+            ord('q'): self.quit_kpc,
+            4: self.quit_kpc,
             cur.KEY_DOWN: self.nav_down,
             ord('j'): self.nav_down,
             cur.KEY_UP: self.nav_up,
@@ -1164,7 +1169,13 @@ class DBBrowser(object):
             cur.KEY_RIGHT: self.go2sub,
             ord('l'): self.go2sub,
             NL: self.move_group_or_entry,
-            cur.KEY_BACKSPACE: self.move2root}
+            cur.KEY_BACKSPACE: self.move2root,
+            DEL: self.move2root,
+            ESC: self.move_abort}
+
+        exceptions = (ord('s'), ord('S'), ord('P'), ord('t'), ord('p'), 
+                      ord('u'), ord('U'), ord('C'), ord('E'), ord('H'), 
+                      ord('g'), ord('d'), ord('y'))
 
         while True:
             if (self.control.config['lock_db'] and self.state == 0 and
@@ -1190,10 +1201,12 @@ class DBBrowser(object):
                 if c == ord('e'):
                     return False
                 if self.state == 0 or self.state == 4:  # 'cause 'L' changes state
-                    self.control.show_groups(self.g_highlight, self.groups,
-                                             self.cur_win, self.g_offset,
-                                             self.changed, self.cur_root)
-                    self.control.show_entries(self.e_highlight, self.entries,
+                    if self.cur_win == 0 or c in exceptions:
+                        self.control.show_groups(self.g_highlight, self.groups,
+                                                 self.cur_win, self.g_offset,
+                                                 self.changed, self.cur_root)
+                    self.control.show_entries(self.e_highlight, 
+                                              self.entries,
                                               self.cur_win, self.e_offset)
             elif self.state == 1 and c in locked_state:
                 locked_state[c]()
