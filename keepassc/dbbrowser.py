@@ -22,7 +22,7 @@ import curses as cur
 import os
 import threading
 import webbrowser
-from curses.ascii import NL, DEL
+from curses.ascii import NL, DEL, ESC
 from os.path import isfile, isdir
 from subprocess import Popen, PIPE
 
@@ -766,6 +766,11 @@ class DBBrowser(object):
             self.state = 0
             self.sort_tables(True, True)
 
+    def move_abort(self):
+        self.move_object = None
+        self.state = 0
+        self.sort_tables(True, True)
+
     def find_entries(self):
         '''Find entries by title'''
 
@@ -1067,6 +1072,9 @@ class DBBrowser(object):
 
         if self.entries:
             self.cur_win = 1
+            self.control.show_groups(self.g_highlight, self.groups,
+                                     self.cur_win, self.g_offset,
+                                     self.changed, self.cur_root)
 
     def go2sub(self):
         '''Change to subgroups of current root'''
@@ -1149,6 +1157,9 @@ class DBBrowser(object):
             ord('3'): self.unlock_with_both}
 
         move_states = {
+            ord('e'): self.exit2main,
+            ord('q'): self.quit_kpc,
+            4: self.quit_kpc,
             cur.KEY_DOWN: self.nav_down,
             ord('j'): self.nav_down,
             cur.KEY_UP: self.nav_up,
@@ -1158,7 +1169,13 @@ class DBBrowser(object):
             cur.KEY_RIGHT: self.go2sub,
             ord('l'): self.go2sub,
             NL: self.move_group_or_entry,
-            cur.KEY_BACKSPACE: self.move2root}
+            cur.KEY_BACKSPACE: self.move2root,
+            DEL: self.move2root,
+            ESC: self.move_abort}
+
+        exceptions = (ord('s'), ord('S'), ord('P'), ord('t'), ord('p'), 
+                      ord('u'), ord('U'), ord('C'), ord('E'), ord('H'), 
+                      ord('g'), ord('d'), ord('y'))
 
         while True:
             if (self.control.config['lock_db'] and self.state == 0 and
@@ -1184,10 +1201,12 @@ class DBBrowser(object):
                 if c == ord('e'):
                     return False
                 if self.state == 0 or self.state == 4:  # 'cause 'L' changes state
-                    self.control.show_groups(self.g_highlight, self.groups,
-                                             self.cur_win, self.g_offset,
-                                             self.changed, self.cur_root)
-                    self.control.show_entries(self.e_highlight, self.entries,
+                    if self.cur_win == 0 or c in exceptions:
+                        self.control.show_groups(self.g_highlight, self.groups,
+                                                 self.cur_win, self.g_offset,
+                                                 self.changed, self.cur_root)
+                    self.control.show_entries(self.e_highlight, 
+                                              self.entries,
                                               self.cur_win, self.e_offset)
             elif self.state == 1 and c in locked_state:
                 locked_state[c]()
