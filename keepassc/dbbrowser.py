@@ -83,9 +83,10 @@ class DBBrowser(object):
         if go2results is True:
             self.g_highlight = len(self.groups) - 1
         self.entries = []
-        if self.groups and self.groups[self.g_highlight].entries:
-            self.entries = sorted(self.groups[self.g_highlight].entries,
-                                  key=lambda entry: entry.title.lower())
+        if self.groups:
+            if self.groups[self.g_highlight].entries:
+                self.entries = sorted(self.groups[self.g_highlight].entries,
+                                      key=lambda entry: entry.title.lower())
 
     def pre_save(self):
         '''Prepare saving'''
@@ -349,6 +350,9 @@ class DBBrowser(object):
                 self.close()
         else:
             self.cur_root = self.db._root_group
+            # If last shown group was Results
+            if self.g_highlight >= len(self.groups):
+                self.g_highlight = len(self.groups) - 1 
             self.sort_tables(True, False)
             self.state = 0
             self.control.show_groups(self.g_highlight, self.groups,
@@ -718,6 +722,9 @@ class DBBrowser(object):
                     if self.control.any_key() == -1:
                         self.close()
                 else:
+                    if self.groups[self.g_highlight].id_ == 0:
+                        del (self.groups[self.g_highlight]
+                                 .entries[self.e_highlight]) 
                     self.sort_tables(True, True)
                     self.changed = True
                     if not self.entries:
@@ -783,20 +790,13 @@ class DBBrowser(object):
             elif title is not False and title != '':
                 self.remove_results()
                 self.db.create_group('Results')
-                self.db.groups[-1].id_ = 0
+                result_group = self.db.groups[-1]
+                result_group.id_ = 0
 
                 # Necessary construct to prevent inf loop
-                for i in range(len(self.db._entries)):
-                    entry = self.db._entries[i]
-                    if title.lower() in entry.title.lower():
-                        exp = entry.expire.timetuple()
-                        self.db.groups[-1].create_entry(
-                            entry.title + ' (' + entry.group.title + ')',
-                            entry.image, entry.url,
-                            entry.username,
-                            entry.password,
-                            entry.comment,
-                            exp[0], exp[1], exp[2])
+                for i in self.db._entries:
+                    if title.lower() in i.title.lower():
+                        result_group.entries.append(i)
                         self.cur_win = 1
                 self.cur_root = self.db._root_group
                 self.sort_tables(True, True, True)
@@ -808,6 +808,7 @@ class DBBrowser(object):
         for i in self.db.groups:
             if i.id_ == 0:
                 try:
+                    i.entries.clear()
                     i.remove_group()
                 except KPError as err:
                     self.control.draw_text(self.changed,
@@ -1017,11 +1018,14 @@ class DBBrowser(object):
                 if url[:7] != 'http://' and url[:8] != 'https://':
                     url = 'http://' + url
                 savout = os.dup(1)
+                saverr = os.dup(2)
                 os.close(1)
+                os.close(2)
                 os.open(os.devnull, os.O_RDWR)
                 try:
                     webbrowser.open(url)
                 finally:
+                    os.dup2(saverr, 2)
                     os.dup2(savout, 1)
 
     def nav_down(self):
@@ -1175,7 +1179,8 @@ class DBBrowser(object):
 
         exceptions = (ord('s'), ord('S'), ord('P'), ord('t'), ord('p'), 
                       ord('u'), ord('U'), ord('C'), ord('E'), ord('H'), 
-                      ord('g'), ord('d'), ord('y'))
+                      ord('g'), ord('d'), ord('y'), ord('f'), ord('/'),
+                      cur.KEY_F1)
 
         while True:
             if (self.control.config['lock_db'] and self.state == 0 and
