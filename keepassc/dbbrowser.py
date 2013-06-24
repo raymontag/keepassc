@@ -795,7 +795,7 @@ class DBBrowser(object):
 
                 # Necessary construct to prevent inf loop
                 for i in self.db._entries:
-                    if title.lower() in i.title.lower()
+                    if title.lower() in i.title.lower():
                         result_group.entries.append(i)
                         self.cur_win = 1
                 self.cur_root = self.db._root_group
