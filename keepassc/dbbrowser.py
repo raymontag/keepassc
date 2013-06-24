@@ -1018,11 +1018,14 @@ class DBBrowser(object):
                 if url[:7] != 'http://' and url[:8] != 'https://':
                     url = 'http://' + url
                 savout = os.dup(1)
+                saverr = os.dup(2)
                 os.close(1)
+                os.close(2)
                 os.open(os.devnull, os.O_RDWR)
                 try:
                     webbrowser.open(url)
                 finally:
+                    os.dup2(saverr, 2)
                     os.dup2(savout, 1)
 
     def nav_down(self):
