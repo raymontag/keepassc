@@ -28,7 +28,7 @@ setup(name = "keepassc",
       download_url = "https://github.com/raymontag/keepassc/tarball/master",
       description = "A password manager that is fully compatible to KeePass v.1.x and KeePassX",
       packages = ['keepassc'],
-      scripts = ['bin/keepassc', 'bin/keepassc-server', 'bin/keepassc-agent', 'bin/keepassc-gpg],
+      scripts = ['bin/keepassc', 'bin/keepassc-server', 'bin/keepassc-agent'],
       classifiers = [
           'Programming Language :: Python :: 3.3',
           'Operating System :: POSIX',

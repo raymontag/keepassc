@@ -43,12 +43,14 @@ if __name__ == '__main__':
             loglevel = logging.INFO
         else:
             loglevel = logging.ERROR
+        '''
         print("Leave blank if you use a keyfile only")
         password = getpass()
         if password == '':
             password = None
+        '''
         agent = Agent(pidfile, loglevel, 'agent.log', args.address, args.port,
-                      args.port_agent, password, args.keyfile)
+                      args.port_agent)
         agent.start()
     elif args.cmd == 'stop':
         daemon = Daemon(pidfile)

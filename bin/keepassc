@@ -72,6 +72,12 @@ def arg_parse():
                         'matching string parts\n\n'
                         'WARNING: Your passwords will be displayed '
                         'directly on your command line!')
+    parser.add_argument('-l', '--log_level', default = False,
+                        help='Set logging level for network use. '
+                             'Default is ERROR but for '
+                             'analyzing network flow INFO could be useful. '
+                             'Set it with keepassc [...] -l [...] to '
+                             'INFO', action='store_true')
     return parser.parse_args()
 
 
@@ -120,6 +126,7 @@ def direct_connection():
 
     '''
 
+    '''
     # Get password
     print("Leave blank if you use a keyfile only")
     password = getpass()
@@ -128,6 +135,7 @@ def direct_connection():
         exit(0)
     elif password == '':
         password = None
+    '''
 
     # Get entry title
     if args.entry:
@@ -136,8 +144,9 @@ def direct_connection():
         entry = input('Part of title: ').encode()
 
     # Establish connection and find entry
-    client = Client(args.address_server, args.port_server,
-                   None, password, args.keyfile)
+    client = Client(args.log_level, 'client.log', args.address_server,
+                    args.port_server, None)
+    '''
     try:
         if client.init_connection(client.server_address) is False:
             print("Hash test failed while initializing connection. "
@@ -146,6 +155,7 @@ def direct_connection():
     except (OSError, TypeError) as err:
         print(err)
         exit(0)
+    '''
 
     data = client.find(entry)
     if data is False:
@@ -170,7 +180,7 @@ def use_agent():
         entry = input('Part of title: ').encode()
         
     # Establish connect to agent
-    conn = Connection('', None)
+    conn = Connection(args.log_level, 'client.log')
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         sock.connect(('localhost', args.port_agent))

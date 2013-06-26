@@ -1,5 +1,6 @@
 import logging
 import socket
+import ssl
 import struct
 import sys
 
@@ -15,9 +16,9 @@ from keepassc.helper import (get_passwordkey, get_filekey, get_key,
 class Server(Connection, Daemon):
     """The KeePassC server daemon"""
 
-    def __init__(self, pidfile, loglevel, logfile, address = 'localhost', 
+    def __init__(self, pidfile, loglevel, logfile, address = 'localhost',
                  port = 50000, db = None, password = None, keyfile = None):
-        Connection.__init__(self, password, keyfile, loglevel, logfile)
+        Connection.__init__(self, loglevel, logfile)
         Daemon.__init__(self, pidfile)
         if db is None:
             print('Need a database path')
@@ -29,21 +30,7 @@ class Server(Connection, Daemon):
             logging.error(err.__str__())
             sys.exit(1)
 
-        self.seed1 = self.db._transf_randomseed
-        self.seed2 = self.db._final_randomseed
-        self.rounds = self.db._key_transf_rounds
-        self.vec = self.db._enc_iv
-        try:
-            self.masterkey = get_key(self.db.password, self.db.keyfile)
-            self.final_key = transform_key(self.masterkey, self.seed1, 
-                                           self.seed2, self.rounds)
-        except TypeError as err:
-            print(err)
-            logging.error(err.__str__())
-            sys.exit(1)
-
         self.lookup = {
-            b'NEW': self.new_connection,
             b'FIND': self.find}
         self.address = (address, port)
 
@@ -66,38 +53,22 @@ class Server(Connection, Daemon):
                 pass
             else:
                 try:
-                    if cmd != b'NEW':
-                        cmd = self.decrypt_msg(cmd)
                     if cmd in self.lookup:
                         self.lookup[cmd](conn)
-                    elif cmd is False:
-                        logging.error('Decryption of a command failed')
-                        conn.sendall(b'FAIL: Decryption of command failedEND')
                     else:
                         logging.error('Received a wrong command')
                         conn.sendall(b'FAIL: Command isn\'t availableEND')
-                except OSError:
+                except (OSError, ValueError):
                     logging.error(err.__str__())
                     pass # connection will close
             finally:
                 conn.close()
 
-    def new_connection(self, conn):
-        logging.info('Sended information for new connection')
-        msg = (self.seed1+self.seed2+
-               struct.pack('<I',self.rounds)+self.vec)
-        test_hash = self.create_hash(msg)
-        conn.sendall(ecb_encrypt(msg, self.masterkey)+test_hash+b'END')
-
     def find(self, conn):
         """Find entries and send them to connection"""
 
         conn.sendall(b'ACKEND')
-        title = self.decrypt_msg(self.receive(conn))
-        if title is False:
-            logging.error('Decryption of title failed')
-            conn.sendall(b'FAIL: Decryption of entry title failedEND')
-            return False
+        title = self.receive(conn)
         msg = ''
         for i in self.db._entries:
             if title.decode().lower() in i.title.lower():

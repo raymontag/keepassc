@@ -15,16 +15,16 @@ class Agent(Client, Daemon):
 
     def __init__(self, pidfile, loglevel, logfile, 
                  server_address = 'localhost', server_port = 50000, 
-                 agent_port = 50001, password = None, keyfile = None):
+                 agent_port = 50001):
         Client.__init__(self, loglevel, logfile, server_address, server_port,
-                        agent_port, password, keyfile)
+                        agent_port)
         Daemon.__init__(self, pidfile)
         self.lookup = {
             b'FIND': self.find}
 
         try:
             if self.init_connection(self.server_address) is False:
-                raise OSError('Decryption of encryption information failed.'
+                raise OSError('Validation of server certificate failed.'
                               ' Wrong password?')
         except OSError as err:
             print(err)
@@ -70,37 +70,29 @@ class Agent(Client, Daemon):
         try:
             serv = self.connect_server()
             if self.sendmsg(serv, b'FIND') is False:
-                conn.sendall(b'FAIL: Server doesn\'t receive message')
+                conn.sendall(b'FAIL: Server doesn\'t receive messageEND')
                 raise OSError
             answer = self.receive(serv)
             if answer[:4] == b'FAIL':
-                conn.sendall(answer)
+                conn.sendall(answer+b'END')
                 raise OSError
             elif answer is False:
-                conn.sendall(b'FAIL: Can\'t receive message from server')
+                conn.sendall(b'FAIL: Can\'t receive message from serverEND')
                 raise OSError
             else:
                 conn.sendall(b'ACKEND')
             title = self.receive(conn)
-            if title is False:
-                raise OSError
             if self.sendmsg(serv, title) is False:
-                conn.sendall(b'FAIL: Can\'t send message to server')
+                conn.sendall(b'FAIL: Can\'t send message to serverEND')
                 raise OSError
             answer = self.receive(serv)
             if answer[:4] == b'FAIL':
                 conn.sendall(answer)
                 raise OSError
             elif answer is False:
-                conn.sendall(b'FAIL: Can\'t receive message from server')
+                conn.sendall(b'FAIL: Can\'t receive message from serverEND')
                 raise OSError
-            data = self.decrypt_msg(answer)
-            if data is False:
-                msg = 'Decryption failed. Wrong password?'
-                logging.error(msg)
-                conn.sendall(b'FAIL: '+msg.encode()+'END')
-            else:
-                conn.sendall(data+b'END')
+            conn.sendall(answer+b'END')
         except (OSError, TypeError) as err:
             logging.error(err.__str__())
             return False
