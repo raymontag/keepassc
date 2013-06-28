@@ -49,14 +49,13 @@ class Daemon(object):
 		os.dup2(si.fileno(), sys.stdin.fileno())
 		os.dup2(so.fileno(), sys.stdout.fileno())
 		os.dup2(se.fileno(), sys.stderr.fileno())
-	
 		# write pidfile
 		atexit.register(self.delpid)
 
 		pid = str(os.getpid())
 		with open(self.pidfile,'w+') as f:
 			f.write(pid + '\n')
-	
+	    
 	def delpid(self):
 		os.remove(self.pidfile)
 

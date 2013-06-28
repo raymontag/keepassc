@@ -19,7 +19,7 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 from os import makedirs, remove
-from os.path import isdir, isfile
+from os.path import isdir, isfile, expanduser, realpath
 
 from Crypto.Hash import SHA256
 from Crypto.Cipher import AES
@@ -120,7 +120,7 @@ def get_filekey(keyfile):
         buf = handler.read()
     except:
         raise OSError('Could not open or read file.')
-    finally:
+    else:
         handler.close()
     sha = SHA256.new()
     if len(buf) == 33:
@@ -139,16 +139,42 @@ def get_filekey(keyfile):
                 buf = buf[2048:]
         return sha.digest()
 
-def get_key(password, keyfile):
+def get_remote_filekey(buf):
+    """This method creates a key from a keyfile."""
+
+    sha = SHA256.new()
+    if len(buf) == 33:
+        sha.update(buf)
+        return sha.digest()
+    elif len(buf) == 65:
+        sha.update(struct.unpack('<65s', buf)[0].decode())
+        return sha.digest()
+    else:
+        while buf:
+            if len(buf) <= 2049:
+                sha.update(buf)
+                buf = []
+            else:
+                sha.update(buf[:2048])
+                buf = buf[2048:]
+        return sha.digest()
+
+def get_key(password, keyfile, remote = False):
     """Get a key generated from KeePass-password and -keyfile"""
 
     if password is None and keyfile is None:
         raise TypeError('None type not allowed')
     elif password is None:
-        masterkey = get_filekey(keyfile)
+        if remote is True:
+            masterkey = get_remote_filekey(keyfile)
+        else:
+            masterkey = get_filekey(keyfile)
     elif password is not None and keyfile is not None:
         passwordkey = get_passwordkey(password)
-        filekey = get_filekey(keyfile)
+        if remote is True:
+            filekey = get_remote_filekey(keyfile)
+        else:
+            filekey = get_filekey(keyfile)
         sha = SHA256.new()
         sha.update(passwordkey+filekey)
         masterkey = sha.digest()

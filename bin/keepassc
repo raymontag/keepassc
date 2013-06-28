@@ -126,7 +126,6 @@ def direct_connection():
 
     '''
 
-    '''
     # Get password
     print("Leave blank if you use a keyfile only")
     password = getpass()
@@ -135,7 +134,6 @@ def direct_connection():
         exit(0)
     elif password == '':
         password = None
-    '''
 
     # Get entry title
     if args.entry:
@@ -145,24 +143,11 @@ def direct_connection():
 
     # Establish connection and find entry
     client = Client(args.log_level, 'client.log', args.address_server,
-                    args.port_server, None)
-    '''
-    try:
-        if client.init_connection(client.server_address) is False:
-            print("Hash test failed while initializing connection. "
-                  "Probably wrong password used.")
-            exit(0)
-    except (OSError, TypeError) as err:
-        print(err)
-        exit(0)
-    '''
+                    args.port_server, None, password, args.keyfile)
 
     data = client.find(entry)
-    if data is False:
-        print("Hash test failed while entry information received.")
-        exit(0)
-    elif data[:4] == b'FAIL':
-        print(data.decode())
+    if data[:4] == 'FAIL':
+        print(data)
         exit(0)
 
     data = data.decode().split('\n')
@@ -185,7 +170,7 @@ def use_agent():
     try:
         sock.connect(('localhost', args.port_agent))
         # Init sequence
-        sock.sendall(b'FINDEND')
+        sock.sendall(b'FIND\xDE\xAD\xE1\x1D')
     except OSError as err:
         print(err.__str__())
         exit(0)
@@ -200,7 +185,7 @@ def use_agent():
 
     # Receive information
     try:
-        sock.sendall(entry+b'END')
+        sock.sendall(entry+b'\xDE\xAD\xE1\x1D')
     except OSError as err:
         print(err.__str__())
         exit(0)
