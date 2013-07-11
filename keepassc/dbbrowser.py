@@ -1180,7 +1180,7 @@ class DBBrowser(object):
         exceptions = (ord('s'), ord('S'), ord('P'), ord('t'), ord('p'), 
                       ord('u'), ord('U'), ord('C'), ord('E'), ord('H'), 
                       ord('g'), ord('d'), ord('y'), ord('f'), ord('/'),
-                      cur.KEY_F1)
+                      cur.KEY_F1, cur.KEY_RESIZE)
 
         while True:
             if (self.control.config['lock_db'] and self.state == 0 and

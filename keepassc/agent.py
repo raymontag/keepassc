@@ -1,4 +1,5 @@
 import logging
+import signal
 import socket
 import struct
 import sys
@@ -21,6 +22,7 @@ class Agent(Client, Daemon):
         Daemon.__init__(self, pidfile)
         self.lookup = {
             b'FIND': self.find}
+        self.sock = None
 
         # Agent is a daemon and cannot find the keyfile after run
         if self.keyfile is not None:
@@ -30,41 +32,48 @@ class Agent(Client, Daemon):
         else:
             self.keyfile = b''
 
-    def connect_server(self):
-        """Overrides Client.connect_server"""
+        #Handle SIGTERM
+        signal.signal(signal.SIGTERM, self.handle_sigterm)
 
-        conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            conn.connect(self.server_address)
-        except:
-            raise
-        else:
-            logging.info('Connected to '+self.server_address[0]+':'+
-                         str(self.server_address[1]))
-        conn.settimeout(5)
+    def send_cmd(self, *cmd):
+        """Overrides Client.connect_server"""
 
         if self.password is None:
             password = b''
         else:
             password = self.password.encode() 
 
-        self.sendmsg(conn, password)
-        self.sendmsg(conn, self.keyfile)
-        ret = self.receive(conn)
-        if ret[:4] == b'FAIL':
-            logging.error(ret.decode())
-            return False
-        else:
-            return conn
+        tmp = [password, self.keyfile]
+        tmp.extend(cmd)
+        cmd_chain = self.build_message(tmp)
+
+        try:
+            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            conn.connect(self.server_address)
+        except:
+            raise
+
+        try:
+            logging.info('Connected to '+self.server_address[0]+':'+
+                         str(self.server_address[1]))
+            conn.settimeout(60)
+            self.sendmsg(conn, cmd_chain)
+            answer = self.receive(conn)
+        except:
+            raise
+        finally:
+            conn.close()
+
+        return answer
 
     def run(self):
         """Overide Daemon.run() and provide sockets"""
 
         try:
             # Listen for commands
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.bind(self.agent_address)
-            sock.listen(1)
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.bind(self.agent_address)
+            self.sock.listen(1)
         except OSError as err:
             print(err)
             logging.error(err.__str__())
@@ -74,56 +83,34 @@ class Agent(Client, Daemon):
                          str(self.agent_address[1]))
 
         while True:
-            conn, client = sock.accept()
+            conn, client = self.sock.accept()
             logging.info('Connected to '+client[0]+':'+str(client[1]))
+            conn.settimeout(60)
             try:
-                conn.settimeout(5)
-                cmd = self.receive(conn)
+                parts = self.receive(conn).split(b'\xB2\xEA\xC0')
+                cmd = parts.pop(0)
                 if cmd in self.lookup:
-                    self.lookup[cmd](conn)
+                    self.lookup[cmd](conn, parts)
                 else:
                     logging.error('Received a wrong command')
-                    self.sendmsg(conn, b'Command isn\'t available')
+                    self.sendmsg(conn, b'FAIL: Command isn\'t available')
             except OSError as err:
                 logging.error(err.__str__())
             finally:
                 conn.close()
 
-    def find(self, conn):
+    def find(self, conn, cmd_misc):
         """Find Entries"""
 
         try:
-            serv = self.connect_server()
-            if serv is False:
-                self.sendmsg(conn, b'FAIL: Wrong password')
-                raise OSError
-            if self.sendmsg(serv, b'FIND') is False:
-                self.sendmsg(conn, b'FAIL: Server doesn\'t receive message')
-                raise OSError
-            answer = self.receive(serv)
-            if answer[:4] == b'FAIL':
-                self.sendmsg(conn, answer)
-                raise OSError
-            elif answer is False:
-                self.sendmsg(conn, b'FAIL: Can\'t receive message from server')
-                raise OSError
-            else:
-                self.sendmsg(conn, b'ACK')
-            title = self.receive(conn)
-            if self.sendmsg(serv, title) is False:
-                self.sendmsg(conn, b'FAIL: Can\'t send message to server')
-                raise OSError
-            answer = self.receive(serv)
-            if answer[:4] == b'FAIL':
-                self.sendmsg(conn, answer)
-                raise OSError
-            elif answer is False:
-                self.sendmsg(conn, b'FAIL: Can\'t receive message from server')
-                raise OSError
+            answer = self.send_cmd(b'FIND', cmd_misc[0])
             self.sendmsg(conn, answer)
+            if answer[:4] == b'FAIL':
+                raise OSError(answer.decode())
         except (OSError, TypeError) as err:
             logging.error(err.__str__())
-            return False
-        finally:
-            serv.close()
+
+    def handle_sigterm(self, signum, frame):
+        self.sock.close()
+        del self.keyfile
 

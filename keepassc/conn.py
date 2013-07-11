@@ -24,6 +24,25 @@ class Connection(object):
         self.password = password
         self.keyfile = keyfile
 
+    def build_message(self, parts):    
+        """Join many parts to one message with a seperator
+
+        A message will look like
+
+        b'foo\xB2\xEA\xC0bar\xB2\xEA\xC0foobar'
+
+        so that it could easily splitted by .split
+
+        """
+
+        msg = b''
+        for i in parts[:-1]:
+            msg += i
+            msg += b'\xB2\xEA\xC0' # \xB2\xEA\xC0 = BREAK
+        msg += parts[-1]
+
+        return msg
+
     def receive(self, conn):
         """Receive a message"""
 
@@ -35,23 +54,28 @@ class Connection(object):
                 received = conn.recv(16)
             except:
                 raise
-            if b'\xDE\xAD\xE1\x1D' in received:
+            if b'\xDE\xAD\xE1\x1D' in received: 
                 data += received[:received.find(b'\xDE\xAD\xE1\x1D')]
                 break
             else:
                 data += received
-                if data[-3:] == b'\xDE\xAD\xE1\x1D':
-                    data = data[:-3]
+                if data[-4:] == b'\xDE\xAD\xE1\x1D':
+                    data = data[:-4]
                     break
         return data
 
     def sendmsg(self, sock, msg):
-        """Send message"""
+        """Send message
+
+        \xDE\xAD\xE1\x1D marks the end of the message
+        
+        """
 
         ip, port = sock.getpeername()
         try:
             logging.info('Send a message to '+ip+':'+str(port))
-            sock.sendall(msg + b'\xDE\xAD\xE1\x1D')
+            # \xDE\xAD\xE1\x1D = DEAD END
+            sock.sendall(msg + b'\xDE\xAD\xE1\x1D') 
         except:
             raise
 
