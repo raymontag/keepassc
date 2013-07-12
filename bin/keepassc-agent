@@ -25,6 +25,8 @@ def arg_parse():
                              'analyzing network flow INFO could be useful. '
                              'Set it with keepassc-agent [...] -l [...] to '
                              'INFO', action='store_true')
+    parser.add_argument('-s', '--ssl', default=False,
+                        help='Use SSL/TLS.', action='store_true')
     parser.add_argument('cmd', default=None,
                         help='Daemon command: start|stop|restart', type=str)
     return parser.parse_args()
@@ -32,11 +34,15 @@ def arg_parse():
 if __name__ == '__main__':
     args = arg_parse()
     try:
-        pidfile = realpath(expanduser(getenv('XDG_DATA_HOME')))
+        datapath = realpath(expanduser(getenv('XDG_DATA_HOME')))
     except:
-        pidfile = realpath(expanduser('~/.local/share'))
+        datapath = realpath(expanduser('~/.local/share'))
     finally:
-        pidfile = join(pidfile, 'keepassc', 'agent.pid')
+        pidfile = join(datapath, 'keepassc', 'agent.pid')
+        if args.ssl is True:
+            tls_dir = join(datapath, 'keepassc', 'cacert.pem')
+        else:
+            tls_dir = None
 
     if args.cmd == 'start':
         if args.log_level is True:
@@ -50,7 +56,8 @@ if __name__ == '__main__':
             password = None
 
         agent = Agent(pidfile, loglevel, 'agent.log', args.address, args.port,
-                      args.port_agent, password, args.keyfile)
+                      args.port_agent, password, args.keyfile, args.ssl, 
+                      tls_dir)
         agent.start()
     elif args.cmd == 'stop':
         daemon = Daemon(pidfile)

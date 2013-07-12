@@ -25,6 +25,8 @@ def arg_parse():
                              'analyzing network flow INFO could be useful. '
                              'Set it with keepassc-server [...] -l [...] to '
                              'INFO', action='store_true')
+    parser.add_argument('-s', '--ssl', default=False,
+                        help='Use SSL/TLS.', action='store_true')
     parser.add_argument('cmd', default=None,
                         help='Daemon command: start|stop|restart', type=str)
     return parser.parse_args()
@@ -37,6 +39,10 @@ if __name__ == '__main__':
         datapath = realpath(expanduser('~/.local/share'))
     finally:
         pidfile = join(datapath, 'keepassc', 'server.pid')
+        if args.ssl is True:
+            tls_dir = join(datapath, 'keepassc')
+        else:
+            tls_dir = None
 
     if args.cmd == 'start':
         if args.log_level is True:
@@ -52,7 +58,8 @@ if __name__ == '__main__':
         if password == '':
             password = None
         server = Server(pidfile, loglevel, 'server.log', args.address, 
-                        args.port, args.database, password, args.keyfile)
+                        args.port, args.database, password, args.keyfile,
+                        args.ssl, tls_dir)
         server.start()
     elif args.cmd == 'stop':
         daemon = Daemon(pidfile)

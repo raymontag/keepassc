@@ -24,7 +24,7 @@ import socket
 from curses import wrapper
 from getpass import getpass
 from os import geteuid
-from os.path import expanduser, realpath, splitext
+from os.path import expanduser, realpath, splitext, join
 from sys import exit, stdout
 
 from kppy import KPDB, KPError
@@ -64,6 +64,8 @@ def arg_parse():
                         help='Use agent for remote connection')
     parser.add_argument('-dc', '--direct_conn', action='store_true', default=False,
                         help='Connect directly to server')
+    parser.add_argument('-s', '--ssl', action='store_true', default=False,
+                        help='Use SSL/TLS')
     parser.add_argument('-e', '--entry', help='Print entry with parsed '
                         'title\nYou will see a password prompt; leave it '
                         'blank if you only want to use a key-file\nJust '
@@ -141,9 +143,20 @@ def direct_connection():
     else:
         entry = input('Part of title: ').encode()
 
+    if args.ssl is True:
+        try:
+            datapath = realpath(expanduser(getenv('XDG_DATA_HOME')))
+        except:
+            datapath = realpath(expanduser('~/.local/share'))
+        finally:
+            tls_dir = join(datapath, 'keepassc', 'cacert.pem')
+    else:
+        tls_dir = None
+
     # Establish connection and find entry
     client = Client(args.log_level, 'client.log', args.address_server,
-                    args.port_server, None, password, args.keyfile)
+                    args.port_server, None, password, args.keyfile,
+                    args.ssl, tls_dir)
 
     data = client.find(entry)
     if data[:4] == 'FAIL':

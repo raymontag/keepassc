@@ -1,5 +1,6 @@
 import logging
 import socket
+import ssl
 import struct
 
 from Crypto.Hash import SHA256
@@ -11,10 +12,18 @@ class Client(Connection):
 
     def __init__(self, loglevel, logfile, server_address = 'localhost',
                  server_port = 50000, agent_port = 50001, password = None,
-                  keyfile = None):
+                 keyfile = None, tls = False, tls_dir = None):
         Connection.__init__(self, loglevel, logfile, password, keyfile)
         self.server_address = (server_address, server_port)
+        logging.error(self.server_address)
         self.agent_address = ('localhost', agent_port)
+
+        if tls is True:
+            self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+            self.context.verify_mode = ssl.CERT_REQUIRED
+            self.context.load_verify_locations(tls_dir)
+        else:
+            self.context = None
     
     def send_cmd(self, *cmd):
         if self.keyfile is not None:
@@ -33,16 +42,31 @@ class Client(Connection):
         cmd_chain = self.build_message(tmp)
 
         try:
-            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            tmp_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            if self.context is not None:
+                conn = self.context.wrap_socket(tmp_conn)
+            else:
+                conn = tmp_conn
             conn.connect(self.server_address)
+        except:
+            raise
+        else:
             logging.info('Connected to '+self.server_address[0]+':'+
                          str(self.server_address[1]))
+        try:
             conn.settimeout(60)
+            if self.context is not None:
+                cert = conn.getpeercert()
+                try:
+                    ssl.match_hostname(cert, "KeePassC Server")
+                except:
+                    return b'FAIL: TLS - Hostname does not match'
             self.sendmsg(conn, cmd_chain)
             answer = self.receive(conn)
         except:
             raise
-        else:
+        finally:
+            conn.shutdown(socket.SHUT_RDWR)
             conn.close()
 
         return answer

@@ -1,6 +1,7 @@
 import logging
 import signal
 import socket
+import ssl
 import struct
 import sys
 
@@ -16,7 +17,8 @@ class Agent(Client, Daemon):
 
     def __init__(self, pidfile, loglevel, logfile, 
                  server_address = 'localhost', server_port = 50000, 
-                 agent_port = 50001, password = None, keyfile = None):
+                 agent_port = 50001, password = None, keyfile = None,
+                 tls = False, tls_dir = None):
         Client.__init__(self, loglevel, logfile, server_address, server_port,
                         agent_port, password, keyfile)
         Daemon.__init__(self, pidfile)
@@ -31,6 +33,13 @@ class Agent(Client, Daemon):
                 handler.close()
         else:
             self.keyfile = b''
+
+        if tls is True:
+            self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+            self.context.verify_mode = ssl.CERT_REQUIRED
+            self.context.load_verify_locations(tls_dir)
+        else:
+            self.context = None
 
         #Handle SIGTERM
         signal.signal(signal.SIGTERM, self.handle_sigterm)
@@ -48,20 +57,32 @@ class Agent(Client, Daemon):
         cmd_chain = self.build_message(tmp)
 
         try:
-            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            tmp_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            if self.context is not None:
+                conn = self.context.wrap_socket(tmp_conn)
+            else:
+                conn = tmp_conn
             conn.connect(self.server_address)
         except:
             raise
-
-        try:
+        else:
             logging.info('Connected to '+self.server_address[0]+':'+
                          str(self.server_address[1]))
+
+        try:
             conn.settimeout(60)
+            if self.context is not None:
+                cert = conn.getpeercert()
+                try:
+                    ssl.match_hostname(cert, "KeePassC Server")
+                except:
+                    return b'FAIL: TLS - Hostname does not match'
             self.sendmsg(conn, cmd_chain)
             answer = self.receive(conn)
         except:
             raise
         finally:
+            conn.shutdown(socket.SHUT_RDWR)
             conn.close()
 
         return answer
@@ -97,6 +118,7 @@ class Agent(Client, Daemon):
             except OSError as err:
                 logging.error(err.__str__())
             finally:
+                conn.shutdown(socket.SHUT_RDWR)
                 conn.close()
 
     def find(self, conn, cmd_misc):
@@ -111,6 +133,7 @@ class Agent(Client, Daemon):
             logging.error(err.__str__())
 
     def handle_sigterm(self, signum, frame):
+        self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
         del self.keyfile
 

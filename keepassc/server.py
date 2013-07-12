@@ -5,6 +5,7 @@ import socket
 import ssl
 import struct
 import sys
+from os.path import join
 
 from Crypto.Hash import SHA256
 from kppy import KPDB, KPError
@@ -19,7 +20,8 @@ class Server(Connection, Daemon):
     """The KeePassC server daemon"""
 
     def __init__(self, pidfile, loglevel, logfile, address = 'localhost',
-                 port = 50000, db = None, password = None, keyfile = None):
+                 port = 50000, db = None, password = None, keyfile = None,
+                 tls = False, tls_dir = None):
         Connection.__init__(self, loglevel, logfile, password, keyfile)
         Daemon.__init__(self, pidfile)
         if db is None:
@@ -41,6 +43,14 @@ class Server(Connection, Daemon):
         self.address = (address, port)
         self.socket = None
         
+        if tls is True:
+            self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+            cert = join(tls_dir, "servercert.pem")
+            key = join(tls_dir, "serverkey.pem")
+            self.context.load_cert_chain(certfile=cert, keyfile=key)
+        else:
+            self.context = None
+
         #Handle SIGTERM
         signal.signal(signal.SIGTERM, self.handle_sigterm)
 
@@ -54,7 +64,7 @@ class Server(Connection, Daemon):
         return (self.final_key == final)
 
     def run(self):
-        """Overide Daemon.run() and provide sockets"""
+        """Overide Daemon.run() and provide socets"""
         
         try:
             # Listen for commands
@@ -70,9 +80,16 @@ class Server(Connection, Daemon):
                          str(self.address[1]))
 
         while True:
-            conn, client = self.sock.accept()
+            conn_tmp, client = self.sock.accept()
             logging.info('Connection from '+client[0]+':'+str(client[1]))
+
+            if self.context is not None:
+                conn = self.context.wrap_socket(conn_tmp, server_side = True)
+            else:
+                conn = conn_tmp
+
             conn.settimeout(60)
+
             try:
                 msg = self.receive(conn)
                 parts = msg.split(b'\xB2\xEA\xC0')
@@ -101,6 +118,7 @@ class Server(Connection, Daemon):
                 except (OSError, ValueError):
                     logging.error(err.__str__())
             finally:
+                conn.shutdown(socket.SHUT_RDWR)
                 conn.close()
 
     def find(self, conn, cmd_misc):
@@ -132,5 +150,6 @@ class Server(Connection, Daemon):
 
     def handle_sigterm(self, signum, frame):
         self.db.close()
+        self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
         del self.final_key
