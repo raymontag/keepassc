@@ -1,4 +1,4 @@
-KeePassC v.1.5.2
+KeePassC v.1.5.5
 ================
 
 * License: GPL v3 or later
@@ -22,7 +22,28 @@ with the keyboard.
 Install:
 --------
 
-If all dependencies are fulfilled type 'python setup.py install' in the root directory of KeePassC.
+First check if Python 3 is executed on your system with 'python' (e.g. ArchLinux) or with 'python3' (e.g. Fedora). If the latter applies open bin/keepassc with an editor of your choice and edit the first line to '#!/usr/bin/env python3', if the former do nothing.
+
+If all dependencies are fulfilled type 'python setup.py install' resp. 'python3 setup.py install' in the root directory of KeePassC.
+
+Furthermore check if the directory /var/empty exists (normally it should but it seems that is doesn't on Ubuntu). If not execute as root user 'mkdir -m 755 /var/empty'.
+
+Some users had problems to install PyCrypto in the right way on Ubuntu. Maybe this bash-script could help (written for Debian/Ubuntu like system; thx to iwfmp):
+
+#!/bin/bash
+
+if [[ -z `command -v keepassc` ]]; then
+  sudo apt-get build-dep python-crypto
+  githubRepos="dlitz/pycrypto raymontag/kppy raymontag/keepassc"
+  for githubRepo in $githubRepos; do
+    repoName=`echo ${githubRepo} | awk -F/ '{print $2}'`
+    repoLocation=/usr/local/src/${repoName}
+    sudo git clone https://github.com/${githubRepo} $repoLocation
+    cd $repoLocation
+    sudo python3 setup.py build
+    sudo python3 setup.py install
+  done
+fi
 
 Usage:
 ------

@@ -1,0 +1,56 @@
+Version 1.5 (February 22, 2013)
+
+    Support for moving groups and entries
+    Password generator
+    Configuration menu
+    Autolocking feature with adjustable delay
+    Self-deleting clipboard now with adjustable delay, too
+    Full Unicode support
+    Use of vim-like keys in menus
+    Support for 'gg', 'G', '/' like in vim/ranger
+    New editor to edit attributes of entries and groups and for other things, thanks goes to Scott (not for direct filepath, yet)
+    Go to previous screen from every dialog
+    Remember last opened database and keyfile and go to open dialog directly (of course everything is optional)
+    Rearranged menus
+    xsel is optionally
+    Write entries unpuffered to console
+    Annoying message while opening URLs is fixed
+    Several bugs fixed
+
+Version 1.4 (November 10, 2012)
+
+    Show groups and entries alphabetically sorted
+    Man page
+    Option to show entries on commandline
+    Search utility (type 'f')
+    Showing a * if the file has changed
+    Use of a generalized and commandable menu
+    Clear the clipboard only if the content of clipboard
+    was copied from the db and not from other programs
+    Fixed several bugs
+
+Version 1.3
+
+    Added support for keyfiles
+    Can now parse a database through the command line
+    When entering a filepath auto-completion loops through all possibilities
+    It's now possible to use KeePassC without X by the possibility of showing the passwords
+    Fixed several bugs
+
+Version 1.2
+
+    Fixed a bug relating to auto-completion when entering a direct filepath
+    Remembering the last opened database
+    Can now close the program with Ctrl-C
+    When creating a new database password entering needs a confirmation
+
+Version 1.1
+
+    Added vim-like navigation
+    Due to this help button is F1 now
+    Typing a direct filepath including path-completition is supported
+    Hidden files are supported
+    Copy username to clipboard
+    Open url in standard browser
+    Fixed bugs (backspace and tmux, os.getlogin(), locking)
+
