@@ -20,13 +20,17 @@ def arg_parse():
                         help='Address for the server.', type=str)
     parser.add_argument('-p', '--port', default=50000,
                         help='Address for the server.', type=int)
+    parser.add_argument('-ps', '--port_tls', default=50003,
+                        help='Address for the server.', type=int)
     parser.add_argument('-l', '--log_level', default = False,
                         help='Set logging level. Default is ERROR but for'
                              'analyzing network flow INFO could be useful. '
                              'Set it with keepassc-server [...] -l [...] to '
                              'INFO', action='store_true')
     parser.add_argument('-s', '--ssl', default=False,
-                        help='Use SSL/TLS.', action='store_true')
+                        help='Use SSL/TLS additionaly.', action='store_true')
+    parser.add_argument('-S', '--ssl_req', default=False,
+                        help='Use SSL/TLS only.', action='store_true')
     parser.add_argument('cmd', default=None,
                         help='Daemon command: start|stop|restart', type=str)
     return parser.parse_args()
@@ -39,12 +43,15 @@ if __name__ == '__main__':
         datapath = realpath(expanduser('~/.local/share'))
     finally:
         pidfile = join(datapath, 'keepassc', 'server.pid')
-        if args.ssl is True:
+        if args.ssl is True or args.ssl_req is True:
             tls_dir = join(datapath, 'keepassc')
         else:
             tls_dir = None
 
     if args.cmd == 'start':
+        if args.ssl and args.port == args.port_tls:
+            print("Non-SSL-prt and SSL-port must be different.")
+            sys.exit(1)
         if args.log_level is True:
             loglevel = logging.INFO
         else:
@@ -59,7 +66,7 @@ if __name__ == '__main__':
             password = None
         server = Server(pidfile, loglevel, 'server.log', args.address, 
                         args.port, args.database, password, args.keyfile,
-                        args.ssl, tls_dir)
+                        args.ssl, tls_dir, args.port_tls, args.ssl_req)
         server.start()
     elif args.cmd == 'stop':
         daemon = Daemon(pidfile)

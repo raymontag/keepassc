@@ -5,6 +5,7 @@ import socket
 import ssl
 import struct
 import sys
+import threading
 from os.path import join
 
 from Crypto.Hash import SHA256
@@ -21,7 +22,7 @@ class Server(Connection, Daemon):
 
     def __init__(self, pidfile, loglevel, logfile, address = 'localhost',
                  port = 50000, db = None, password = None, keyfile = None,
-                 tls = False, tls_dir = None):
+                 tls = False, tls_dir = None, tls_port = 50002, tls_req = False):
         Connection.__init__(self, loglevel, logfile, password, keyfile)
         Daemon.__init__(self, pidfile)
         if db is None:
@@ -41,9 +42,12 @@ class Server(Connection, Daemon):
         self.lookup = {
             b'FIND': self.find}
         self.address = (address, port)
-        self.socket = None
+        self.tls_address = (address, tls_port)
+        self.sock = None
+        self.tls_sock = None
+        self.tls_req = tls_req
         
-        if tls is True:
+        if tls is True or tls_req is True:
             self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
             cert = join(tls_dir, "servercert.pem")
             key = join(tls_dir, "serverkey.pem")
@@ -66,13 +70,20 @@ class Server(Connection, Daemon):
     def run(self):
         """Overide Daemon.run() and provide socets"""
         
+        if self.tls_req is False:
+            non_tls_thread = threading.Thread(target=self.handle_non_tls)
+            non_tls_thread.start()
+        if self.context is not None:
+            tls_thread = threading.Thread(target=self.handle_tls)
+            tls_thread.start()
+
+    def handle_non_tls(self):
         try:
             # Listen for commands
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.bind(self.address)
-            self.sock.listen(1)
+            self.sock.listen(5)
         except OSError as err:
-            print(err)
             logging.error(err.__str__())
             self.stop()
         else:
@@ -80,46 +91,68 @@ class Server(Connection, Daemon):
                          str(self.address[1]))
 
         while True:
-            conn_tmp, client = self.sock.accept()
+            conn, client = self.sock.accept()
             logging.info('Connection from '+client[0]+':'+str(client[1]))
+            client_thread = threading.Thread(target=self.handle_client, args=(conn,))
+            client_thread.start()
 
-            if self.context is not None:
-                conn = self.context.wrap_socket(conn_tmp, server_side = True)
-            else:
-                conn = conn_tmp
+    def handle_tls(self):
+        try:
+            # Listen for commands
+            self.tls_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.tls_sock.bind(self.tls_address)
+            self.tls_sock.listen(5)
+        except OSError as err:
+            logging.error(err.__str__())
+            self.stop()
+        else:
+            logging.info('TLS-Server socket created on '+self.tls_address[0]+':'+
+                         str(self.tls_address[1]))
 
-            conn.settimeout(60)
-
+        while True:
             try:
-                msg = self.receive(conn)
-                parts = msg.split(b'\xB2\xEA\xC0')
-                password = parts.pop(0)
-                keyfile = parts.pop(0)
-                cmd = parts.pop(0)
-
-                if password == b'':
-                    password = None
-                else:
-                    password = password.decode()
-                if keyfile == b'':
-                    keyfile = None
-                if self.check_password(password, keyfile) is False:
-                    self.sendmsg(conn, b'FAIL: Wrong password')
-                    raise OSError("Received wrong password")
-            except OSError as err:
+                conn_tmp, client = self.tls_sock.accept()
+                conn = self.context.wrap_socket(conn_tmp, server_side = True)
+            except ssl.SSLError as err:
                 logging.error(err.__str__())
+                continue
+            logging.info('Connection from '+client[0]+':'+str(client[1]))
+            client_thread = threading.Thread(target=self.handle_client, args=(conn,))
+            client_thread.start()
+
+    def handle_client(self, conn):
+        conn.settimeout(60)
+
+        try:
+            msg = self.receive(conn)
+            parts = msg.split(b'\xB2\xEA\xC0')
+            password = parts.pop(0)
+            keyfile = parts.pop(0)
+            cmd = parts.pop(0)
+
+            if password == b'':
+                password = None
             else:
-                try:
-                    if cmd in self.lookup:
-                        self.lookup[cmd](conn, parts)
-                    else:
-                        logging.error('Received a wrong command')
-                        self.sendmsg(conn, b'FAIL: Command isn\'t available')
-                except (OSError, ValueError):
-                    logging.error(err.__str__())
-            finally:
-                conn.shutdown(socket.SHUT_RDWR)
-                conn.close()
+                password = password.decode()
+            if keyfile == b'':
+                keyfile = None
+            if self.check_password(password, keyfile) is False:
+                self.sendmsg(conn, b'FAIL: Wrong password')
+                raise OSError("Received wrong password")
+        except OSError as err:
+            logging.error(err.__str__())
+        else:
+            try:
+                if cmd in self.lookup:
+                    self.lookup[cmd](conn, parts)
+                else:
+                    logging.error('Received a wrong command')
+                    self.sendmsg(conn, b'FAIL: Command isn\'t available')
+            except (OSError, ValueError):
+                logging.error(err.__str__())
+        finally:
+            conn.shutdown(socket.SHUT_RDWR)
+            conn.close()
 
     def find(self, conn, cmd_misc):
         """Find entries and send them to connection"""
