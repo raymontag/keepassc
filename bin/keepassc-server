@@ -19,9 +19,10 @@ def arg_parse():
     parser.add_argument('-a', '--address', default='localhost',
                         help='Address for the server.', type=str)
     parser.add_argument('-p', '--port', default=50000,
-                        help='Address for the server.', type=int)
+                        help='Port for the server.', type=int)
     parser.add_argument('-ps', '--port_tls', default=50003,
-                        help='Address for the server.', type=int)
+                        help='Port for server\'s TLS-port if -S is used.', 
+                        type=int)
     parser.add_argument('-l', '--log_level', default = False,
                         help='Set logging level. Default is ERROR but for'
                              'analyzing network flow INFO could be useful. '

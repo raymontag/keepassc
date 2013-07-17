@@ -41,6 +41,8 @@ class Server(Connection, Daemon):
                                         self.db._key_transf_rounds)
         self.lookup = {
             b'FIND': self.find}
+        if tls_req is True:
+            tls_port = port
         self.address = (address, port)
         self.tls_address = (address, tls_port)
         self.sock = None
