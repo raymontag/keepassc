@@ -1052,8 +1052,7 @@ class DBBrowser(object):
 
         if self.cur_win == 0 and self.g_highlight > 0:
             ysize = self.control.group_win.getmaxyx()[0]
-            if (self.g_highlight <= len(self.cur_root.children) - ysize + 3 and
-                    not self.g_offset <= 0):
+            if self.g_offset > 0 and self.g_highlight == self.g_offset:
                 self.g_offset -= 1
             self.g_highlight -= 1
             self.e_offset = 0
@@ -1061,8 +1060,7 @@ class DBBrowser(object):
             self.sort_tables(False, True)
         elif self.cur_win == 1 and self.e_highlight > 0:
             ysize = self.control.entry_win.getmaxyx()[0]
-            if self.e_highlight <= len(self.entries) - ysize + 3 and \
-                    not self.e_offset <= 0:
+            if self.e_offset > 0 and self.e_highlight == self.e_offset:
                 self.e_offset -= 1
             self.e_highlight -= 1
 
