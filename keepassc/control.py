@@ -232,7 +232,7 @@ class Control(object):
                 edit = ''
                 e = cur.KEY_BACKSPACE
                 while e != NL:
-                    if e == cur.KEY_BACKSPACE and len(edit) != 0:
+                    if (e == cur.KEY_BACKSPACE or e == DEL) and len(edit) != 0:
                         edit = edit[:-1]
                     elif e == cur.KEY_BACKSPACE or e == DEL:
                         pass
@@ -273,7 +273,7 @@ class Control(object):
                 edit = ''
                 e = cur.KEY_BACKSPACE
                 while e != NL:
-                    if e == cur.KEY_BACKSPACE or e == DEL and len(edit) != 0:
+                    if (e == cur.KEY_BACKSPACE or e == DEL) and len(edit) != 0:
                         edit = edit[:-1]
                     elif e == cur.KEY_BACKSPACE or e == DEL:
                         pass
@@ -328,7 +328,7 @@ class Control(object):
             edit = ''
             e = cur.KEY_BACKSPACE
             while e != NL:
-                if e == cur.KEY_BACKSPACE or e == DEL and len(edit) != 0:
+                if (e == cur.KEY_BACKSPACE or e == DEL) and len(edit) != 0:
                     edit = edit[:-1]
                 elif e == cur.KEY_BACKSPACE or e == DEL:
                     pass
@@ -409,7 +409,7 @@ class Control(object):
         edit = ''
         e = cur.KEY_BACKSPACE
         while e != NL:
-            if e == cur.KEY_BACKSPACE and len(edit) != 0:
+            if (e == cur.KEY_BACKSPACE or e == DEL) and len(edit) != 0:
                 edit = edit[:-1]
             elif e == cur.KEY_BACKSPACE or e == DEL:
                 pass
