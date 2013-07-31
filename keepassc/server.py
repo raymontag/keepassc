@@ -9,7 +9,8 @@ import threading
 from os.path import join
 
 from Crypto.Hash import SHA256
-from kppy import KPDB, KPError
+from kppy.database import KPDBv1
+from kppy.exceptions import KPError
 
 from keepassc.conn import Connection
 from keepassc.daemon import Daemon
@@ -29,18 +30,21 @@ class Server(Connection, Daemon):
             print('Need a database path')
             sys.exit(1)
         try:
-            self.db = KPDB(db, password, keyfile)
+            self.db = KPDBv1(db, password, keyfile)
+            self.db.load()
         except KPError as err:
             print(err)
             logging.error(err.__str__())
             sys.exit(1)
 
+        self.db_path = db
         master = get_key(self.db.password, self.db.keyfile)
         self.final_key =  transform_key(master, self.db._transf_randomseed,
                                         self.db._final_randomseed, 
                                         self.db._key_transf_rounds)
         self.lookup = {
-            b'FIND': self.find}
+            b'FIND': self.find,
+            b'GET': self.send_db}
         if tls_req is True:
             tls_port = port
         self.address = (address, port)
@@ -161,7 +165,7 @@ class Server(Connection, Daemon):
 
         title = cmd_misc[0]
         msg = ''
-        for i in self.db._entries:
+        for i in self.db.entries:
             if title.decode().lower() in i.title.lower():
                 msg += 'Title: '+i.title+'\n'
                 if i.url is not None:
@@ -182,6 +186,11 @@ class Server(Connection, Daemon):
                     msg += 'Comment: '+i.comment+'\n'
                 msg += '\n'
         self.sendmsg(conn, msg.encode())
+
+    def send_db(self, conn, cmd_misc):
+        with open(self.db_path, 'rb') as handler:
+            buf = handler.read()
+        self.sendmsg(conn, buf)
 
     def handle_sigterm(self, signum, frame):
         self.db.close()

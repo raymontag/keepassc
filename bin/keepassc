@@ -20,6 +20,7 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 import argparse
+import logging
 import socket
 from curses import wrapper
 from getpass import getpass
@@ -27,7 +28,8 @@ from os import geteuid
 from os.path import expanduser, realpath, splitext, join
 from sys import exit, stdout
 
-from kppy import KPDB, KPError
+from kppy.database import KPDBv1
+from kppy.exceptions import KPError
 
 from keepassc.client import Client
 from keepassc.conn import Connection
@@ -52,6 +54,9 @@ def arg_parse():
                         help='Path to database file.')
     parser.add_argument('-k', '--keyfile', default=None,
                         help='Path to keyfile.')
+    parser.add_argument('-c', '--curses', action='store_true', default=False,
+                        help='Use curses interface while using a remote '
+                             'connection.')
     parser.add_argument('-as', '--address_server', default='localhost',
                         help='Server address (not required if using agent)',
                         type=str)
@@ -62,8 +67,8 @@ def arg_parse():
                         help='Agent port', type=int)
     parser.add_argument('-a', '--agent', action='store_true', default=False,
                         help='Use agent for remote connection')
-    parser.add_argument('-dc', '--direct_conn', action='store_true', default=False,
-                        help='Connect directly to server')
+    parser.add_argument('-dc', '--direct_conn', action='store_true', 
+                        default=False, help='Connect directly to server')
     parser.add_argument('-s', '--ssl', action='store_true', default=False,
                         help='Use SSL/TLS')
     parser.add_argument('-e', '--entry', help='Print entry with parsed '
@@ -95,7 +100,8 @@ def parse_entry(entry, database, password, keyfile):
 
     """
     try:
-        db = KPDB(database, password, keyfile)
+        db = KPDBv1(database, password, keyfile)
+        db.load()
     except KPError as err:
         print(err)
         exit()
@@ -153,8 +159,13 @@ def direct_connection():
     else:
         tls_dir = None
 
+    if args.log_level is True:
+        loglevel = logging.INFO
+    else:
+        loglevel = logging.ERROR
+
     # Establish connection and find entry
-    client = Client(args.log_level, 'client.log', args.address_server,
+    client = Client(loglevel, 'client.log', args.address_server,
                     args.port_server, None, password, args.keyfile,
                     args.ssl, tls_dir)
 
@@ -177,8 +188,12 @@ def use_agent():
     else:
         entry = input('Part of title: ').encode()
         
+    if args.log_level is True:
+        loglevel = logging.INFO
+    else:
+        loglevel = logging.ERROR
     # Establish connect to agent
-    conn = Connection(args.log_level, 'client.log')
+    conn = Connection(loglevel, 'client.log')
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(60)
     try:
@@ -215,6 +230,9 @@ if __name__ == '__main__':
             if password == '':
                 password = None
             parse_entry(args.entry, args.database, password, args.keyfile)
+        elif args.curses:
+            app = Control()
+            wrapper(app.main_loop(remote=True))
         elif args.database and splitext(args.database)[-1] == '.kdb':
             filepath = realpath(expanduser(args.database))
             app = Control()

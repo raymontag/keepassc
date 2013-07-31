@@ -19,6 +19,7 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 import curses as cur
+import logging
 from curses.ascii import NL, DEL, SP
 from datetime import date
 from os import chdir, getcwd, getenv, geteuid, makedirs, remove
@@ -28,8 +29,10 @@ from random import sample
 from socket import gethostname
 from sys import exit
 
-from kppy import KPDB, KPError
+from kppy.database import KPDBv1
+from kppy.exceptions import KPError
 
+from keepassc.client import Client
 from keepassc.editor import Editor
 from keepassc.helper import parse_config, write_config
 from keepassc.filebrowser import FileBrowser
@@ -185,6 +188,113 @@ class Control(object):
             return False
         else:
             return password
+
+    def get_authentication(self):
+        while True:
+            if (self.config['skip_menu'] is False or
+                (self.config['rem_db'] is False and
+                 self.config['rem_key'] is False)):
+                auth = self.gen_menu(1, (
+                                     (1, 0, 'Use a password (1)'),
+                                     (2, 0, 'Use a keyfile (2)'),
+                                     (3, 0, 'Use both (3)')),
+                                    (5, 0, 'Press \'F5\' to go back to main '
+                                           'menu'))
+            else:
+                self.draw_text(False)
+                auth = 3
+            if auth is False:
+                return False
+            elif auth == -1:
+                self.close()
+            if auth == 1 or auth == 3:
+                if self.config['skip_menu'] is True:
+                    needed = False
+                else:
+                    needed = True
+                password = self.get_password('Password: ', needed = needed)
+                if password is False:
+                    self.config['skip_menu'] = False
+                    continue
+                elif password == -1:
+                    self.close()
+                # happens only if self.config['skip_menu'] is True
+                elif password == "":
+                    password = None
+                if auth != 3:
+                    keyfile = None
+            if auth == 2 or auth == 3:
+                # Ugly construct but works
+                # "if keyfile is False" stuff is needed to implement the
+                # return to previous screen stuff
+                # Use similar constructs elsewhere
+                while True:
+                    self.get_last_key()
+                    if (self.last_key is None or
+                            self.config['rem_key'] is False):
+                        ask_for_lf = False
+                    else:
+                        ask_for_lf = True
+
+                    keyfile = FileBrowser(self, ask_for_lf, True, self.last_key)()
+                    if keyfile is False:
+                        break
+                    elif keyfile == -1:
+                        self.close()
+                    elif not isfile(keyfile):
+                        self.draw_text(False,
+                                       (1, 0, 'That\'s not a file'),
+                                       (3, 0, 'Press any key.'))
+                        if self.any_key() == -1:
+                            self.close()
+                        continue
+                    break
+                if keyfile is False:
+                    continue
+                if auth != 3:
+                    password = None
+                if self.config['rem_key'] is True:
+                    if not isdir(self.key_home[:-4]):
+                        if isfile(self.key_home[:-4]):
+                            remove(self.key_home[:-4])
+                        makedirs(self.key_home[:-4])
+                    handler = open(self.key_home, 'w')
+                    handler.write(keyfile)
+                    handler.close()
+            break
+        return (password, keyfile)
+
+    def get_last_db(self):
+        if isfile(self.last_home) and self.config['rem_db'] is False:
+            remove(self.last_home)
+            self.last_file = None
+        elif isfile(self.last_home):
+            try:
+                handler = open(self.last_home, 'r')
+            except Exception as err:
+                self.last_file = None
+                print(err.__str__())
+            else:
+                self.last_file = handler.readline()
+                handler.close()
+        else:
+            self.last_file = None
+
+    def get_last_key(self):
+        if isfile(self.key_home) and self.config['rem_key'] is False:
+            remove(self.key_home)
+            self.last_key = None
+        elif isfile(self.key_home):
+            try:
+                handler = open(self.key_home, 'r')
+            except Exception as err:
+                self.last_key = None
+                print(err.__str__())
+            else:
+                self.last_key = handler.readline()
+                handler.close()
+        else:
+            self.last_key = None
 
     def gen_pass(self):
         '''Method to generate a password'''
@@ -403,11 +513,11 @@ class Control(object):
             break
         return (y, mon, d)
 
-    def get_num(self, std='', edit=''):
+    def get_num(self, std='', edit='', length=4):
         '''Method to get a number'''
 
-        edit = ''
-        e = cur.KEY_BACKSPACE
+        edit = edit
+        e = 60 # just an unrecognized letter
         while e != NL:
             if (e == cur.KEY_BACKSPACE or e == DEL) and len(edit) != 0:
                 edit = edit[:-1]
@@ -419,7 +529,7 @@ class Control(object):
                 self.resize_all()
             elif e == cur.KEY_F5:
                 return False
-            elif len(edit) < 4 and e >= 48 and e <= 57:
+            elif len(edit) < length and e >= 48 and e <= 57:
                 edit += chr(e)
             self.draw_text(False,
                            (1, 0, std + edit))
@@ -658,68 +768,42 @@ class Control(object):
         finally:
             self.stdscr.refresh()
 
-    def get_last_db(self):
-        if isfile(self.last_home) and self.config['rem_db'] is False:
-            remove(self.last_home)
-            self.last_file = None
-        elif isfile(self.last_home):
-            try:
-                handler = open(self.last_home, 'r')
-            except Exception as err:
-                self.last_file = None
-                print(err.__str__())
-            else:
-                self.last_file = handler.readline()
-                handler.close()
-        else:
-            self.last_file = None
-
-    def get_last_key(self):
-        if isfile(self.key_home) and self.config['rem_key'] is False:
-            remove(self.key_home)
-            self.last_key = None
-        elif isfile(self.key_home):
-            try:
-                handler = open(self.key_home, 'r')
-            except Exception as err:
-                self.last_key = None
-                print(err.__str__())
-            else:
-                self.last_key = handler.readline()
-                handler.close()
-        else:
-            self.last_key = None
-
-    def main_loop(self, kdb_file=None):
+    def main_loop(self, kdb_file=None, remote = False):
         '''The main loop. The program alway return to this method.'''
 
-        # This is needed to remember last database and open it directly
-        self.get_last_db()
+        if remote is True:
+            if self.remote_interface() is True:
+                db = DBBrowser(self)
+                del db
+        else:
+            # This is needed to remember last database and open it directly
+            self.get_last_db()
 
-        if kdb_file is not None:
-            self.cur_dir = kdb_file
-            if self.open_db(True) is True:
-                db = DBBrowser(self)
-                del db
-                last = self.cur_dir.split('/')[-1]
-                self.cur_dir = self.cur_dir[:-len(last) - 1]
-        elif self.last_file is not None and self.config['rem_db'] is True:
-            self.cur_dir = self.last_file
-            if self.open_db(True) is True:
-                db = DBBrowser(self)
-                del db
-                last = self.cur_dir.split('/')[-1]
-                self.cur_dir = self.cur_dir[:-len(last) - 1]
+            if kdb_file is not None:
+                self.cur_dir = kdb_file
+                if self.open_db(True) is True:
+                    db = DBBrowser(self)
+                    del db
+                    last = self.cur_dir.split('/')[-1]
+                    self.cur_dir = self.cur_dir[:-len(last) - 1]
+            elif self.last_file is not None and self.config['rem_db'] is True:
+                self.cur_dir = self.last_file
+                if self.open_db(True) is True:
+                    db = DBBrowser(self)
+                    del db
+                    last = self.cur_dir.split('/')[-1]
+                    self.cur_dir = self.cur_dir[:-len(last) - 1]
 
         while True:
             self.get_last_db()
             menu = self.gen_menu(1, ((1, 0, 'Open existing database (1)'),
                                   (2, 0, 'Create new database (2)'),
-                                  (3, 0, 'Configuration (3)'),
-                                  (4, 0, 'Quit (4)')),
-                                 (6, 0, 'Type \'F1\' for help inside the file '
+                                  (3, 0, 'Connect to a remote database(3)'),
+                                  (4, 0, 'Configuration (4)'),
+                                  (5, 0, 'Quit (5)')),
+                                 (7, 0, 'Type \'F1\' for help inside the file '
                                         'or database browser.'),
-                                 (7, 0, 'Type \'F5\' to return to the previous'
+                                 (8, 0, 'Type \'F5\' to return to the previous'
                                         ' dialog at any time.'))
             if menu == 1:
                 if self.open_db() is False:
@@ -734,7 +818,10 @@ class Control(object):
                                          (1, 0, 'Use a password (1)'),
                                          (2, 0, 'Use a keyfile (2)'),
                                          (3, 0, 'Use both (3)')))
-                    self.db = KPDB(new=True)
+                    password = None
+                    keyfile = None
+                    confirm = None
+                    self.db = KPDBv1(new=True)
                     if auth is False:
                         break
                     elif auth == -1:
@@ -800,8 +887,13 @@ class Control(object):
                         self.db = None
                     break
             elif menu == 3:
+                if self.remote_interface() is False:
+                    continue
+                db = DBBrowser(self)
+                del db
+            elif menu == 4:
                 self.gen_config_menu()
-            elif menu == 4 or menu is False or menu == -1:
+            elif menu == 5 or menu is False or menu == -1:
                 self.close()
 
     def open_db(self, skip_fb=False):
@@ -816,71 +908,11 @@ class Control(object):
             else:
                 self.cur_dir = filepath
 
-        while True:
-            if (self.config['skip_menu'] is False or
-                (self.config['rem_db'] is False and
-                 self.config['rem_key'] is False)):
-                auth = self.gen_menu(1, (
-                                     (1, 0, 'Use a password (1)'),
-                                     (2, 0, 'Use a keyfile (2)'),
-                                     (3, 0, 'Use both (3)')),
-                                    (5, 0, 'Press \'F5\' to go back to main '
-                                           'menu'))
-            else:
-                self.draw_text(False)
-                auth = 3
-            if auth is False:
-                return False
-            elif auth == -1:
-                self.close()
-            if auth == 1 or auth == 3:
-                password = self.get_password('Password: ')
-                if password is False:
-                    self.config['skip_menu'] = False
-                    continue
-                elif password == -1:
-                    self.close()
-                if auth != 3:
-                    keyfile = None
-            if auth == 2 or auth == 3:
-                # Ugly construct but works
-                # "if keyfile is False" stuff is needed to implement the
-                # return to previous screen stuff
-                # Use similar constructs elsewhere
-                while True:
-                    self.get_last_key()
-                    if (self.last_key is None or
-                            self.config['rem_key'] is False):
-                        ask_for_lf = False
-                    else:
-                        ask_for_lf = True
+        ret = self.get_authentication()
+        if ret is False:
+            return False
+        password, keyfile = ret
 
-                    keyfile = FileBrowser(self, ask_for_lf, True, self.last_key)()
-                    if keyfile is False:
-                        break
-                    elif keyfile == -1:
-                        self.close()
-                    elif not isfile(keyfile):
-                        self.draw_text(False,
-                                       (1, 0, 'That\'s not a file'),
-                                       (3, 0, 'Press any key.'))
-                        if self.any_key() == -1:
-                            self.close()
-                        continue
-                    break
-                if keyfile is False:
-                    continue
-                if auth != 3:
-                    password = None
-                if self.config['rem_key'] is True:
-                    if not isdir(self.key_home[:-4]):
-                        if isfile(self.key_home[:-4]):
-                            remove(self.key_home[:-4])
-                        makedirs(self.key_home[:-4])
-                    handler = open(self.key_home, 'w')
-                    handler.write(keyfile)
-                    handler.close()
-            break
         try:
             if isfile(self.cur_dir + '.lock'):
                 self.draw_text(False,
@@ -907,7 +939,8 @@ class Control(object):
                         break
             else:
                 read_only = False
-            self.db = KPDB(self.cur_dir, password, keyfile, read_only)
+            self.db = KPDBv1(self.cur_dir, password, keyfile, read_only)
+            self.db.load()
             return True
         except KPError as err:
             self.draw_text(False,
@@ -918,6 +951,77 @@ class Control(object):
             last = self.cur_dir.split('/')[-1]
             self.cur_dir = self.cur_dir[:-len(last) - 1]
             return False
+
+    def remote_interface(self):
+        pass_auth = False
+        pass_ssl = False
+        while True:
+            if pass_auth is False:
+                ret = self.get_authentication()
+                if ret is False:
+                    return False
+                elif ret == -1:
+                    self.close()
+                password, keyfile = ret
+            if pass_ssl is False:
+                path_auth = False
+                ssl = self.gen_menu(1, ((1, 0, 'Use SSL/TLS (1)'),
+                                        (2, 0, 'Plain text (2)')))
+                if ssl is False:
+                    continue
+                elif ssl == -1:
+                    self.close()
+            pass_ssl = False
+            server = Editor(self.stdscr, max_text_size=1,
+                            inittext="127.0.0.1",
+                            win_location=(0, 1),
+                            win_size=(1, self.xsize), 
+                            title="Server address")()
+            if server is False:
+                path_auth = True
+                continue
+            elif server == -1:
+                self.close()
+            if ssl == 1:
+                ssl = True # for later use
+                std_port = "50002"
+            else:
+                ssl = False
+                std_port = "50000"
+            port = self.get_num("Server port: ", std_port, 5)
+            if port is False:
+                path_auth = True
+                path_ssl = True
+                continue
+            elif port == -1:
+                self.close()
+            break
+        if ssl is True:
+            try:
+                datapath = realpath(expanduser(getenv('XDG_DATA_HOME')))
+            except:
+                datapath = realpath(expanduser('~/.local/share'))
+            finally:
+                tls_dir = join(datapath, 'keepassc', 'cacert.pem')
+        else:
+            tls_dir = None
+        client = Client(logging.INFO, 'client.log', server, port, None, 
+                        password, keyfile, ssl, tls_dir)
+        db_buf = client.get_db()
+        if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
+            self.draw_text(False,
+                           (1, 0, db_buf),
+                           (3, 0, 'Press any key.'))
+            if self.any_key() == -1:
+                self.close()
+            return False
+        cur.nocbreak()
+        self.stdscr.keypad(0)
+        cur.endwin()
+        print(db_buf)
+        self.db = KPDBv1(None, password, keyfile)
+        self.db.load(db_buf)
+        return True
 
     def browser_help(self, mode_new):
         '''Print help for filebrowser'''
@@ -1035,7 +1139,7 @@ class Control(object):
 
         self.draw_text(changed)
         self.group_win.clear()
-        if parent is self.db._root_group:
+        if parent is self.db.root_group:
             root_title = 'Parent: _ROOT_'
         else:
             root_title = 'Parent: ' + parent.title

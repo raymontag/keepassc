@@ -26,9 +26,10 @@ from curses.ascii import NL, DEL, ESC
 from os.path import isfile, isdir
 from subprocess import Popen, PIPE
 
+from kppy.exceptions import KPError
+
 from keepassc.editor import Editor
 from keepassc.filebrowser import FileBrowser
-from kppy import KPError
 
 
 class DBBrowser(object):
@@ -46,7 +47,7 @@ class DBBrowser(object):
             handler.write(self.control.cur_dir)
             handler.close()
         self.db = self.control.db
-        self.cur_root = self.db._root_group
+        self.cur_root = self.db.root_group
         self.lock_timer = None
         self.lock_highlight = 1
         self.clip_timer = None
@@ -349,7 +350,7 @@ class DBBrowser(object):
             if self.control.any_key() == -1:
                 self.close()
         else:
-            self.cur_root = self.db._root_group
+            self.cur_root = self.db.root_group
             # If last shown group was Results
             if self.g_highlight >= len(self.groups):
                 self.g_highlight = len(self.groups) - 1 
@@ -442,7 +443,7 @@ class DBBrowser(object):
                 old_group = None
 
             try:
-                if self.cur_root is self.db._root_group:
+                if self.cur_root is self.db.root_group:
                     self.db.create_group(edit)
                 else:
                     self.db.create_group(edit, self.cur_root)
@@ -683,7 +684,7 @@ class DBBrowser(object):
                         self.close()
                 else:
                     if (not self.cur_root.children and
-                            self.cur_root is not self.db._root_group):
+                            self.cur_root is not self.db.root_group):
                         self.cur_root = self.cur_root.parent
                     self.changed = True
 
@@ -768,7 +769,7 @@ class DBBrowser(object):
             
     def move2root(self):
         if self.state == 3:
-            self.move_object.move_group(self.db._root_group)
+            self.move_object.move_group(self.db.root_group)
             self.move_object = None
             self.state = 0
             self.sort_tables(True, True)
@@ -781,7 +782,7 @@ class DBBrowser(object):
     def find_entries(self):
         '''Find entries by title'''
 
-        if self.db._entries:
+        if self.db.entries:
             title = Editor(self.control.stdscr, max_text_size=1,
                            win_location=(0, 1),
                            win_size=(1, 80), title="Title Search: ")()
@@ -793,12 +794,11 @@ class DBBrowser(object):
                 result_group = self.db.groups[-1]
                 result_group.id_ = 0
 
-                # Necessary construct to prevent inf loop
-                for i in self.db._entries:
+                for i in self.db.entries:
                     if title.lower() in i.title.lower():
                         result_group.entries.append(i)
                         self.cur_win = 1
-                self.cur_root = self.db._root_group
+                self.cur_root = self.db.root_group
                 self.sort_tables(True, True, True)
                 self.e_highlight = 0
 
@@ -1096,7 +1096,7 @@ class DBBrowser(object):
     def go2parent(self):
         '''Change to parent of current subgroups'''
 
-        if not self.cur_root is self.db._root_group:
+        if not self.cur_root is self.db.root_group:
             self.g_highlight = 0
             self.e_highlight = 0
             self.cur_win = 0

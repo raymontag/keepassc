@@ -29,7 +29,6 @@ class Client(Connection):
         if self.keyfile is not None:
             with open(self.keyfile, 'rb') as keyfile:
                 key = keyfile.read()
-                keyfile.close()
         else:
             key = b''
         if self.password is None:
@@ -81,3 +80,13 @@ class Client(Connection):
             logging.error(err.__str__())
             return err.__str__()
 
+    def get_db(self):
+        try:
+            db_buf = self.send_cmd(b'GET')
+            if db_buf[:4] == b'FAIL':
+                raise OSError(db_buf.decode())
+            return db_buf
+        except (OSError, TypeError) as err:
+            logging.error(err.__str__())
+            return err.__str__()
+        
