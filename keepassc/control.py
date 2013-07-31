@@ -1015,10 +1015,6 @@ class Control(object):
             if self.any_key() == -1:
                 self.close()
             return False
-        cur.nocbreak()
-        self.stdscr.keypad(0)
-        cur.endwin()
-        print(db_buf)
         self.db = KPDBv1(None, password, keyfile)
         self.db.load(db_buf)
         return True

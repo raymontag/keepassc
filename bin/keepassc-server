@@ -20,7 +20,7 @@ def arg_parse():
                         help='Address for the server.', type=str)
     parser.add_argument('-p', '--port', default=50000,
                         help='Port for the server.', type=int)
-    parser.add_argument('-ps', '--port_tls', default=50003,
+    parser.add_argument('-ps', '--port_tls', default=50002,
                         help='Port for server\'s TLS-port if -S is used.', 
                         type=int)
     parser.add_argument('-l', '--log_level', default = False,

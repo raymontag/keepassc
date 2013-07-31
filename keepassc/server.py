@@ -194,6 +194,10 @@ class Server(Connection, Daemon):
 
     def handle_sigterm(self, signum, frame):
         self.db.close()
-        self.sock.shutdown(socket.SHUT_RDWR)
-        self.sock.close()
+        if self.sock is not None:
+            self.sock.shutdown(socket.SHUT_RDWR)
+            self.sock.close()
+        if self.tls_sock is not None:
+            self.tls_sock.shutdown(socket.SHUT_RDWR)
+            self.tls_sock.close()
         del self.final_key
