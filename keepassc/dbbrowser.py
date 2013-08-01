@@ -19,6 +19,7 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 import curses as cur
+import logging
 import os
 import threading
 import webbrowser
@@ -28,6 +29,7 @@ from subprocess import Popen, PIPE
 
 from kppy.exceptions import KPError
 
+from keepassc.client import Client
 from keepassc.editor import Editor
 from keepassc.filebrowser import FileBrowser
 
@@ -35,7 +37,8 @@ from keepassc.filebrowser import FileBrowser
 class DBBrowser(object):
     '''This class represents the database browser'''
 
-    def __init__(self, control):
+    def __init__(self, control, remote = False, address = None, port = None,
+                 ssl = False, tls_dir = None):
         self.control = control
         if (self.control.cur_dir[-4:] == '.kdb' and 
             self.control.config['rem_db'] is True):
@@ -65,6 +68,12 @@ class DBBrowser(object):
         self.state = 0
         self.move_object = None
 
+        self.remote = remote
+        self.address = address
+        self.port = port
+        self.ssl = ssl
+        self.tls_dir = tls_dir
+
         self.control.show_groups(self.g_highlight, self.groups,
                                  self.cur_win, self.g_offset,
                                  self.changed, self.cur_root)
@@ -92,6 +101,9 @@ class DBBrowser(object):
     def pre_save(self):
         '''Prepare saving'''
 
+        if self.remote is True:
+            return True
+
         if self.db.filepath is None:
             filepath = FileBrowser(self.control, False, False, None, True)()
             if filepath == -1:
@@ -111,6 +123,9 @@ class DBBrowser(object):
 
     def pre_save_as(self):
         '''Prepare "Save as"'''
+
+        if self.remote is True:
+            return True
 
         filepath = FileBrowser(self.control, False, False, None, True)()
         if filepath == -1:
@@ -260,14 +275,15 @@ class DBBrowser(object):
     def pre_lock(self):
         '''Method is necessary to prevent weird effects due to theading'''
 
-        if self.db.filepath is None:
+        if self.db.filepath is None and self.remote is False:
             self.control.draw_text(self.changed,
                                    (1, 0, 'Can only lock an existing db!'),
                                    (4, 0, 'Press any key.'))
             if self.control.any_key() == -1:
                 self.close()
             return False
-        if self.changed is True and self.db.read_only is False:
+        if ((self.changed is True and self.db.read_only is False) and
+            remote is False):
             self.state = 2
             self.control.draw_text(self.changed,
                                    (1, 0, 'File has changed. Save? [(y)/n]'))
@@ -341,8 +357,24 @@ class DBBrowser(object):
                 break
             if self.lock_highlight != 3:  # Only keyfile needed
                 password = None
+
+        if self.remote is True:
+            client = Client(logging.INFO, 'client.log', self.address, 
+                            self.port, None, password, keyfile, 
+                            self.ssl, self.tls_dir)
+            db_buf = client.get_db()
+            if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
+                self.control.draw_text(False,
+                                       (1, 0, db_buf),
+                                       (3, 0, 'Press any key.'))
+                if self.any_key() == -1:
+                    self.close()
+                return False
+        else:
+            db_buf = None
+
         try:
-            self.db.unlock(password, keyfile)
+            self.db.unlock(password, keyfile, db_buf)
         except KPError as err:
             self.control.draw_text(self.changed,
                                    (1, 0, err.__str__()),

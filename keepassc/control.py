@@ -95,10 +95,11 @@ class Control(object):
         cur.use_default_colors()
         cur.init_pair(1, -1, -1)
         cur.init_pair(2, 2, -1)
-        cur.init_pair(3, 0, 1)
+        cur.init_pair(3, -1, 1)
         cur.init_pair(4, 6, -1)
         cur.init_pair(5, 0, 6)
         cur.init_pair(6, 0, 7)
+        cur.init_pair(7, 1, -1)
         self.stdscr.bkgd(1)
         self.ysize, self.xsize = self.stdscr.getmaxyx()
 
@@ -772,9 +773,7 @@ class Control(object):
         '''The main loop. The program alway return to this method.'''
 
         if remote is True:
-            if self.remote_interface() is True:
-                db = DBBrowser(self)
-                del db
+            self.remote_interface()
         else:
             # This is needed to remember last database and open it directly
             self.get_last_db()
@@ -887,10 +886,7 @@ class Control(object):
                         self.db = None
                     break
             elif menu == 3:
-                if self.remote_interface() is False:
-                    continue
-                db = DBBrowser(self)
-                del db
+                self.remote_interface()
             elif menu == 4:
                 self.gen_config_menu()
             elif menu == 5 or menu is False or menu == -1:
@@ -1017,6 +1013,8 @@ class Control(object):
             return False
         self.db = KPDBv1(None, password, keyfile)
         self.db.load(db_buf)
+        db = DBBrowser(self, True, server, port, ssl, tls_dir)
+        del db
         return True
 
     def browser_help(self, mode_new):
@@ -1200,12 +1198,24 @@ class Control(object):
 
                 for i in range(num):
                     title = entries[i + offset].title
-                    if e_highlight == i + offset:
-                        self.entry_win.addstr(i, 2, title,
-                                              cur.color_pair(h_color))
+                    if date.today() > entries[i + offset].expire.date():
+                        expired = True
                     else:
-                        self.entry_win.addstr(i, 2, title,
-                                              cur.color_pair(n_color))
+                        expired = False
+                    if e_highlight == i + offset:
+                        if expired is True:
+                            self.entry_win.addstr(i, 2, title,
+                                                  cur.color_pair(3))
+                        else:
+                            self.entry_win.addstr(i, 2, title,
+                                                  cur.color_pair(h_color))
+                    else:
+                        if expired is True:
+                            self.entry_win.addstr(i, 2, title,
+                                                  cur.color_pair(7))
+                        else:
+                            self.entry_win.addstr(i, 2, title,
+                                                  cur.color_pair(n_color))
                 self.entry_win.addstr(ysize - 2, 2, (str(e_highlight + 1) +
                                                      ' of ' +
                                                      str(len(entries))))
