@@ -105,12 +105,13 @@ class Control(object):
 
         self.group_win = cur.newwin(self.ysize - 1, int(self.xsize / 3),
                                     1, 0)
-        self.entry_win = cur.newwin(int(2 * (self.ysize - 1) / 3),
+        # 11 is the y size of info_win
+        self.entry_win = cur.newwin((self.ysize - 1) - 11,
                                     int(2 * self.xsize / 3),
                                     1, int(self.xsize / 3))
-        self.info_win = cur.newwin(int((self.ysize - 1) / 3),
+        self.info_win = cur.newwin(11,
                                    int(2 * self.xsize / 3),
-                                   int(2 * (self.ysize - 1) / 3),
+                                   (self.ysize - 1) - 11,
                                    int(self.xsize / 3))
         self.group_win.keypad(1)
         self.entry_win.keypad(1)
@@ -124,12 +125,11 @@ class Control(object):
         self.ysize, self.xsize = self.stdscr.getmaxyx()
         self.group_win.resize(self.ysize - 1, int(self.xsize / 3))
         self.entry_win.resize(
-            int(2 * (self.ysize - 1) / 3), int(2 * self.xsize / 3))
-        self.info_win.resize(
-            int((self.ysize - 1) / 3), int(2 * self.xsize / 3))
+            self.ysize - 1 - 11, int(2 * self.xsize / 3))
+        self.info_win.resize(11, int(2 * self.xsize / 3))
         self.group_win.mvwin(1, 0)
         self.entry_win.mvwin(1, int(self.xsize / 3))
-        self.info_win.mvwin(int(2 * (self.ysize - 1) / 3), int(self.xsize / 3))
+        self.info_win.mvwin((self.ysize - 1) - 11, int(self.xsize / 3))
 
     def any_key(self):
         '''If any key is needed.'''
