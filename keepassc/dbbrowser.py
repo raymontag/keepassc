@@ -27,6 +27,7 @@ from curses.ascii import NL, DEL, ESC
 from os.path import isfile, isdir
 from subprocess import Popen, PIPE
 
+from kppy.database import KPDBv1
 from kppy.exceptions import KPError
 
 from keepassc.client import Client
@@ -302,6 +303,21 @@ class DBBrowser(object):
                                     (2, 0, 'Use a keyfile (2)'),
                                     (3, 0, 'Use both (3)'))
 
+    def reload_remote_db(self, db_buf = None):
+        if db_buf == None:
+            pass
+        else:
+            self.db = KPDBv1(None, self.db.password, self.db.keyfile)
+            self.db.load(db_buf)
+            self.control.db = self.db
+            self.cur_root = self.db.root_group
+            self.sort_tables(True, True)
+            self.control.show_groups(self.g_highlight, self.groups,
+                                     self.cur_win, self.g_offset,
+                                     self.changed, self.cur_root)
+            self.control.show_entries(self.e_highlight, self.entries,
+                                      self.cur_win, self.e_offset)
+
     def unlock_with_password(self):
         '''Unlock the database with a password'''
 
@@ -409,6 +425,13 @@ class DBBrowser(object):
     def change_db_password(self):
         '''Change the master key of the database'''
 
+        if self.remote is True:
+            self.control.draw_text(False,
+                                   (1, 0, "Not allowed on remote connection"),
+                                   (3, 0, "Press any key"))
+            if self.control.any_key() == -1:
+                self.close()
+            return False
         while True:
             auth = self.control.gen_menu(1, (
                                          (1, 0, 'Use a password (1)'),
@@ -474,28 +497,50 @@ class DBBrowser(object):
             else:
                 old_group = None
 
-            try:
+            if self.remote is True:
                 if self.cur_root is self.db.root_group:
-                    self.db.create_group(edit)
+                    root = 0
                 else:
-                    self.db.create_group(edit, self.cur_root)
-            except KPError as err:
-                self.control.draw_text(self.changed,
-                                       (1, 0, err.__str__()),
-                                       (4, 0, 'Press any key.'))
-                if self.control.any_key() == -1:
-                    self.close()
+                    root = self.cur_root.id_
+                client = Client(logging.INFO, 'client.log', self.address, 
+                                self.port, None, self.db.password, 
+                                self.db.keyfile, self.ssl, self.tls_dir)
+                self.control.draw_text(False,
+                                       (1, 0, edit),
+                                       (2, 0, str(root)))
+                self.control.any_key()
+                db_buf = client.create_group(edit.encode(), str(root).encode())
+                if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
+                    self.control.draw_text(False,
+                                           (1, 0, db_buf),
+                                           (3, 0, 'Press any key.'))
+                    if self.control.any_key() == -1:
+                        self.close()
+                    return False
+                self.reload_remote_db(db_buf)
             else:
-                self.changed = True
+                try:
+                    if self.cur_root is self.db.root_group:
+                        self.db.create_group(edit)
+                    else:
+                        self.db.create_group(edit, self.cur_root)
+                except KPError as err:
+                    self.control.draw_text(self.changed,
+                                           (1, 0, err.__str__()),
+                                           (4, 0, 'Press any key.'))
+                    if self.control.any_key() == -1:
+                        self.close()
+                else:
+                    self.changed = True
 
-            self.sort_tables(True, True)
-            if (self.groups and
-                self.groups[self.g_highlight] is not old_group and
-                    old_group is not None):
-                self.g_highlight = self.groups.index(old_group)
+                self.sort_tables(True, True)
+                if (self.groups and
+                    self.groups[self.g_highlight] is not old_group and
+                        old_group is not None):
+                    self.g_highlight = self.groups.index(old_group)
 
     def create_sub_group(self):
-        '''Create a sub group with marked group as parrent'''
+        '''Create a sub group with marked group as parent'''
 
         if self.groups:
             edit = Editor(self.control.stdscr, max_text_size=1,

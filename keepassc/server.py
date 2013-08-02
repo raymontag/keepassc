@@ -6,7 +6,7 @@ import ssl
 import struct
 import sys
 import threading
-from os.path import join
+from os.path import join, expanduser, realpath
 
 from Crypto.Hash import SHA256
 from kppy.database import KPDBv1
@@ -29,22 +29,25 @@ class Server(Connection, Daemon):
         if db is None:
             print('Need a database path')
             sys.exit(1)
+
+        self.db_path = realpath(expanduser(db))
+
         try:
-            self.db = KPDBv1(db, password, keyfile)
+            self.db = KPDBv1(self.db_path, password, keyfile)
             self.db.load()
         except KPError as err:
             print(err)
             logging.error(err.__str__())
             sys.exit(1)
 
-        self.db_path = db
         master = get_key(self.db.password, self.db.keyfile)
         self.final_key =  transform_key(master, self.db._transf_randomseed,
                                         self.db._final_randomseed, 
                                         self.db._key_transf_rounds)
         self.lookup = {
             b'FIND': self.find,
-            b'GET': self.send_db}
+            b'GET': self.send_db,
+            b'NEWG': self.create_group}
         if tls_req is True:
             tls_port = port
         self.address = (address, port)
@@ -154,7 +157,7 @@ class Server(Connection, Daemon):
                 else:
                     logging.error('Received a wrong command')
                     self.sendmsg(conn, b'FAIL: Command isn\'t available')
-            except (OSError, ValueError):
+            except (OSError, ValueError) as err:
                 logging.error(err.__str__())
         finally:
             conn.shutdown(socket.SHUT_RDWR)
@@ -191,6 +194,23 @@ class Server(Connection, Daemon):
         with open(self.db_path, 'rb') as handler:
             buf = handler.read()
         self.sendmsg(conn, buf)
+
+    def create_group(self, conn, cmd_misc):
+        title = cmd_misc[0].decode()
+        root = int(cmd_misc[1])
+        if root == 0:
+            self.db.create_group(title)
+        else:
+            for i in self.db.groups:
+                if i.id_ == root:
+                    self.db.create_group(title, i)
+                    break
+                elif i is self.db.groups[-1]:
+                    self.sendmsg(conn, b"FAIL: Parent doesn't exist anymore. "
+                                       b"You should refresh")
+                    return
+        self.db.save()
+        self.send_db(conn, [])
 
     def handle_sigterm(self, signum, frame):
         self.db.close()
