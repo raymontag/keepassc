@@ -5,6 +5,7 @@ import socket
 import ssl
 import struct
 import sys
+import time
 import threading
 from os.path import join, expanduser, realpath
 
@@ -18,6 +19,26 @@ from keepassc.helper import (get_passwordkey, get_filekey, get_key,
                              transform_key, cbc_decrypt, cbc_encrypt, 
                              ecb_encrypt)
 
+class waitDecorator(object):
+    def __init__(self, func):
+        self.func = func
+        self.lock = False
+
+    def __get__(self, obj, type=None):
+        return self.__class__(self.func.__get__(obj, type))
+
+    def __call__(self, *args):
+        while True:
+            if self.lock == True:
+                print("I wait")
+                time.sleep(1)
+                continue
+            else:
+                self.lock = True
+                self.func(args[0], args[1])
+                self.lock = False
+                break
+        
 class Server(Connection, Daemon):
     """The KeePassC server daemon"""
 
@@ -79,12 +100,16 @@ class Server(Connection, Daemon):
     def run(self):
         """Overide Daemon.run() and provide socets"""
         
-        if self.tls_req is False:
-            non_tls_thread = threading.Thread(target=self.handle_non_tls)
-            non_tls_thread.start()
-        if self.context is not None:
-            tls_thread = threading.Thread(target=self.handle_tls)
-            tls_thread.start()
+        try:
+            if self.tls_req is False:
+                non_tls_thread = threading.Thread(target=self.handle_non_tls)
+                non_tls_thread.start()
+            if self.context is not None:
+                tls_thread = threading.Thread(target=self.handle_tls)
+                tls_thread.start()
+        except OSError as err:
+            logging.error(err.__str__())
+            self.stop()
 
     def handle_non_tls(self):
         try:
@@ -195,6 +220,7 @@ class Server(Connection, Daemon):
             buf = handler.read()
         self.sendmsg(conn, buf)
 
+    @waitDecorator
     def create_group(self, conn, cmd_misc):
         title = cmd_misc[0].decode()
         root = int(cmd_misc[1])

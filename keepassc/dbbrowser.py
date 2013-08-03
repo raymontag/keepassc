@@ -505,10 +505,6 @@ class DBBrowser(object):
                 client = Client(logging.INFO, 'client.log', self.address, 
                                 self.port, None, self.db.password, 
                                 self.db.keyfile, self.ssl, self.tls_dir)
-                self.control.draw_text(False,
-                                       (1, 0, edit),
-                                       (2, 0, str(root)))
-                self.control.any_key()
                 db_buf = client.create_group(edit.encode(), str(root).encode())
                 if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
                     self.control.draw_text(False,
