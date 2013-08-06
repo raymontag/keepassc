@@ -30,7 +30,6 @@ class waitDecorator(object):
     def __call__(self, *args):
         while True:
             if self.lock == True:
-                print("I wait")
                 time.sleep(1)
                 continue
             else:
@@ -53,6 +52,13 @@ class Server(Connection, Daemon):
 
         self.db_path = realpath(expanduser(db))
 
+        # To use this idiom only once, I store the keyfile path
+        # as a class attribute
+        if keyfile is not None:
+            self.keyfile = realpath(expanduser(keyfile))
+        else:
+            self.keyfile = None
+
         try:
             self.db = KPDBv1(self.db_path, password, keyfile)
             self.db.load()
@@ -61,10 +67,6 @@ class Server(Connection, Daemon):
             logging.error(err.__str__())
             sys.exit(1)
 
-        master = get_key(self.db.password, self.db.keyfile)
-        self.final_key =  transform_key(master, self.db._transf_randomseed,
-                                        self.db._final_randomseed, 
-                                        self.db._key_transf_rounds)
         self.lookup = {
             b'FIND': self.find,
             b'GET': self.send_db,
@@ -92,10 +94,14 @@ class Server(Connection, Daemon):
         """Check received password"""
         
         master = get_key(password, keyfile, True)
+        remote_final =  transform_key(master, self.db._transf_randomseed,
+                                      self.db._final_randomseed, 
+                                      self.db._key_transf_rounds)
+        master = get_key(self.db.password, self.keyfile)
         final =  transform_key(master, self.db._transf_randomseed,
                                self.db._final_randomseed, 
                                self.db._key_transf_rounds)
-        return (self.final_key == final)
+        return (remote_final == final)
 
     def run(self):
         """Overide Daemon.run() and provide socets"""
@@ -188,10 +194,10 @@ class Server(Connection, Daemon):
             conn.shutdown(socket.SHUT_RDWR)
             conn.close()
 
-    def find(self, conn, cmd_misc):
+    def find(self, conn, parts):
         """Find entries and send them to connection"""
 
-        title = cmd_misc[0]
+        title = parts.pop(0)
         msg = ''
         for i in self.db.entries:
             if title.decode().lower() in i.title.lower():
@@ -215,15 +221,15 @@ class Server(Connection, Daemon):
                 msg += '\n'
         self.sendmsg(conn, msg.encode())
 
-    def send_db(self, conn, cmd_misc):
+    def send_db(self, conn, parts):
         with open(self.db_path, 'rb') as handler:
             buf = handler.read()
         self.sendmsg(conn, buf)
 
     @waitDecorator
-    def create_group(self, conn, cmd_misc):
-        title = cmd_misc[0].decode()
-        root = int(cmd_misc[1])
+    def create_group(self, conn, parts):
+        title = parts.pop(0).decode()
+        root = int(parts.pop(0))
         if root == 0:
             self.db.create_group(title)
         else:
@@ -246,4 +252,3 @@ class Server(Connection, Daemon):
         if self.tls_sock is not None:
             self.tls_sock.shutdown(socket.SHUT_RDWR)
             self.tls_sock.close()
-        del self.final_key

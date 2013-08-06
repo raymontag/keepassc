@@ -305,18 +305,27 @@ class DBBrowser(object):
 
     def reload_remote_db(self, db_buf = None):
         if db_buf == None:
-            pass
-        else:
-            self.db = KPDBv1(None, self.db.password, self.db.keyfile)
-            self.db.load(db_buf)
-            self.control.db = self.db
-            self.cur_root = self.db.root_group
-            self.sort_tables(True, True)
-            self.control.show_groups(self.g_highlight, self.groups,
-                                     self.cur_win, self.g_offset,
-                                     self.changed, self.cur_root)
-            self.control.show_entries(self.e_highlight, self.entries,
-                                      self.cur_win, self.e_offset)
+            client = Client(logging.INFO, 'client.log', self.address, 
+                            self.port, None, self.db.password, 
+                            self.db.keyfile, self.ssl, self.tls_dir)
+            db_buf = client.get_db()
+            if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
+                self.control.draw_text(False,
+                                       (1, 0, db_buf),
+                                       (3, 0, 'Press any key.'))
+                if self.control.any_key() == -1:
+                    self.close()
+                return False
+        self.db = KPDBv1(None, self.db.password, self.db.keyfile)
+        self.db.load(db_buf)
+        self.control.db = self.db
+        self.cur_root = self.db.root_group
+        self.sort_tables(True, True)
+        self.control.show_groups(self.g_highlight, self.groups,
+                                 self.cur_win, self.g_offset,
+                                 self.changed, self.cur_root)
+        self.control.show_entries(self.e_highlight, self.entries,
+                                  self.cur_win, self.e_offset)
 
     def unlock_with_password(self):
         '''Unlock the database with a password'''
@@ -1217,7 +1226,8 @@ class DBBrowser(object):
             cur.KEY_LEFT: self.nav_left,
             ord('h'): self.nav_left,
             cur.KEY_RIGHT: self.nav_right,
-            ord('l'): self.nav_right}
+            ord('l'): self.nav_right,
+            ord('r'): self.reload_remote_db}
 
         locked_state = {
             ord('q'): self.quit_kpc,
