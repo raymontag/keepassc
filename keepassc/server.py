@@ -43,7 +43,8 @@ class Server(Connection, Daemon):
 
     def __init__(self, pidfile, loglevel, logfile, address = 'localhost',
                  port = 50000, db = None, password = None, keyfile = None,
-                 tls = False, tls_dir = None, tls_port = 50002, tls_req = False):
+                 tls = False, tls_dir = None, tls_port = 50002, 
+                 tls_req = False):
         Connection.__init__(self, loglevel, logfile, password, keyfile)
         Daemon.__init__(self, pidfile)
         if db is None:
@@ -70,7 +71,9 @@ class Server(Connection, Daemon):
         self.lookup = {
             b'FIND': self.find,
             b'GET': self.send_db,
+            b'CHANGESECRET': self.change_password,
             b'NEWG': self.create_group}
+
         if tls_req is True:
             tls_port = port
         self.address = (address, port)
@@ -131,10 +134,16 @@ class Server(Connection, Daemon):
                          str(self.address[1]))
 
         while True:
-            conn, client = self.sock.accept()
-            logging.info('Connection from '+client[0]+':'+str(client[1]))
-            client_thread = threading.Thread(target=self.handle_client, args=(conn,))
-            client_thread.start()
+            try:
+                conn, client = self.sock.accept()
+            except OSError as err:
+                logging.error(err.__str__())
+            else:
+                logging.info('Connection from '+client[0]+':'+str(client[1]))
+                client_thread = threading.Thread(target=self.handle_client, 
+                                                 args=(conn,client,))
+                client_thread.daemon = True
+                client_thread.start()
 
     def handle_tls(self):
         try:
@@ -153,19 +162,21 @@ class Server(Connection, Daemon):
             try:
                 conn_tmp, client = self.tls_sock.accept()
                 conn = self.context.wrap_socket(conn_tmp, server_side = True)
-            except ssl.SSLError as err:
+            except (ssl.SSLError, OSError) as err:
                 logging.error(err.__str__())
-                continue
-            logging.info('Connection from '+client[0]+':'+str(client[1]))
-            client_thread = threading.Thread(target=self.handle_client, args=(conn,))
-            client_thread.start()
+            else:
+                logging.info('Connection from '+client[0]+':'+str(client[1]))
+                client_thread = threading.Thread(target=self.handle_client, args=(conn,client,))
+                client_thread.daemon = True
+                client_thread.start()
 
-    def handle_client(self, conn):
+    def handle_client(self, conn, client):
         conn.settimeout(60)
 
         try:
             msg = self.receive(conn)
             parts = msg.split(b'\xB2\xEA\xC0')
+            parts.append(client)
             password = parts.pop(0)
             keyfile = parts.pop(0)
             cmd = parts.pop(0)
@@ -244,8 +255,30 @@ class Server(Connection, Daemon):
         self.db.save()
         self.send_db(conn, [])
 
+    @waitDecorator
+    def change_password(self, conn, parts):
+        client_add = parts[-1][0]
+        if client_add != "localhost" and client_add != "127.0.0.1":
+            self.sendmsg(conn, b'Password change from remote is not allowed')
+
+        new_password = parts.pop(0).decode()
+        new_keyfile = parts.pop(0).decode()
+        if new_password == '':
+            self.db.password = None
+        else:
+            self.db.password = new_password
+
+        if new_keyfile == '':
+            self.db.keyfile = None
+        else:
+            self.db.keyfile = realpath(expanduser(new_keyfile))
+
+        self.keyfile = self.db.keyfile
+        self.db.save()
+        self.sendmsg(conn, b"Password changed")
+
     def handle_sigterm(self, signum, frame):
-        self.db.close()
+        self.db.lock()
         if self.sock is not None:
             self.sock.shutdown(socket.SHUT_RDWR)
             self.sock.close()

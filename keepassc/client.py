@@ -15,7 +15,6 @@ class Client(Connection):
                  keyfile = None, tls = False, tls_dir = None):
         Connection.__init__(self, loglevel, logfile, password, keyfile)
         self.server_address = (server_address, server_port)
-        logging.error(self.server_address)
         self.agent_address = ('localhost', agent_port)
 
         if tls is True:
@@ -72,10 +71,10 @@ class Client(Connection):
 
     def find(self, title):
         try:
-            answer = self.send_cmd(b'FIND', title)
+            answer = self.send_cmd(b'FIND', title).decode()
             if answer[:4] == b'FAIL':
-                raise OSError(answer.decode())
-            return answer.decode()
+                raise OSError(answer)
+            return answer
         except (OSError, TypeError) as err:
             logging.error(err.__str__())
             return err.__str__()
@@ -90,6 +89,25 @@ class Client(Connection):
             logging.error(err.__str__())
             return err.__str__()
         
+    def change_password(self, password, keyfile):
+        if password is None:
+            password = b''
+        else:
+            password = password.encode()
+        if keyfile is None:
+            keyfile = b''
+        else:
+            keyfile = keyfile.encode()
+
+        try:
+            answer = self.send_cmd(b'CHANGESECRET', password, keyfile).decode()
+            if answer[:4] == b'FAIL':
+                raise OSError(answer)
+            return answer
+        except (OSError, TypeError) as err:
+            logging.error(err.__str__())
+            return err.__str__()
+
     def create_group(self, title, root):
         try:
             db_buf = self.send_cmd(b'NEWG', title, root)

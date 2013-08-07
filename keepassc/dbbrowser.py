@@ -434,18 +434,22 @@ class DBBrowser(object):
     def change_db_password(self):
         '''Change the master key of the database'''
 
-        if self.remote is True:
-            self.control.draw_text(False,
-                                   (1, 0, "Not allowed on remote connection"),
-                                   (3, 0, "Press any key"))
+        if (self.address != "127.0.0.1" and self.address != "localhost" and
+            self.remote is True):
+            self.draw_text(False,
+                           (1, 0, "Password change from remote is not "
+                                  "allowed"),
+                           (3, 0, "Press any key."))
             if self.control.any_key() == -1:
                 self.close()
-            return False
+
         while True:
             auth = self.control.gen_menu(1, (
                                          (1, 0, 'Use a password (1)'),
                                          (2, 0, 'Use a keyfile (2)'),
                                          (3, 0, 'Use both (3)')))
+            tmp_password = None
+            tmp_keyfile = None
             if auth == 2 or auth == 3:
                 while True:
                     filepath = FileBrowser(self.control, False, True, None)()
@@ -461,9 +465,13 @@ class DBBrowser(object):
                     break
                 if filepath is False:
                     continue
-                self.db.keyfile = filepath
+                if self.remote is False:
+                    self.db.keyfile = filepath
+                else:
+                    tmp_keyfile = filepath
                 if auth != 3:
                     self.db.password = None
+
             if auth == 1 or auth == 3:
                 password = self.control.get_password('New Password: ')
                 if password is False:
@@ -476,19 +484,41 @@ class DBBrowser(object):
                 elif confirm == -1:
                     self.close()
                 if password == confirm:
-                    self.db.password = password
+                    if self.remote is False:
+                        self.db.password = password
+                    else:
+                        tmp_password = password
                 else:
                     self.control.draw_text(self.changed,
-                                           (3, 0, 'Passwords didn\'t match. '
+                                           (1, 0, 'Passwords didn\'t match. '
                                                'Press any key.'))
                     if self.control.any_key() == -1:
                         self.close()
+                    continue
                 if auth != 3:
                     self.db.keyfile = None
+
             if auth is False:
                 return False
             elif auth == -1:
                 self.close()
+            elif self.remote is True:
+                client = Client(logging.INFO, 'client.log', self.address, 
+                                self.port, None, self.db.password, 
+                                self.db.keyfile, self.ssl, self.tls_dir)
+                answer = client.change_password(tmp_password, 
+                                                tmp_keyfile)
+                if answer[:4] == 'FAIL' or answer[:4] == '[Err':
+                    self.control.draw_text(False,
+                                           (1, 0, answer),
+                                           (3, 0, 'Press any key.'))
+                    if self.control.any_key() == -1:
+                        self.close()
+                    return False
+                else:
+                    self.db.password = tmp_password
+                    self.db.keyfile = tmp_keyfile
+                return True
             else:
                 self.changed = True
                 return True
