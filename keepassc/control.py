@@ -959,22 +959,23 @@ class Control(object):
                 elif ret == -1:
                     self.close()
                 password, keyfile = ret
+            pass_auth = True
             if pass_ssl is False:
-                path_auth = False
                 ssl = self.gen_menu(1, ((1, 0, 'Use SSL/TLS (1)'),
                                         (2, 0, 'Plain text (2)')))
                 if ssl is False:
+                    pass_auth = False
                     continue
                 elif ssl == -1:
                     self.close()
-            pass_ssl = False
+            pass_ssl = True
             server = Editor(self.stdscr, max_text_size=1,
                             inittext="127.0.0.1",
                             win_location=(0, 1),
                             win_size=(1, self.xsize), 
                             title="Server address")()
             if server is False:
-                path_auth = True
+                pass_ssl = False
                 continue
             elif server == -1:
                 self.close()
