@@ -118,3 +118,9 @@ class Client(Connection):
     def move_entry(self, uuid, root):
         return self.get_bytes(b'MOVE', uuid, root)
 
+    def set_g_title(self, title, group_id):
+        return self.get_bytes(b'TITG', title, group_id)
+
+    def set_e_title(self, title, uuid):
+        return self.get_bytes(b'TITE', title, uuid)
+    

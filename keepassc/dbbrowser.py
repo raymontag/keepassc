@@ -1091,8 +1091,26 @@ class DBBrowser(object):
                 if edit == -1:
                     self.close()
                 elif edit is not False:
-                    self.groups[self.g_highlight].set_title(edit)
-                    self.changed = True
+                    if self.remote is True:
+                        group_id = self.groups[self.g_highlight].id_
+                        client = Client(logging.INFO, 'client.log', 
+                                        self.address, 
+                                        self.port, None, self.db.password, 
+                                        self.db.keyfile, self.ssl, 
+                                        self.tls_dir)
+                        db_buf = client.set_g_title(edit.encode(),
+                                                    str(group_id).encode())
+                        if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
+                            self.control.draw_text(False,
+                                                   (1, 0, db_buf),
+                                                   (3, 0, 'Press any key.'))
+                            if self.control.any_key() == -1:
+                                self.close()
+                            return False
+                        self.reload_remote_db(db_buf)
+                    else:
+                        self.groups[self.g_highlight].set_title(edit)
+                        self.changed = True
             elif self.cur_win == 1:
                 edit = Editor(self.control.stdscr, max_text_size=1,
                               inittext=self.entries[self.e_highlight].title,
@@ -1101,8 +1119,26 @@ class DBBrowser(object):
                 if edit == -1:
                     self.close()
                 elif edit is not False:
-                    self.entries[self.e_highlight].set_title(edit)
-                    self.changed = True
+                    if self.remote is True:
+                        uuid = self.entries[self.e_highlight].uuid
+                        client = Client(logging.INFO, 'client.log', 
+                                        self.address, 
+                                        self.port, None, self.db.password, 
+                                        self.db.keyfile, self.ssl, 
+                                        self.tls_dir)
+                        db_buf = client.set_e_title(edit.encode(),
+                                                    uuid)
+                        if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
+                            self.control.draw_text(False,
+                                                   (1, 0, db_buf),
+                                                   (3, 0, 'Press any key.'))
+                            if self.control.any_key() == -1:
+                                self.close()
+                            return False
+                        self.reload_remote_db(db_buf)
+                    else:
+                        self.entries[self.e_highlight].set_title(edit)
+                        self.changed = True
 
     def edit_username(self):
         '''Edit username of marked entry'''

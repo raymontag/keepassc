@@ -77,7 +77,9 @@ class Server(Connection, Daemon):
             b'DELG': self.delete_group,
             b'DELE': self.delete_entry,
             b'MOVG': self.move_group,
-            b'MOVE': self.move_entry}
+            b'MOVE': self.move_entry,
+            b'TITG': self.set_g_title,
+            b'TITE': self.set_e_title}
 
         if tls_req is True:
             tls_port = port
@@ -397,6 +399,40 @@ class Server(Connection, Daemon):
         self.db.save()
         self.send_db(conn, [])
         
+    @waitDecorator
+    def set_g_title(self, conn, parts):
+        title = parts.pop(0).decode()
+        group_id = int(parts.pop(0).decode())
+
+        for i in self.db.groups:
+            if i.id_ == group_id:
+                i.set_title(title)
+                break
+            elif i is self.db.groups[-1]:
+                self.sendmsg(conn, b"FAIL: Group doesn't exist "
+                                   b"anymore. You should refresh")
+                return
+
+        self.db.save()
+        self.send_db(conn, [])
+
+    @waitDecorator
+    def set_e_title(self, conn, parts):
+        title = parts.pop(0).decode()
+        uuid = parts.pop(0)
+
+        for i in self.db.entries:
+            if i.uuid == uuid:
+                i.set_title(title)
+                break
+            elif i is self.db.entries[-1]:
+                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
+                                   b"anymore. You should refresh")
+                return
+
+        self.db.save()
+        self.send_db(conn, [])
+
     def handle_sigterm(self, signum, frame):
         self.db.lock()
         if self.sock is not None:
