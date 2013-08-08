@@ -1038,7 +1038,11 @@ class DBBrowser(object):
                 self.close()
             elif edit is not False:
                 if self.remote is True:
-                    pass
+                    uuid = self.entries[self.e_highlight].uuid
+                    db_buf = self.client().set_e_user(edit.encode(),
+                                                       uuid)
+                    if self.check_answer(db_buf) is not False:
+                        self.reload_remote_db(db_buf)
                 else:
                     self.changed = True
                     self.entries[self.e_highlight].set_username(edit)
@@ -1056,8 +1060,15 @@ class DBBrowser(object):
             if edit == -1:
                 self.close()
             elif edit is not False:
-                self.changed = True
-                self.entries[self.e_highlight].set_url(edit)
+                if self.remote is True:
+                    uuid = self.entries[self.e_highlight].uuid
+                    db_buf = self.client().set_e_url(edit.encode(),
+                                                     uuid)
+                    if self.check_answer(db_buf) is not False:
+                        self.reload_remote_db(db_buf)
+                else:
+                    self.changed = True
+                    self.entries[self.e_highlight].set_url(edit)
 
     def edit_comment(self):
         '''Edit comment of marked entry'''
@@ -1069,8 +1080,15 @@ class DBBrowser(object):
             if edit == -1:
                 self.close()
             elif edit is not False:
-                self.changed = True
-                self.entries[self.e_highlight].set_comment(edit)
+                if self.remote is True:
+                    uuid = self.entries[self.e_highlight].uuid
+                    db_buf = self.client().set_e_comment(edit.encode(),
+                                                         uuid)
+                    if self.check_answer(db_buf) is not False:
+                        self.reload_remote_db(db_buf)
+                else:
+                    self.changed = True
+                    self.entries[self.e_highlight].set_comment(edit)
 
     def edit_password(self):
         '''Edit password of marked entry'''
@@ -1084,8 +1102,15 @@ class DBBrowser(object):
                 self.close()
             elif password is False:
                 return False
-            self.entries[self.e_highlight].set_password(password)
-            self.changed = True
+            if self.remote is True:
+                uuid = self.entries[self.e_highlight].uuid
+                db_buf = self.client().set_e_pass(password.encode(),
+                                                  uuid)
+                if self.check_answer(db_buf) is not False:
+                    self.reload_remote_db(db_buf)
+            else:
+                self.entries[self.e_highlight].set_password(password)
+                self.changed = True
         elif nav == 2:
             while True:
                 password = self.control.get_password('Password: ', False)
@@ -1100,8 +1125,15 @@ class DBBrowser(object):
                     self.close()
 
                 if password == confirm:
-                    self.entries[self.e_highlight].set_password(password)
-                    self.changed = True
+                    if self.remote is True:
+                        uuid = self.entries[self.e_highlight].uuid
+                        db_buf = self.client().set_e_pass(password.encode(),
+                                                          uuid)
+                        if self.check_answer(db_buf) is not False:
+                            self.reload_remote_db(db_buf)
+                    else:
+                        self.entries[self.e_highlight].set_password(password)
+                        self.changed = True
                     break
                 else:
                     self.control.draw_text(self.changed,
@@ -1122,10 +1154,18 @@ class DBBrowser(object):
         if exp_date == -1:
             self.close()
         elif exp_date is not False:
-            self.entries[self.e_highlight].set_expire(
-                exp_date[0], exp_date[1], exp_date[2],
-                exp[3], exp[4], exp[5])
-            self.changed = True
+            if self.remote is True:
+                uuid = self.entries[self.e_highlight].uuid
+                db_buf = self.client().set_e_exp(
+                    str(exp_date[0]).encode(), str(exp_date[1]).encode(), 
+                    str(exp_date[2]).encode(), uuid)
+                if self.check_answer(db_buf) is not False:
+                    self.reload_remote_db(db_buf)
+            else:
+                self.entries[self.e_highlight].set_expire(
+                    exp_date[0], exp_date[1], exp_date[2],
+                    exp[3], exp[4], exp[5])
+                self.changed = True
 
     def client(self):
         return Client(logging.INFO, 'client.log', 

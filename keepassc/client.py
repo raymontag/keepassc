@@ -123,4 +123,19 @@ class Client(Connection):
 
     def set_e_title(self, title, uuid):
         return self.get_bytes(b'TITE', title, uuid)
+
+    def set_e_user(self, username, uuid):
+        return self.get_bytes(b'USER', username, uuid)
+
+    def set_e_url(self, url, uuid):
+        return self.get_bytes(b'URL', url, uuid)
+
+    def set_e_comment(self, comment, uuid):
+        return self.get_bytes(b'COMM', comment, uuid)
+
+    def set_e_pass(self, password, uuid):
+        return self.get_bytes(b'PASS', password, uuid)
+
+    def set_e_exp(self, y, mon, d, uuid):
+        return self.get_bytes(b'DATE', y, mon, d, uuid)
     

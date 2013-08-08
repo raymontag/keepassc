@@ -79,7 +79,12 @@ class Server(Connection, Daemon):
             b'MOVG': self.move_group,
             b'MOVE': self.move_entry,
             b'TITG': self.set_g_title,
-            b'TITE': self.set_e_title}
+            b'TITE': self.set_e_title,
+            b'USER': self.set_e_user,
+            b'URL': self.set_e_url,
+            b'COMM': self.set_e_comment,
+            b'PASS': self.set_e_pass,
+            b'DATE': self.set_e_exp}
 
         if tls_req is True:
             tls_port = port
@@ -424,6 +429,93 @@ class Server(Connection, Daemon):
         for i in self.db.entries:
             if i.uuid == uuid:
                 i.set_title(title)
+                break
+            elif i is self.db.entries[-1]:
+                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
+                                   b"anymore. You should refresh")
+                return
+
+        self.db.save()
+        self.send_db(conn, [])
+
+    @waitDecorator
+    def set_e_user(self, conn, parts):
+        username = parts.pop(0).decode()
+        uuid = parts.pop(0)
+
+        for i in self.db.entries:
+            if i.uuid == uuid:
+                i.set_username(username)
+                break
+            elif i is self.db.entries[-1]:
+                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
+                                   b"anymore. You should refresh")
+                return
+
+        self.db.save()
+        self.send_db(conn, [])
+
+    @waitDecorator
+    def set_e_url(self, conn, parts):
+        url = parts.pop(0).decode()
+        uuid = parts.pop(0)
+
+        for i in self.db.entries:
+            if i.uuid == uuid:
+                i.set_url(url)
+                break
+            elif i is self.db.entries[-1]:
+                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
+                                   b"anymore. You should refresh")
+                return
+
+        self.db.save()
+        self.send_db(conn, [])
+
+    @waitDecorator
+    def set_e_comment(self, conn, parts):
+        comment = parts.pop(0).decode()
+        uuid = parts.pop(0)
+
+        for i in self.db.entries:
+            if i.uuid == uuid:
+                i.set_comment(comment)
+                break
+            elif i is self.db.entries[-1]:
+                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
+                                   b"anymore. You should refresh")
+                return
+
+        self.db.save()
+        self.send_db(conn, [])
+
+    @waitDecorator
+    def set_e_pass(self, conn, parts):
+        password = parts.pop(0).decode()
+        uuid = parts.pop(0)
+
+        for i in self.db.entries:
+            if i.uuid == uuid:
+                i.set_password(password)
+                break
+            elif i is self.db.entries[-1]:
+                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
+                                   b"anymore. You should refresh")
+                return
+
+        self.db.save()
+        self.send_db(conn, [])
+
+    @waitDecorator
+    def set_e_exp(self, conn, parts):
+        y = int(parts.pop(0).decode())
+        mon = int(parts.pop(0).decode())
+        d = int(parts.pop(0).decode())
+        uuid = parts.pop(0)
+
+        for i in self.db.entries:
+            if i.uuid == uuid:
+                i.set_expire(y, mon, d)
                 break
             elif i is self.db.entries[-1]:
                 self.sendmsg(conn, b"FAIL: Entry doesn't exist "
