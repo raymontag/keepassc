@@ -69,83 +69,46 @@ class Client(Connection):
 
         return answer
 
-    def find(self, title):
+    def get_bytes(self, cmd, *misc):
         try:
-            answer = self.send_cmd(b'FIND', title).decode()
+            db_buf = self.send_cmd(cmd, *misc)
+            if db_buf[:4] == b'FAIL':
+                raise OSError(db_buf.decode())
+            return db_buf
+        except (OSError, TypeError) as err:
+            logging.error(err.__str__())
+            return err.__str__()
+
+    def get_string(self, cmd, *misc):
+        try:
+            answer = self.send_cmd(cmd, *misc).decode()
             if answer[:4] == b'FAIL':
                 raise OSError(answer)
             return answer
         except (OSError, TypeError) as err:
             logging.error(err.__str__())
             return err.__str__()
+
+    def find(self, title):
+        return self.get_string(b'FIND', title)
 
     def get_db(self):
-        try:
-            db_buf = self.send_cmd(b'GET')
-            if db_buf[:4] == b'FAIL':
-                raise OSError(db_buf.decode())
-            return db_buf
-        except (OSError, TypeError) as err:
-            logging.error(err.__str__())
-            return err.__str__()
+        return self.get_bytes(b'GET')
         
     def change_password(self, password, keyfile):
-        if password is None:
-            password = b''
-        else:
-            password = password.encode()
-        if keyfile is None:
-            keyfile = b''
-        else:
-            keyfile = keyfile.encode()
-
-        try:
-            answer = self.send_cmd(b'CHANGESECRET', password, keyfile).decode()
-            if answer[:4] == b'FAIL':
-                raise OSError(answer)
-            return answer
-        except (OSError, TypeError) as err:
-            logging.error(err.__str__())
-            return err.__str__()
+        return self.get_string(b'CHANGESECRET', password, keyfile)
 
     def create_group(self, title, root):
-        try:
-            db_buf = self.send_cmd(b'NEWG', title, root)
-            if db_buf[:4] == b'FAIL':
-                raise OSError(db_buf.decode())
-            return db_buf
-        except (OSError, TypeError) as err:
-            logging.error(err.__str__())
-            return err.__str__()
+        return self.get_bytes(b'NEWG', title, root)
 
     def create_entry(self, title, url, username, password, comment, y, mon, d,
                      group_id):
-        try:
-            db_buf = self.send_cmd(b'NEWE', title, url, username, password, 
-                                   comment, y, mon, d, group_id)
-            if db_buf[:4] == b'FAIL':
-                raise OSError(db_buf.decode())
-            return db_buf
-        except (OSError, TypeError) as err:
-            logging.error(err.__str__())
-            return err.__str__()
-             
+        return self.get_bytes(b'NEWE', title, url, username, password, comment,
+                              y, mon, d, group_id)
+
     def delete_group(self, group_id):
-        try:
-            db_buf = self.send_cmd(b'DELG', group_id)
-            if db_buf[:4] == b'FAIL':
-                raise OSError(db_buf.decode())
-            return db_buf
-        except (OSError, TypeError) as err:
-            logging.error(err.__str__())
-            return err.__str__()
+        return self.get_bytes(b'DELG', group_id)
         
     def delete_entry(self, uuid):
-        try:
-            db_buf = self.send_cmd(b'DELE', uuid)
-            if db_buf[:4] == b'FAIL':
-                raise OSError(db_buf.decode())
-            return db_buf
-        except (OSError, TypeError) as err:
-            logging.error(err.__str__())
-            return err.__str__()
+        return self.get_bytes(b'DELE', uuid)
+

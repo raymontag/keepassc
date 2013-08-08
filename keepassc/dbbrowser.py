@@ -443,8 +443,6 @@ class DBBrowser(object):
                                          (1, 0, 'Use a password (1)'),
                                          (2, 0, 'Use a keyfile (2)'),
                                          (3, 0, 'Use both (3)')))
-            tmp_password = None
-            tmp_keyfile = None
             if auth == 2 or auth == 3:
                 while True:
                     filepath = FileBrowser(self.control, False, True, None)()
@@ -465,6 +463,8 @@ class DBBrowser(object):
                 else:
                     tmp_keyfile = filepath
                 if auth != 3:
+                    password = None
+                    tmp_password = None
                     self.db.password = None
 
             if auth == 1 or auth == 3:
@@ -491,6 +491,8 @@ class DBBrowser(object):
                         self.close()
                     continue
                 if auth != 3:
+                    filepath = None
+                    tmp_keyfile = None
                     self.db.keyfile = None
 
             if auth is False:
@@ -498,6 +500,15 @@ class DBBrowser(object):
             elif auth == -1:
                 self.close()
             elif self.remote is True:
+                if tmp_password is None:
+                    tmp_password = b''
+                else:
+                    tmp_password = tmp_password.encode()
+                if tmp_keyfile is None:
+                    tmp_keyfile = b''
+                else:
+                    tmp_keyfile = tmp_keyfile.encode()
+
                 client = Client(logging.INFO, 'client.log', self.address, 
                                 self.port, None, self.db.password, 
                                 self.db.keyfile, self.ssl, self.tls_dir)
@@ -511,8 +522,8 @@ class DBBrowser(object):
                         self.close()
                     return False
                 else:
-                    self.db.password = tmp_password
-                    self.db.keyfile = tmp_keyfile
+                    self.db.password = password
+                    self.db.keyfile = filepath
                 return True
             else:
                 self.changed = True
@@ -896,6 +907,7 @@ class DBBrowser(object):
                             self.close()
                         return False
                     self.reload_remote_db(db_buf)
+
                     if not self.entries:
                         self.cur_win = 0
                     if (self.e_highlight >= len(self.entries) and
