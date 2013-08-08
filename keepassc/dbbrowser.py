@@ -975,12 +975,6 @@ class DBBrowser(object):
                         self.close()
                     return False
                 self.reload_remote_db(db_buf)
-
-                if not self.entries:
-                    self.cur_win = 0
-                if (self.e_highlight >= len(self.entries) and
-                        self.e_highlight != 0):
-                    self.e_highlight -= 1
             else:
                 self.move_object.move_group(self.groups[self.g_highlight])
         elif (self.state == 4 and 
@@ -1003,12 +997,6 @@ class DBBrowser(object):
                         self.close()
                     return False
                 self.reload_remote_db(db_buf)
-
-                if not self.entries:
-                    self.cur_win = 0
-                if (self.e_highlight >= len(self.entries) and
-                        self.e_highlight != 0):
-                    self.e_highlight -= 1
             else:
                 self.move_object.move_entry(self.groups[self.g_highlight])
         self.move_object = None
@@ -1017,7 +1005,25 @@ class DBBrowser(object):
             
     def move2root(self):
         if self.state == 3:
-            self.move_object.move_group(self.db.root_group)
+            if self.remote is True:
+                group_id = self.move_object.id_
+                root = 0
+
+                client = Client(logging.INFO, 'client.log', self.address, 
+                                self.port, None, self.db.password, 
+                                self.db.keyfile, self.ssl, self.tls_dir)
+                db_buf = client.move_group(str(group_id).encode(), 
+                                           str(root).encode())
+                if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
+                    self.control.draw_text(False,
+                                           (1, 0, db_buf),
+                                           (3, 0, 'Press any key.'))
+                    if self.control.any_key() == -1:
+                        self.close()
+                    return False
+                self.reload_remote_db(db_buf)
+            else:
+                self.move_object.move_group(self.db.root_group)
             self.move_object = None
             self.state = 0
             self.sort_tables(True, True)

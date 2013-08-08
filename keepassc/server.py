@@ -352,14 +352,18 @@ class Server(Connection, Daemon):
 
         for i in self.db.groups:
             if i.id_ == group_id:
-                for j in self.db.groups:
-                    if j.id_ == root:
-                        i.move_group(j)
-                        break
-                    elif j is self.db.groups[-1]:
-                        self.sendmsg(conn, b"FAIL: New parent doesn't exist "
-                                           b"anymore. You should refresh")
-                        return
+                if root == 0:
+                    i.move_group(self.db.root_group)
+                else:
+                    for j in self.db.groups:
+                        if j.id_ == root:
+                            i.move_group(j)
+                            break
+                        elif j is self.db.groups[-1]:
+                            self.sendmsg(conn, b"FAIL: New parent doesn't "
+                                               b"exist anymore. You should "
+                                               b"refresh")
+                            return
                 break
             elif i is self.db.groups[-1]:
                 self.sendmsg(conn, b"FAIL: Group doesn't exist "
