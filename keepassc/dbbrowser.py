@@ -321,11 +321,6 @@ class DBBrowser(object):
         self.control.db = self.db
         self.cur_root = self.db.root_group
         self.sort_tables(True, True)
-        self.control.show_groups(self.g_highlight, self.groups,
-                                 self.cur_win, self.g_offset,
-                                 self.changed, self.cur_root)
-        self.control.show_entries(self.e_highlight, self.entries,
-                                  self.cur_win, self.e_offset)
 
     def unlock_with_password(self):
         '''Unlock the database with a password'''
@@ -751,29 +746,55 @@ class DBBrowser(object):
                     continue
                 elif exp_date == -1:
                     self.close()
-                try:
-                    self.groups[self.g_highlight].create_entry(title, 1, url,
-                                                               username,
-                                                               password,
-                                                               comment,
-                                                               exp_date[0],
-                                                               exp_date[1],
-                                                               exp_date[2])
-                except KPError as err:
-                    self.control.draw_text(self.changed,
-                                           (1, 0, err.__str__()),
-                                           (4, 0, 'Press any key.'))
-                    if self.control.any_key() == -1:
-                        self.close()
-                else:
-                    self.changed = True
+                if self.remote is True:
+                    root = self.groups[self.g_highlight].id_
 
-                self.sort_tables(True, True)
-                if (self.entries and
-                    self.entries[self.e_highlight] is not old_entry and
-                        old_entry is not None):
-                    self.e_highlight = self.entries.index(old_entry)
-                break
+                    client = Client(logging.INFO, 'client.log', self.address, 
+                                    self.port, None, self.db.password, 
+                                    self.db.keyfile, self.ssl, self.tls_dir)
+                    db_buf = client.create_entry(title.encode(),
+                                                 url.encode(),
+                                                 username.encode(),
+                                                 password.encode(),
+                                                 comment.encode(),
+                                                 str(exp_date[0]).encode(),
+                                                 str(exp_date[1]).encode(),
+                                                 str(exp_date[2]).encode(),
+                                                 str(root).encode())
+                    if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
+                        self.control.draw_text(False,
+                                               (1, 0, db_buf),
+                                               (3, 0, 'Press any key.'))
+                        if self.control.any_key() == -1:
+                            self.close()
+                        return False
+                    self.reload_remote_db(db_buf)
+                    break
+                else:
+                    try:
+                        self.groups[self.g_highlight].create_entry(title, 1, 
+                                                                   url,
+                                                                   username,
+                                                                   password,
+                                                                   comment,
+                                                                   exp_date[0],
+                                                                   exp_date[1],
+                                                                   exp_date[2])
+                    except KPError as err:
+                        self.control.draw_text(self.changed,
+                                               (1, 0, err.__str__()),
+                                               (4, 0, 'Press any key.'))
+                        if self.control.any_key() == -1:
+                            self.close()
+                    else:
+                        self.changed = True
+
+                    self.sort_tables(True, True)
+                    if (self.entries and
+                        self.entries[self.e_highlight] is not old_entry and
+                            old_entry is not None):
+                        self.e_highlight = self.entries.index(old_entry)
+                    break
 
     def pre_delete(self):
         '''Prepare deletion of group or entry'''

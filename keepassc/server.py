@@ -72,7 +72,8 @@ class Server(Connection, Daemon):
             b'FIND': self.find,
             b'GET': self.send_db,
             b'CHANGESECRET': self.change_password,
-            b'NEWG': self.create_group}
+            b'NEWG': self.create_group,
+            b'NEWE': self.create_entry}
 
         if tls_req is True:
             tls_port = port
@@ -276,6 +277,32 @@ class Server(Connection, Daemon):
         self.keyfile = self.db.keyfile
         self.db.save()
         self.sendmsg(conn, b"Password changed")
+
+    @waitDecorator
+    def create_entry(self, conn, parts):
+        title = parts.pop(0).decode()
+        url = parts.pop(0).decode()
+        username = parts.pop(0).decode()
+        password = parts.pop(0).decode()
+        comment = parts.pop(0).decode()
+        y = int(parts.pop(0).decode())
+        mon = int(parts.pop(0).decode())
+        d = int(parts.pop(0).decode())
+        root = int(parts.pop(0).decode())
+
+        for i in self.db.groups:
+            if i.id_ == root:
+                self.db.create_entry(i, title, 1, url, username, password,
+                                     comment, y, mon, d)
+                break
+            elif i is self.db.groups[-1]:
+                self.sendmsg(conn, b"FAIL: Group for entry doesn't exist "
+                                   b"anymore. You should refresh")
+                return
+
+        self.db.save()
+        self.send_db(conn, [])
+
 
     def handle_sigterm(self, signum, frame):
         self.db.lock()

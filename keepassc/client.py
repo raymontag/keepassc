@@ -117,3 +117,16 @@ class Client(Connection):
         except (OSError, TypeError) as err:
             logging.error(err.__str__())
             return err.__str__()
+
+    def create_entry(self, title, url, username, password, comment, y, mon, d,
+                     group_id):
+        try:
+            db_buf = self.send_cmd(b'NEWE', title, url, username, password, 
+                                   comment, y, mon, d, group_id)
+            if db_buf[:4] == b'FAIL':
+                raise OSError(db_buf.decode())
+            return db_buf
+        except (OSError, TypeError) as err:
+            logging.error(err.__str__())
+            return err.__str__()
+             
