@@ -881,25 +881,46 @@ class DBBrowser(object):
             except KeyboardInterrupt:
                 e = 4
             if e == ord('y'):
-                try:
-                    self.entries[self.e_highlight].remove_entry()
-                except KPError as err:
-                    self.control.draw_text(self.changed,
-                                           (1, 0, err.__str__()),
-                                           (4, 0, 'Press any key.'))
-                    if self.control.any_key() == -1:
-                        self.close()
-                else:
-                    if self.groups[self.g_highlight].id_ == 0:
-                        del (self.groups[self.g_highlight]
-                                 .entries[self.e_highlight]) 
-                    self.sort_tables(True, True)
-                    self.changed = True
+                if self.remote is True:
+                    entry_uuid = self.entries[self.e_highlight].uuid
+
+                    client = Client(logging.INFO, 'client.log', self.address, 
+                                    self.port, None, self.db.password, 
+                                    self.db.keyfile, self.ssl, self.tls_dir)
+                    db_buf = client.delete_entry(entry_uuid)
+                    if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
+                        self.control.draw_text(False,
+                                               (1, 0, db_buf),
+                                               (3, 0, 'Press any key.'))
+                        if self.control.any_key() == -1:
+                            self.close()
+                        return False
+                    self.reload_remote_db(db_buf)
                     if not self.entries:
                         self.cur_win = 0
                     if (self.e_highlight >= len(self.entries) and
                             self.e_highlight != 0):
                         self.e_highlight -= 1
+                else:
+                    try:
+                        self.entries[self.e_highlight].remove_entry()
+                    except KPError as err:
+                        self.control.draw_text(self.changed,
+                                               (1, 0, err.__str__()),
+                                               (4, 0, 'Press any key.'))
+                        if self.control.any_key() == -1:
+                            self.close()
+                    else:
+                        if self.groups[self.g_highlight].id_ == 0:
+                            del (self.groups[self.g_highlight]
+                                     .entries[self.e_highlight]) 
+                        self.sort_tables(True, True)
+                        self.changed = True
+                        if not self.entries:
+                            self.cur_win = 0
+                        if (self.e_highlight >= len(self.entries) and
+                                self.e_highlight != 0):
+                            self.e_highlight -= 1
                 break
             elif e == 4:
                 self.close()

@@ -74,7 +74,8 @@ class Server(Connection, Daemon):
             b'CHANGESECRET': self.change_password,
             b'NEWG': self.create_group,
             b'NEWE': self.create_entry,
-            b'DELG': self.delete_group}
+            b'DELG': self.delete_group,
+            b'DELE': self.delete_entry}
 
         if tls_req is True:
             tls_port = port
@@ -314,6 +315,22 @@ class Server(Connection, Daemon):
                 break
             elif i is self.db.groups[-1]:
                 self.sendmsg(conn, b"FAIL: Group doesn't exist "
+                                   b"anymore. You should refresh")
+                return
+
+        self.db.save()
+        self.send_db(conn, [])
+
+    @waitDecorator
+    def delete_entry(self, conn, parts):
+        uuid = parts.pop(0)
+       
+        for i in self.db.entries:
+            if i.uuid == uuid:
+                i.remove_entry()
+                break
+            elif i is self.db.groups[-1]:
+                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
                                    b"anymore. You should refresh")
                 return
 
