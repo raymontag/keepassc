@@ -76,7 +76,8 @@ class Server(Connection, Daemon):
             b'NEWE': self.create_entry,
             b'DELG': self.delete_group,
             b'DELE': self.delete_entry,
-            b'MOVG': self.move_group}
+            b'MOVG': self.move_group,
+            b'MOVE': self.move_entry}
 
         if tls_req is True:
             tls_port = port
@@ -336,7 +337,7 @@ class Server(Connection, Daemon):
             if i.uuid == uuid:
                 i.remove_entry()
                 break
-            elif i is self.db.groups[-1]:
+            elif i is self.db.entries[-1]:
                 self.sendmsg(conn, b"FAIL: Entry doesn't exist "
                                    b"anymore. You should refresh")
                 return
@@ -362,6 +363,30 @@ class Server(Connection, Daemon):
                 break
             elif i is self.db.groups[-1]:
                 self.sendmsg(conn, b"FAIL: Group doesn't exist "
+                                   b"anymore. You should refresh")
+                return
+
+        self.db.save()
+        self.send_db(conn, [])
+
+    @waitDecorator
+    def move_entry(self, conn, parts):
+        uuid = parts.pop(0)
+        root = int(parts.pop(0).decode())
+
+        for i in self.db.entries:
+            if i.uuid == uuid:
+                for j in self.db.groups:
+                    if j.id_ == root:
+                        i.move_entry(j)
+                        break
+                    elif j is self.db.groups[-1]:
+                        self.sendmsg(conn, b"FAIL: New parent doesn't exist "
+                                           b"anymore. You should refresh")
+                        return
+                break
+            elif i is self.db.entries[-1]:
+                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
                                    b"anymore. You should refresh")
                 return
 

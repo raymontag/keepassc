@@ -115,3 +115,6 @@ class Client(Connection):
     def move_group(self, group_id, root):
         return self.get_bytes(b'MOVG', group_id, root)
 
+    def move_entry(self, uuid, root):
+        return self.get_bytes(b'MOVE', uuid, root)
+
