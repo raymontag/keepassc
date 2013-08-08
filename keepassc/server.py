@@ -73,7 +73,8 @@ class Server(Connection, Daemon):
             b'GET': self.send_db,
             b'CHANGESECRET': self.change_password,
             b'NEWG': self.create_group,
-            b'NEWE': self.create_entry}
+            b'NEWE': self.create_entry,
+            b'DELG': self.delete_group}
 
         if tls_req is True:
             tls_port = port
@@ -302,7 +303,22 @@ class Server(Connection, Daemon):
 
         self.db.save()
         self.send_db(conn, [])
+    
+    @waitDecorator
+    def delete_group(self, conn, parts):
+        group_id = int(parts.pop(0).decode())
 
+        for i in self.db.groups:
+            if i.id_ == group_id:
+                i.remove_group()
+                break
+            elif i is self.db.groups[-1]:
+                self.sendmsg(conn, b"FAIL: Group doesn't exist "
+                                   b"anymore. You should refresh")
+                return
+
+        self.db.save()
+        self.send_db(conn, [])
 
     def handle_sigterm(self, signum, frame):
         self.db.lock()

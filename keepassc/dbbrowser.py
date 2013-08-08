@@ -746,6 +746,7 @@ class DBBrowser(object):
                     continue
                 elif exp_date == -1:
                     self.close()
+
                 if self.remote is True:
                     root = self.groups[self.g_highlight].id_
 
@@ -824,25 +825,41 @@ class DBBrowser(object):
             except KeyboardInterrupt:
                 e = 4
             if e == ord('y'):
-                try:
-                    self.groups[self.g_highlight].remove_group()
-                except KPError as err:
-                    self.control.draw_text(self.changed,
-                                           (1, 0, err.__str__()),
-                                           (4, 0, 'Press any key.'))
-                    if self.control.any_key() == -1:
-                        self.close()
-                else:
-                    if (not self.cur_root.children and
-                            self.cur_root is not self.db.root_group):
-                        self.cur_root = self.cur_root.parent
-                    self.changed = True
+                if self.remote is True:
+                    root = self.groups[self.g_highlight].id_
 
-                    if (self.g_highlight >= len(self.groups) - 1 and
-                            self.g_highlight != 0):
-                        self.g_highlight -= 1
-                    self.e_highlight = 0
-                    self.sort_tables(True, True)
+                    client = Client(logging.INFO, 'client.log', self.address, 
+                                    self.port, None, self.db.password, 
+                                    self.db.keyfile, self.ssl, self.tls_dir)
+                    db_buf = client.delete_group(str(root).encode())
+                    if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
+                        self.control.draw_text(False,
+                                               (1, 0, db_buf),
+                                               (3, 0, 'Press any key.'))
+                        if self.control.any_key() == -1:
+                            self.close()
+                        return False
+                    self.reload_remote_db(db_buf)
+                else:
+                    try:
+                        self.groups[self.g_highlight].remove_group()
+                    except KPError as err:
+                        self.control.draw_text(self.changed,
+                                               (1, 0, err.__str__()),
+                                               (4, 0, 'Press any key.'))
+                        if self.control.any_key() == -1:
+                            self.close()
+                    else:
+                        if (not self.cur_root.children and
+                                self.cur_root is not self.db.root_group):
+                            self.cur_root = self.cur_root.parent
+                        self.changed = True
+
+                        if (self.g_highlight >= len(self.groups) - 1 and
+                                self.g_highlight != 0):
+                            self.g_highlight -= 1
+                        self.e_highlight = 0
+                        self.sort_tables(True, True)
                 break
             elif e == 4:
                 self.close()
