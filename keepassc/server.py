@@ -75,7 +75,8 @@ class Server(Connection, Daemon):
             b'NEWG': self.create_group,
             b'NEWE': self.create_entry,
             b'DELG': self.delete_group,
-            b'DELE': self.delete_entry}
+            b'DELE': self.delete_entry,
+            b'MOVG': self.move_group}
 
         if tls_req is True:
             tls_port = port
@@ -140,6 +141,9 @@ class Server(Connection, Daemon):
             try:
                 conn, client = self.sock.accept()
             except OSError as err:
+                # For correct closing
+                if "Bad file descriptor" in err.__str__():
+                    break
                 logging.error(err.__str__())
             else:
                 logging.info('Connection from '+client[0]+':'+str(client[1]))
@@ -166,6 +170,9 @@ class Server(Connection, Daemon):
                 conn_tmp, client = self.tls_sock.accept()
                 conn = self.context.wrap_socket(conn_tmp, server_side = True)
             except (ssl.SSLError, OSError) as err:
+                # For correct closing
+                if "Bad file descriptor" in err.__str__():
+                    break
                 logging.error(err.__str__())
             else:
                 logging.info('Connection from '+client[0]+':'+str(client[1]))
@@ -337,6 +344,30 @@ class Server(Connection, Daemon):
         self.db.save()
         self.send_db(conn, [])
 
+    @waitDecorator
+    def move_group(self, conn, parts):
+        group_id = int(parts.pop(0).decode())
+        root = int(parts.pop(0).decode())
+
+        for i in self.db.groups:
+            if i.id_ == group_id:
+                for j in self.db.groups:
+                    if j.id_ == root:
+                        i.move_group(j)
+                        break
+                    elif j is self.db.groups[-1]:
+                        self.sendmsg(conn, b"FAIL: New parent doesn't exist "
+                                           b"anymore. You should refresh")
+                        return
+                break
+            elif i is self.db.groups[-1]:
+                self.sendmsg(conn, b"FAIL: Group doesn't exist "
+                                   b"anymore. You should refresh")
+                return
+
+        self.db.save()
+        self.send_db(conn, [])
+        
     def handle_sigterm(self, signum, frame):
         self.db.lock()
         if self.sock is not None:

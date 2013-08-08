@@ -112,3 +112,6 @@ class Client(Connection):
     def delete_entry(self, uuid):
         return self.get_bytes(b'DELE', uuid)
 
+    def move_group(self, group_id, root):
+        return self.get_bytes(b'MOVG', group_id, root)
+
