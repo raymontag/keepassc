@@ -284,7 +284,7 @@ class DBBrowser(object):
                 self.close()
             return False
         if ((self.changed is True and self.db.read_only is False) and
-            remote is False):
+            self.remote is False):
             self.state = 2
             self.control.draw_text(self.changed,
                                    (1, 0, 'File has changed. Save? [(y)/n]'))
@@ -305,16 +305,8 @@ class DBBrowser(object):
 
     def reload_remote_db(self, db_buf = None):
         if db_buf == None:
-            client = Client(logging.INFO, 'client.log', self.address, 
-                            self.port, None, self.db.password, 
-                            self.db.keyfile, self.ssl, self.tls_dir)
-            db_buf = client.get_db()
-            if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
-                self.control.draw_text(False,
-                                       (1, 0, db_buf),
-                                       (3, 0, 'Press any key.'))
-                if self.control.any_key() == -1:
-                    self.close()
+            db_buf = self.client().get_db()
+            if self.check_answer(db_buf) is False:
                 return False
         self.db = KPDBv1(None, self.db.password, self.db.keyfile)
         self.db.load(db_buf)
@@ -379,16 +371,8 @@ class DBBrowser(object):
                 password = None
 
         if self.remote is True:
-            client = Client(logging.INFO, 'client.log', self.address, 
-                            self.port, None, password, keyfile, 
-                            self.ssl, self.tls_dir)
-            db_buf = client.get_db()
-            if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
-                self.control.draw_text(False,
-                                       (1, 0, db_buf),
-                                       (3, 0, 'Press any key.'))
-                if self.any_key() == -1:
-                    self.close()
+            db_buf = self.client().get_db()
+            if self.check_answer(db_buf) is False:
                 return False
         else:
             db_buf = None
@@ -431,7 +415,7 @@ class DBBrowser(object):
 
         if (self.address != "127.0.0.1" and self.address != "localhost" and
             self.remote is True):
-            self.draw_text(False,
+            self.control.draw_text(False,
                            (1, 0, "Password change from remote is not "
                                   "allowed"),
                            (3, 0, "Press any key."))
@@ -509,17 +493,9 @@ class DBBrowser(object):
                 else:
                     tmp_keyfile = tmp_keyfile.encode()
 
-                client = Client(logging.INFO, 'client.log', self.address, 
-                                self.port, None, self.db.password, 
-                                self.db.keyfile, self.ssl, self.tls_dir)
-                answer = client.change_password(tmp_password, 
-                                                tmp_keyfile)
-                if answer[:4] == 'FAIL' or answer[:4] == '[Err':
-                    self.control.draw_text(False,
-                                           (1, 0, answer),
-                                           (3, 0, 'Press any key.'))
-                    if self.control.any_key() == -1:
-                        self.close()
+                answer = self.client().change_password(tmp_password, 
+                                                       tmp_keyfile)
+                if self.check_answer(answer) is False:
                     return False
                 else:
                     self.db.password = password
@@ -547,18 +523,10 @@ class DBBrowser(object):
                     root = 0
                 else:
                     root = self.cur_root.id_
-                client = Client(logging.INFO, 'client.log', self.address, 
-                                self.port, None, self.db.password, 
-                                self.db.keyfile, self.ssl, self.tls_dir)
-                db_buf = client.create_group(edit.encode(), str(root).encode())
-                if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
-                    self.control.draw_text(False,
-                                           (1, 0, db_buf),
-                                           (3, 0, 'Press any key.'))
-                    if self.control.any_key() == -1:
-                        self.close()
-                    return False
-                self.reload_remote_db(db_buf)
+                db_buf = self.client().create_group(edit.encode(), 
+                                                    str(root).encode())
+                if self.check_answer(db_buf) is not False:
+                    self.reload_remote_db(db_buf)
             else:
                 try:
                     if self.cur_root is self.db.root_group:
@@ -592,19 +560,11 @@ class DBBrowser(object):
             elif edit is not False:
                 if self.remote is True:
                     root = self.groups[self.g_highlight].id_
-                    client = Client(logging.INFO, 'client.log', self.address, 
-                                    self.port, None, self.db.password, 
-                                    self.db.keyfile, self.ssl, self.tls_dir)
-                    db_buf = client.create_group(edit.encode(), (str(root).
-                                                                 encode()))
-                    if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
-                        self.control.draw_text(False,
-                                               (1, 0, db_buf),
-                                               (3, 0, 'Press any key.'))
-                        if self.control.any_key() == -1:
-                            self.close()
-                        return False
-                    self.reload_remote_db(db_buf)
+                    db_buf = self.client().create_group(edit.encode(),
+                                                        (str(root)
+                                                         .encode()))
+                    if self.check_answer(db_buf) is not False:
+                        self.reload_remote_db(db_buf)
                 else:
                     try:
                         self.db.create_group(edit, 
@@ -699,9 +659,9 @@ class DBBrowser(object):
 
                             if password != confirm:
                                 self.control.draw_text(self.changed,
-                                                       (3, 0,
-                                                        "Passwords didn't match"),
-                                                       (5, 0, 'Press any key.'))
+                                                    (3, 0,
+                                                    "Passwords didn't match"),
+                                                    (5, 0, 'Press any key.'))
                                 if self.control.any_key() == -1:
                                     self.close()
                             else:
@@ -761,10 +721,7 @@ class DBBrowser(object):
                 if self.remote is True:
                     root = self.groups[self.g_highlight].id_
 
-                    client = Client(logging.INFO, 'client.log', self.address, 
-                                    self.port, None, self.db.password, 
-                                    self.db.keyfile, self.ssl, self.tls_dir)
-                    db_buf = client.create_entry(title.encode(),
+                    db_buf = self.client().create_entry(title.encode(),
                                                  url.encode(),
                                                  username.encode(),
                                                  password.encode(),
@@ -773,14 +730,8 @@ class DBBrowser(object):
                                                  str(exp_date[1]).encode(),
                                                  str(exp_date[2]).encode(),
                                                  str(root).encode())
-                    if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
-                        self.control.draw_text(False,
-                                               (1, 0, db_buf),
-                                               (3, 0, 'Press any key.'))
-                        if self.control.any_key() == -1:
-                            self.close()
-                        return False
-                    self.reload_remote_db(db_buf)
+                    if self.check_answer(db_buf) is not False:
+                        self.reload_remote_db(db_buf)
                     break
                 else:
                     try:
@@ -839,18 +790,9 @@ class DBBrowser(object):
                 if self.remote is True:
                     root = self.groups[self.g_highlight].id_
 
-                    client = Client(logging.INFO, 'client.log', self.address, 
-                                    self.port, None, self.db.password, 
-                                    self.db.keyfile, self.ssl, self.tls_dir)
-                    db_buf = client.delete_group(str(root).encode())
-                    if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
-                        self.control.draw_text(False,
-                                               (1, 0, db_buf),
-                                               (3, 0, 'Press any key.'))
-                        if self.control.any_key() == -1:
-                            self.close()
-                        return False
-                    self.reload_remote_db(db_buf)
+                    db_buf = self.client().delete_group(str(root).encode())
+                    if self.check_answer(db_buf) is not False:
+                        self.reload_remote_db(db_buf)
                 else:
                     try:
                         self.groups[self.g_highlight].remove_group()
@@ -895,24 +837,15 @@ class DBBrowser(object):
                 if self.remote is True:
                     entry_uuid = self.entries[self.e_highlight].uuid
 
-                    client = Client(logging.INFO, 'client.log', self.address, 
-                                    self.port, None, self.db.password, 
-                                    self.db.keyfile, self.ssl, self.tls_dir)
-                    db_buf = client.delete_entry(entry_uuid)
-                    if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
-                        self.control.draw_text(False,
-                                               (1, 0, db_buf),
-                                               (3, 0, 'Press any key.'))
-                        if self.control.any_key() == -1:
-                            self.close()
-                        return False
-                    self.reload_remote_db(db_buf)
+                    db_buf = self.client().delete_entry(entry_uuid)
+                    if self.check_answer(db_buf) is not False:
+                        self.reload_remote_db(db_buf)
 
-                    if not self.entries:
-                        self.cur_win = 0
-                    if (self.e_highlight >= len(self.entries) and
-                            self.e_highlight != 0):
-                        self.e_highlight -= 1
+                        if not self.entries:
+                            self.cur_win = 0
+                        if (self.e_highlight >= len(self.entries) and
+                                self.e_highlight != 0):
+                            self.e_highlight -= 1
                 else:
                     try:
                         self.entries[self.e_highlight].remove_entry()
@@ -962,19 +895,10 @@ class DBBrowser(object):
                 group_id = self.move_object.id_
                 root = self.groups[self.g_highlight].id_
 
-                client = Client(logging.INFO, 'client.log', self.address, 
-                                self.port, None, self.db.password, 
-                                self.db.keyfile, self.ssl, self.tls_dir)
-                db_buf = client.move_group(str(group_id).encode(), 
-                                           str(root).encode())
-                if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
-                    self.control.draw_text(False,
-                                           (1, 0, db_buf),
-                                           (3, 0, 'Press any key.'))
-                    if self.control.any_key() == -1:
-                        self.close()
-                    return False
-                self.reload_remote_db(db_buf)
+                db_buf = self.client().move_group(str(group_id).encode(), 
+                                                  str(root).encode())
+                if self.check_answer(db_buf) is not False:
+                    self.reload_remote_db(db_buf)
             else:
                 self.move_object.move_group(self.groups[self.g_highlight])
         elif (self.state == 4 and 
@@ -984,19 +908,10 @@ class DBBrowser(object):
                 uuid = self.move_object.uuid
                 root = self.groups[self.g_highlight].id_
 
-                client = Client(logging.INFO, 'client.log', self.address, 
-                                self.port, None, self.db.password, 
-                                self.db.keyfile, self.ssl, self.tls_dir)
-                db_buf = client.move_entry(uuid, 
-                                           str(root).encode())
-                if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
-                    self.control.draw_text(False,
-                                           (1, 0, db_buf),
-                                           (3, 0, 'Press any key.'))
-                    if self.control.any_key() == -1:
-                        self.close()
-                    return False
-                self.reload_remote_db(db_buf)
+                db_buf = self.client().move_entry(uuid, 
+                                                  str(root).encode())
+                if self.check_answer(db_buf) is not False:
+                    self.reload_remote_db(db_buf)
             else:
                 self.move_object.move_entry(self.groups[self.g_highlight])
         self.move_object = None
@@ -1009,19 +924,10 @@ class DBBrowser(object):
                 group_id = self.move_object.id_
                 root = 0
 
-                client = Client(logging.INFO, 'client.log', self.address, 
-                                self.port, None, self.db.password, 
-                                self.db.keyfile, self.ssl, self.tls_dir)
-                db_buf = client.move_group(str(group_id).encode(), 
-                                           str(root).encode())
-                if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
-                    self.control.draw_text(False,
-                                           (1, 0, db_buf),
-                                           (3, 0, 'Press any key.'))
-                    if self.control.any_key() == -1:
-                        self.close()
-                    return False
-                self.reload_remote_db(db_buf)
+                db_buf = self.client().move_group(str(group_id).encode(), 
+                                                  str(root).encode())
+                if self.check_answer(db_buf) is not False:
+                    self.reload_remote_db(db_buf)
             else:
                 self.move_object.move_group(self.db.root_group)
             self.move_object = None
@@ -1093,21 +999,11 @@ class DBBrowser(object):
                 elif edit is not False:
                     if self.remote is True:
                         group_id = self.groups[self.g_highlight].id_
-                        client = Client(logging.INFO, 'client.log', 
-                                        self.address, 
-                                        self.port, None, self.db.password, 
-                                        self.db.keyfile, self.ssl, 
-                                        self.tls_dir)
-                        db_buf = client.set_g_title(edit.encode(),
-                                                    str(group_id).encode())
-                        if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
-                            self.control.draw_text(False,
-                                                   (1, 0, db_buf),
-                                                   (3, 0, 'Press any key.'))
-                            if self.control.any_key() == -1:
-                                self.close()
-                            return False
-                        self.reload_remote_db(db_buf)
+                        db_buf = self.client().set_g_title(edit.encode(),
+                                                           (str(group_id)
+                                                            .encode()))
+                        if self.check_answer(db_buf) is not False:
+                            self.reload_remote_db(db_buf)
                     else:
                         self.groups[self.g_highlight].set_title(edit)
                         self.changed = True
@@ -1121,21 +1017,10 @@ class DBBrowser(object):
                 elif edit is not False:
                     if self.remote is True:
                         uuid = self.entries[self.e_highlight].uuid
-                        client = Client(logging.INFO, 'client.log', 
-                                        self.address, 
-                                        self.port, None, self.db.password, 
-                                        self.db.keyfile, self.ssl, 
-                                        self.tls_dir)
-                        db_buf = client.set_e_title(edit.encode(),
-                                                    uuid)
-                        if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
-                            self.control.draw_text(False,
-                                                   (1, 0, db_buf),
-                                                   (3, 0, 'Press any key.'))
-                            if self.control.any_key() == -1:
-                                self.close()
-                            return False
-                        self.reload_remote_db(db_buf)
+                        db_buf = self.client().set_e_title(edit.encode(),
+                                                           uuid)
+                        if self.check_answer(db_buf) is not False:
+                            self.reload_remote_db(db_buf)
                     else:
                         self.entries[self.e_highlight].set_title(edit)
                         self.changed = True
@@ -1147,12 +1032,16 @@ class DBBrowser(object):
             std = 'Username: '
             edit = Editor(self.control.stdscr, max_text_size=1,
                           inittext=self.entries[self.e_highlight].username,
-                          win_location=(0, 1), win_size=(1, self.control.xsize), title=std)()
+                          win_location=(0, 1), win_size=(1, self.control.xsize),
+                          title=std)()
             if edit == -1:
                 self.close()
             elif edit is not False:
-                self.changed = True
-                self.entries[self.e_highlight].set_username(edit)
+                if self.remote is True:
+                    pass
+                else:
+                    self.changed = True
+                    self.entries[self.e_highlight].set_username(edit)
 
     def edit_url(self):
         '''Edit URL of marked entry'''
@@ -1161,7 +1050,9 @@ class DBBrowser(object):
             std = 'URL: '
             edit = Editor(self.control.stdscr, max_text_size=1,
                           inittext=self.entries[self.e_highlight].url,
-                          win_location=(0, 1), win_size=(1, self.control.xsize), title=std)()
+                          win_location=(0, 1), win_size=(1, 
+                          self.control.xsize), 
+                          title=std)()
             if edit == -1:
                 self.close()
             elif edit is not False:
@@ -1235,6 +1126,22 @@ class DBBrowser(object):
                 exp_date[0], exp_date[1], exp_date[2],
                 exp[3], exp[4], exp[5])
             self.changed = True
+
+    def client(self):
+        return Client(logging.INFO, 'client.log', 
+                      self.address, 
+                      self.port, None, self.db.password, 
+                      self.db.keyfile, self.ssl, 
+                      self.tls_dir)
+
+    def check_answer(self, answer):
+        if answer[:4] == 'FAIL' or answer[:4] == "[Err":
+            self.control.draw_text(False,
+                                   (1, 0, answer),
+                                   (3, 0, 'Press any key.'))
+            if self.control.any_key() == -1:
+                self.close()
+            return False
 
     def show_password(self):
         '''Show password of marked entry (e.g. copy it without xsel)'''
@@ -1341,7 +1248,6 @@ class DBBrowser(object):
         '''Navigate up'''
 
         if self.cur_win == 0 and self.g_highlight > 0:
-            ysize = self.control.group_win.getmaxyx()[0]
             if self.g_offset > 0 and self.g_highlight == self.g_offset:
                 self.g_offset -= 1
             self.g_highlight -= 1
@@ -1349,7 +1255,6 @@ class DBBrowser(object):
             self.e_highlight = 0
             self.sort_tables(False, True)
         elif self.cur_win == 1 and self.e_highlight > 0:
-            ysize = self.control.entry_win.getmaxyx()[0]
             if self.e_offset > 0 and self.e_highlight == self.e_offset:
                 self.e_offset -= 1
             self.e_highlight -= 1
@@ -1494,7 +1399,8 @@ class DBBrowser(object):
                     unlocked_state[c]()
                 if c == ord('e'):
                     return False
-                if self.state == 0 or self.state == 4:  # 'cause 'L' changes state
+                # 'cause 'L' changes state
+                if self.state == 0 or self.state == 4:  
                     if self.cur_win == 0 or c in exceptions:
                         self.control.show_groups(self.g_highlight, self.groups,
                                                  self.cur_win, self.g_offset,
