@@ -7,6 +7,7 @@ import struct
 import sys
 import time
 import threading
+from datetime import datetime
 from os.path import join, expanduser, realpath
 
 from Crypto.Hash import SHA256
@@ -302,10 +303,10 @@ class Server(Connection, Daemon):
         username = parts.pop(0).decode()
         password = parts.pop(0).decode()
         comment = parts.pop(0).decode()
-        y = int(parts.pop(0).decode())
-        mon = int(parts.pop(0).decode())
-        d = int(parts.pop(0).decode())
-        root = int(parts.pop(0).decode())
+        y = int(parts.pop(0))
+        mon = int(parts.pop(0))
+        d = int(parts.pop(0))
+        root = int(parts.pop(0))
 
         for i in self.db.groups:
             if i.id_ == root:
@@ -322,10 +323,18 @@ class Server(Connection, Daemon):
     
     @waitDecorator
     def delete_group(self, conn, parts):
-        group_id = int(parts.pop(0).decode())
+        group_id = int(parts.pop(0))
+        time = datetime(int(parts[0]), int(parts[1]), int(parts[2]),
+                        int(parts[3]), int(parts[4]), int(parts[5]))
+        time = time.timetuple()
 
         for i in self.db.groups:
             if i.id_ == group_id:
+                if self.check_last_mod(i, time) is True:
+                    self.sendmsg(conn, b"FAIL: Group was modified. You should "
+                                       b"refresh and if you're sure you want "
+                                       b"to delete this group try it again.")
+                    return
                 i.remove_group()
                 break
             elif i is self.db.groups[-1]:
@@ -339,9 +348,17 @@ class Server(Connection, Daemon):
     @waitDecorator
     def delete_entry(self, conn, parts):
         uuid = parts.pop(0)
+        time = datetime(int(parts[0]), int(parts[1]), int(parts[2]),
+                        int(parts[3]), int(parts[4]), int(parts[5]))
+        time = time.timetuple()
        
         for i in self.db.entries:
             if i.uuid == uuid:
+                if self.check_last_mod(i, time) is True:
+                    self.sendmsg(conn, b"FAIL: Entry was modified. You should "
+                                       b"refresh and if you're sure you want "
+                                       b"to delete this entry try it again.")
+                    return
                 i.remove_entry()
                 break
             elif i is self.db.entries[-1]:
@@ -354,8 +371,8 @@ class Server(Connection, Daemon):
 
     @waitDecorator
     def move_group(self, conn, parts):
-        group_id = int(parts.pop(0).decode())
-        root = int(parts.pop(0).decode())
+        group_id = int(parts.pop(0))
+        root = int(parts.pop(0))
 
         for i in self.db.groups:
             if i.id_ == group_id:
@@ -383,7 +400,7 @@ class Server(Connection, Daemon):
     @waitDecorator
     def move_entry(self, conn, parts):
         uuid = parts.pop(0)
-        root = int(parts.pop(0).decode())
+        root = int(parts.pop(0))
 
         for i in self.db.entries:
             if i.uuid == uuid:
@@ -407,10 +424,18 @@ class Server(Connection, Daemon):
     @waitDecorator
     def set_g_title(self, conn, parts):
         title = parts.pop(0).decode()
-        group_id = int(parts.pop(0).decode())
+        group_id = int(parts.pop(0))
+        time = datetime(int(parts[0]), int(parts[1]), int(parts[2]),
+                        int(parts[3]), int(parts[4]), int(parts[5]))
+        time = time.timetuple()
 
         for i in self.db.groups:
             if i.id_ == group_id:
+                if self.check_last_mod(i, time) is True:
+                    self.sendmsg(conn, b"FAIL: Group was modified. You should "
+                                       b"refresh and if you're sure you want "
+                                       b"to edit this group try it again.")
+                    return
                 i.set_title(title)
                 break
             elif i is self.db.groups[-1]:
@@ -425,9 +450,17 @@ class Server(Connection, Daemon):
     def set_e_title(self, conn, parts):
         title = parts.pop(0).decode()
         uuid = parts.pop(0)
+        time = datetime(int(parts[0]), int(parts[1]), int(parts[2]),
+                        int(parts[3]), int(parts[4]), int(parts[5]))
+        time = time.timetuple()
 
         for i in self.db.entries:
             if i.uuid == uuid:
+                if self.check_last_mod(i, time) is True:
+                    self.sendmsg(conn, b"FAIL: Entry was modified. You should "
+                                       b"refresh and if you're sure you want "
+                                       b"to edit this entry try it again.")
+                    return
                 i.set_title(title)
                 break
             elif i is self.db.entries[-1]:
@@ -442,9 +475,17 @@ class Server(Connection, Daemon):
     def set_e_user(self, conn, parts):
         username = parts.pop(0).decode()
         uuid = parts.pop(0)
+        time = datetime(int(parts[0]), int(parts[1]), int(parts[2]),
+                        int(parts[3]), int(parts[4]), int(parts[5]))
+        time = time.timetuple()
 
         for i in self.db.entries:
             if i.uuid == uuid:
+                if self.check_last_mod(i, time) is True:
+                    self.sendmsg(conn, b"FAIL: Entry was modified. You should "
+                                       b"refresh and if you're sure you want "
+                                       b"to edit this entry try it again.")
+                    return
                 i.set_username(username)
                 break
             elif i is self.db.entries[-1]:
@@ -459,9 +500,17 @@ class Server(Connection, Daemon):
     def set_e_url(self, conn, parts):
         url = parts.pop(0).decode()
         uuid = parts.pop(0)
+        time = datetime(int(parts[0]), int(parts[1]), int(parts[2]),
+                        int(parts[3]), int(parts[4]), int(parts[5]))
+        time = time.timetuple()
 
         for i in self.db.entries:
             if i.uuid == uuid:
+                if self.check_last_mod(i, time) is True:
+                    self.sendmsg(conn, b"FAIL: Entry was modified. You should "
+                                       b"refresh and if you're sure you want "
+                                       b"to edit this entry try it again.")
+                    return
                 i.set_url(url)
                 break
             elif i is self.db.entries[-1]:
@@ -476,9 +525,17 @@ class Server(Connection, Daemon):
     def set_e_comment(self, conn, parts):
         comment = parts.pop(0).decode()
         uuid = parts.pop(0)
+        time = datetime(int(parts[0]), int(parts[1]), int(parts[2]),
+                        int(parts[3]), int(parts[4]), int(parts[5]))
+        time = time.timetuple()
 
         for i in self.db.entries:
             if i.uuid == uuid:
+                if self.check_last_mod(i, time) is True:
+                    self.sendmsg(conn, b"FAIL: Entry was modified. You should "
+                                       b"refresh and if you're sure you want "
+                                       b"to edit this entry try it again.")
+                    return
                 i.set_comment(comment)
                 break
             elif i is self.db.entries[-1]:
@@ -493,9 +550,17 @@ class Server(Connection, Daemon):
     def set_e_pass(self, conn, parts):
         password = parts.pop(0).decode()
         uuid = parts.pop(0)
+        time = datetime(int(parts[0]), int(parts[1]), int(parts[2]),
+                        int(parts[3]), int(parts[4]), int(parts[5]))
+        time = time.timetuple()
 
         for i in self.db.entries:
             if i.uuid == uuid:
+                if self.check_last_mod(i, time) is True:
+                    self.sendmsg(conn, b"FAIL: Entry was modified. You should "
+                                       b"refresh and if you're sure you want "
+                                       b"to edit this entry try it again.")
+                    return
                 i.set_password(password)
                 break
             elif i is self.db.entries[-1]:
@@ -508,13 +573,21 @@ class Server(Connection, Daemon):
 
     @waitDecorator
     def set_e_exp(self, conn, parts):
-        y = int(parts.pop(0).decode())
-        mon = int(parts.pop(0).decode())
-        d = int(parts.pop(0).decode())
+        y = int(parts.pop(0))
+        mon = int(parts.pop(0))
+        d = int(parts.pop(0))
         uuid = parts.pop(0)
+        time = datetime(int(parts[0]), int(parts[1]), int(parts[2]),
+                        int(parts[3]), int(parts[4]), int(parts[5]))
+        time = time.timetuple()
 
         for i in self.db.entries:
             if i.uuid == uuid:
+                if self.check_last_mod(i, time) is True:
+                    self.sendmsg(conn, b"FAIL: Entry was modified. You should "
+                                       b"refresh and if you're sure you want "
+                                       b"to edit this entry try it again.")
+                    return
                 i.set_expire(y, mon, d)
                 break
             elif i is self.db.entries[-1]:
@@ -524,6 +597,9 @@ class Server(Connection, Daemon):
 
         self.db.save()
         self.send_db(conn, [])
+
+    def check_last_mod(self, obj, time):
+       return obj.last_mod.timetuple() > time 
 
     def handle_sigterm(self, signum, frame):
         self.db.lock()

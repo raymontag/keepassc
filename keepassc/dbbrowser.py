@@ -789,8 +789,10 @@ class DBBrowser(object):
             if e == ord('y'):
                 if self.remote is True:
                     root = self.groups[self.g_highlight].id_
-
-                    db_buf = self.client().delete_group(str(root).encode())
+                    last_mod = (self.groups[self.g_highlight]
+                                    .last_mod.timetuple())
+                    db_buf = self.client().delete_group(str(root).encode(),
+                                                        last_mod)
                     if self.check_answer(db_buf) is not False:
                         self.reload_remote_db(db_buf)
                 else:
@@ -836,8 +838,10 @@ class DBBrowser(object):
             if e == ord('y'):
                 if self.remote is True:
                     entry_uuid = self.entries[self.e_highlight].uuid
+                    last_mod = (self.entries[self.e_highlight]
+                                    .last_mod.timetuple())
 
-                    db_buf = self.client().delete_entry(entry_uuid)
+                    db_buf = self.client().delete_entry(entry_uuid, last_mod)
                     if self.check_answer(db_buf) is not False:
                         self.reload_remote_db(db_buf)
 
@@ -999,9 +1003,12 @@ class DBBrowser(object):
                 elif edit is not False:
                     if self.remote is True:
                         group_id = self.groups[self.g_highlight].id_
+                        last_mod = (self.groups[self.g_highlight]
+                                        .last_mod.timetuple())
                         db_buf = self.client().set_g_title(edit.encode(),
                                                            (str(group_id)
-                                                            .encode()))
+                                                            .encode()),
+                                                           last_mod)
                         if self.check_answer(db_buf) is not False:
                             self.reload_remote_db(db_buf)
                     else:
@@ -1017,8 +1024,10 @@ class DBBrowser(object):
                 elif edit is not False:
                     if self.remote is True:
                         uuid = self.entries[self.e_highlight].uuid
+                        last_mod = (self.entries[self.e_highlight]
+                                        .last_mod.timetuple())
                         db_buf = self.client().set_e_title(edit.encode(),
-                                                           uuid)
+                                                           uuid, last_mod)
                         if self.check_answer(db_buf) is not False:
                             self.reload_remote_db(db_buf)
                     else:
@@ -1039,8 +1048,10 @@ class DBBrowser(object):
             elif edit is not False:
                 if self.remote is True:
                     uuid = self.entries[self.e_highlight].uuid
+                    last_mod = (self.entries[self.e_highlight]
+                                    .last_mod.timetuple())
                     db_buf = self.client().set_e_user(edit.encode(),
-                                                       uuid)
+                                                       uuid, last_mod)
                     if self.check_answer(db_buf) is not False:
                         self.reload_remote_db(db_buf)
                 else:
@@ -1062,8 +1073,10 @@ class DBBrowser(object):
             elif edit is not False:
                 if self.remote is True:
                     uuid = self.entries[self.e_highlight].uuid
+                    last_mod = (self.entries[self.e_highlight]
+                                    .last_mod.timetuple())
                     db_buf = self.client().set_e_url(edit.encode(),
-                                                     uuid)
+                                                     uuid, last_mod)
                     if self.check_answer(db_buf) is not False:
                         self.reload_remote_db(db_buf)
                 else:
@@ -1082,8 +1095,10 @@ class DBBrowser(object):
             elif edit is not False:
                 if self.remote is True:
                     uuid = self.entries[self.e_highlight].uuid
+                    last_mod = (self.entries[self.e_highlight]
+                                    .last_mod.timetuple())
                     db_buf = self.client().set_e_comment(edit.encode(),
-                                                         uuid)
+                                                         uuid, last_mod)
                     if self.check_answer(db_buf) is not False:
                         self.reload_remote_db(db_buf)
                 else:
@@ -1104,8 +1119,10 @@ class DBBrowser(object):
                 return False
             if self.remote is True:
                 uuid = self.entries[self.e_highlight].uuid
+                last_mod = (self.entries[self.e_highlight]
+                                .last_mod.timetuple())
                 db_buf = self.client().set_e_pass(password.encode(),
-                                                  uuid)
+                                                  uuid, last_mod)
                 if self.check_answer(db_buf) is not False:
                     self.reload_remote_db(db_buf)
             else:
@@ -1127,8 +1144,10 @@ class DBBrowser(object):
                 if password == confirm:
                     if self.remote is True:
                         uuid = self.entries[self.e_highlight].uuid
+                        last_mod = (self.entries[self.e_highlight]
+                                        .last_mod.timetuple())
                         db_buf = self.client().set_e_pass(password.encode(),
-                                                          uuid)
+                                                          uuid, last_mod)
                         if self.check_answer(db_buf) is not False:
                             self.reload_remote_db(db_buf)
                     else:
@@ -1156,9 +1175,11 @@ class DBBrowser(object):
         elif exp_date is not False:
             if self.remote is True:
                 uuid = self.entries[self.e_highlight].uuid
+                last_mod = (self.entries[self.e_highlight]
+                                .last_mod.timetuple())
                 db_buf = self.client().set_e_exp(
                     str(exp_date[0]).encode(), str(exp_date[1]).encode(), 
-                    str(exp_date[2]).encode(), uuid)
+                    str(exp_date[2]).encode(), uuid, last_mod)
                 if self.check_answer(db_buf) is not False:
                     self.reload_remote_db(db_buf)
             else:

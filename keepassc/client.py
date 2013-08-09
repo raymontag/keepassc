@@ -106,11 +106,17 @@ class Client(Connection):
         return self.get_bytes(b'NEWE', title, url, username, password, comment,
                               y, mon, d, group_id)
 
-    def delete_group(self, group_id):
-        return self.get_bytes(b'DELG', group_id)
+    def delete_group(self, group_id, last_mod):
+        return self.get_bytes(b'DELG', group_id, str(last_mod[0]).encode(),
+                         str(last_mod[1]).encode(), str(last_mod[2]).encode(),
+                         str(last_mod[3]).encode(), str(last_mod[4]).encode(),
+                         str(last_mod[5]).encode())
         
-    def delete_entry(self, uuid):
-        return self.get_bytes(b'DELE', uuid)
+    def delete_entry(self, uuid, last_mod):
+        return self.get_bytes(b'DELE', uuid, str(last_mod[0]).encode(),
+                         str(last_mod[1]).encode(), str(last_mod[2]).encode(),
+                         str(last_mod[3]).encode(), str(last_mod[4]).encode(),
+                         str(last_mod[5]).encode())
 
     def move_group(self, group_id, root):
         return self.get_bytes(b'MOVG', group_id, root)
@@ -118,24 +124,50 @@ class Client(Connection):
     def move_entry(self, uuid, root):
         return self.get_bytes(b'MOVE', uuid, root)
 
-    def set_g_title(self, title, group_id):
-        return self.get_bytes(b'TITG', title, group_id)
+    def set_g_title(self, title, group_id, last_mod):
+        return self.get_bytes(b'TITG', title, group_id, 
+                         str(last_mod[0]).encode(),
+                         str(last_mod[1]).encode(), str(last_mod[2]).encode(),
+                         str(last_mod[3]).encode(), str(last_mod[4]).encode(),
+                         str(last_mod[5]).encode())
 
-    def set_e_title(self, title, uuid):
-        return self.get_bytes(b'TITE', title, uuid)
+    def set_e_title(self, title, uuid, last_mod):
+        return self.get_bytes(b'TITE', title, uuid, str(last_mod[0]).encode(),
+                         str(last_mod[1]).encode(), str(last_mod[2]).encode(),
+                         str(last_mod[3]).encode(), str(last_mod[4]).encode(),
+                         str(last_mod[5]).encode())
 
-    def set_e_user(self, username, uuid):
-        return self.get_bytes(b'USER', username, uuid)
+    def set_e_user(self, username, uuid, last_mod):
+        return self.get_bytes(b'USER', username, uuid, 
+                         str(last_mod[0]).encode(),
+                         str(last_mod[1]).encode(), str(last_mod[2]).encode(),
+                         str(last_mod[3]).encode(), str(last_mod[4]).encode(),
+                         str(last_mod[5]).encode())
 
-    def set_e_url(self, url, uuid):
-        return self.get_bytes(b'URL', url, uuid)
+    def set_e_url(self, url, uuid, last_mod):
+        return self.get_bytes(b'URL', url, uuid, str(last_mod[0]).encode(),
+                         str(last_mod[1]).encode(), str(last_mod[2]).encode(),
+                         str(last_mod[3]).encode(), str(last_mod[4]).encode(),
+                         str(last_mod[5]).encode())
 
-    def set_e_comment(self, comment, uuid):
-        return self.get_bytes(b'COMM', comment, uuid)
+    def set_e_comment(self, comment, uuid, last_mod):
+        return self.get_bytes(b'COMM', comment, uuid, 
+                         str(last_mod[0]).encode(),
+                         str(last_mod[1]).encode(), str(last_mod[2]).encode(),
+                         str(last_mod[3]).encode(), str(last_mod[4]).encode(),
+                         str(last_mod[5]).encode())
 
-    def set_e_pass(self, password, uuid):
-        return self.get_bytes(b'PASS', password, uuid)
+    def set_e_pass(self, password, uuid, last_mod):
+        return self.get_bytes(b'PASS', password, uuid, 
+                         str(last_mod[0]).encode(),
+                         str(last_mod[1]).encode(), str(last_mod[2]).encode(),
+                         str(last_mod[3]).encode(), str(last_mod[4]).encode(),
+                         str(last_mod[5]).encode())
 
-    def set_e_exp(self, y, mon, d, uuid):
-        return self.get_bytes(b'DATE', y, mon, d, uuid)
+    def set_e_exp(self, y, mon, d, uuid, last_mod):
+        return self.get_bytes(b'DATE', y, mon, d, uuid, 
+                         str(last_mod[0]).encode(),
+                         str(last_mod[1]).encode(), str(last_mod[2]).encode(),
+                         str(last_mod[3]).encode(), str(last_mod[4]).encode(),
+                         str(last_mod[5]).encode())
     

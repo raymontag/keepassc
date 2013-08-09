@@ -1287,7 +1287,12 @@ class Control(object):
                 self.info_win.addstr(9, 0, expire)
                 if date.today() > entry.expire.date():
                     self.info_win.addstr(9, 22, ' (expired)')
-                self.info_win.addstr(10, 0, "Comment: " + comment)
+                if '\n' in comment:
+                    comment = comment.split('\n')[0]
+                    dots = ' ...'
+                else:
+                    dots = ''
+                self.info_win.addstr(10, 0, "Comment: " + comment + dots)
         except:
             pass
         finally:
