@@ -997,7 +997,12 @@ class Control(object):
                     ssl = False
                     std_port = "50000"
             else:
+                if ssl == 1:
+                    ssl = True # for later use
+                else:
+                    ssl = False
                 std_port = last_port
+
             port = self.get_num("Server port: ", std_port, 5)
             if port is False:
                 path_auth = True
@@ -1006,6 +1011,7 @@ class Control(object):
             elif port == -1:
                 self.close()
             break
+        
         if ssl is True:
             try:
                 datapath = realpath(expanduser(getenv('XDG_DATA_HOME')))
