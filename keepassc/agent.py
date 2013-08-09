@@ -4,6 +4,7 @@ import socket
 import ssl
 import struct
 import sys
+from os.path import expanduser, realpath
 
 from Crypto.Hash import SHA256
 
@@ -23,8 +24,14 @@ class Agent(Client, Daemon):
                         agent_port, password, keyfile)
         Daemon.__init__(self, pidfile)
         self.lookup = {
-            b'FIND': self.find}
+            b'FIND': self.find,
+            b'GET': self.get_db,
+            b'GETC': self.get_credentials}
         self.sock = None
+        if tls_dir is not None:
+            self.tls_dir = realpath(expanduser(tls_dir)).encode()
+        else:
+            self.tls_dir = b''
 
         # Agent is a daemon and cannot find the keyfile after run
         if self.keyfile is not None:
@@ -104,9 +111,14 @@ class Agent(Client, Daemon):
                          str(self.agent_address[1]))
 
         while True:
-            conn, client = self.sock.accept()
+            try:
+                conn, client = self.sock.accept()
+            except OSError:
+                break
+
             logging.info('Connected to '+client[0]+':'+str(client[1]))
             conn.settimeout(60)
+
             try:
                 parts = self.receive(conn).split(b'\xB2\xEA\xC0')
                 cmd = parts.pop(0)
@@ -129,6 +141,34 @@ class Agent(Client, Daemon):
             self.sendmsg(conn, answer)
             if answer[:4] == b'FAIL':
                 raise OSError(answer.decode())
+        except (OSError, TypeError) as err:
+            logging.error(err.__str__())
+
+    def get_db(self, conn, cmd_misc):
+        try:
+            answer = self.send_cmd(b'GET')
+            self.sendmsg(conn, answer)
+            if answer[:4] == b'FAIL':
+                raise OSError(answer.decode())
+        except (OSError, TypeError) as err:
+            logging.error(err.__str__())
+
+    def get_credentials(self, conn, cmd_misc):
+        if self.password is None:
+            password = b''
+        else:
+            password = self.password.encode() 
+        if self.context:
+            ssl = b'True'
+        else:
+            ssl = b'False'
+
+        tmp = [password, self.keyfile, self.server_address[0].encode(),
+               str(self.server_address[1]).encode(), ssl, 
+               self.tls_dir]
+        chain = self.build_message(tmp)
+        try:
+            self.sendmsg(conn, chain)
         except (OSError, TypeError) as err:
             logging.error(err.__str__())
 

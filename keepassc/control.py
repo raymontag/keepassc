@@ -26,12 +26,13 @@ from os import chdir, getcwd, getenv, geteuid, makedirs, remove
 from os.path import expanduser, isfile, isdir, realpath, join
 from pwd import getpwuid
 from random import sample
-from socket import gethostname
+from socket import gethostname, socket, AF_INET, SOCK_STREAM, SHUT_RDWR
 from sys import exit
 
 from kppy.database import KPDBv1
 from kppy.exceptions import KPError
 
+from keepassc.conn import Connection
 from keepassc.client import Client
 from keepassc.editor import Editor
 from keepassc.helper import parse_config, write_config
@@ -949,88 +950,148 @@ class Control(object):
             self.cur_dir = self.cur_dir[:-len(last) - 1]
             return False
 
-    def remote_interface(self):
-
-        if isfile(self.remote_home):
-            with open(self.remote_home, 'r') as handler:
-                last_address = handler.readline()
-                last_port = handler.readline()
+    def remote_interface(self, ask_for_agent = True, agent = False):
+        if ask_for_agent is True and agent is False:
+            use_agent = self.gen_menu(1, ((1, 0, 'Use agent (1)'),
+                                          (2, 0, 'Use no agent (2)'))) 
+        elif agent is True:
+            use_agent = 1
         else:
-            last_address = '127.0.0.1'
-            last_port = None
+            use_agent = 2
 
-        pass_auth = False
-        pass_ssl = False
-        while True:
-            if pass_auth is False:
-                ret = self.get_authentication()
-                if ret is False:
-                    return False
-                elif ret == -1:
-                    self.close()
-                password, keyfile = ret
-            pass_auth = True
-            if pass_ssl is False:
-                ssl = self.gen_menu(1, ((1, 0, 'Use SSL/TLS (1)'),
-                                        (2, 0, 'Plain text (2)')))
-                if ssl is False:
-                    pass_auth = False
-                    continue
-                elif ssl == -1:
-                    self.close()
-            pass_ssl = True
-            server = Editor(self.stdscr, max_text_size=1,
-                            inittext=last_address,
-                            win_location=(0, 1),
-                            win_size=(1, self.xsize), 
-                            title="Server address")()
-            if server is False:
-                pass_ssl = False
-                continue
-            elif server == -1:
-                self.close()
-            if last_port is None:
-                if ssl == 1:
-                    ssl = True # for later use
-                    std_port = "50002"
-                else:
-                    ssl = False
-                    std_port = "50000"
-            else:
-                if ssl == 1:
-                    ssl = True # for later use
-                else:
-                    ssl = False
-                std_port = last_port
-
-            port = self.get_num("Server port: ", std_port, 5)
-            if port is False:
-                path_auth = True
-                path_ssl = True
-                continue
-            elif port == -1:
-                self.close()
-            break
-        
-        if ssl is True:
+        if use_agent == 1:
+            port = self.get_num("Agent port: ", "50001", 5)
+            conn = Connection(logging.ERROR, 'client.log')
+            sock = socket(AF_INET, SOCK_STREAM)
+            sock.settimeout(60)
             try:
-                datapath = realpath(expanduser(getenv('XDG_DATA_HOME')))
-            except:
-                datapath = realpath(expanduser('~/.local/share'))
-            finally:
-                tls_dir = join(datapath, 'keepassc', 'cacert.pem')
+                sock.connect(('localhost', port))
+                conn.sendmsg(sock, conn.build_message((b'GET',)))
+            except OSError as err:
+                self.draw_text(False, (1, 0, err.__str__())
+                                      (3, 0, "Press any key."))
+                if self.any_key() == -1:
+                    self.close()
+                return False
+            db_buf = conn.receive(sock)
+            if db_buf[:4] == b'FAIL' or db_buf[:4] == b'[Err':
+                self.draw_text(False,
+                               (1, 0, db_buf),
+                               (3, 0, 'Press any key.'))
+                if self.any_key() == -1:
+                    self.close()
+                return False
+            sock.shutdown(SHUT_RDWR)
+            sock.close()
+
+            sock = socket(AF_INET, SOCK_STREAM)
+            sock.settimeout(60)
+            try:
+                sock.connect(('localhost', port))
+                conn.sendmsg(sock, conn.build_message((b'GETC',)))
+            except OSError as err:
+                self.draw_text(False, (1, 0, err.__str__())
+                                      (3, 0, "Press any key."))
+                if self.any_key() == -1:
+                    self.close()
+                return False
+            answer = conn.receive(sock)
+            parts = answer.split(b'\xB2\xEA\xC0')
+            password = parts.pop(0).decode()
+            if not isdir('/tmp/keepassc'):
+                makedirs('/tmp/keepassc')
+            with open('/tmp/keepassc/tmp_keyfile', 'w') as handler:
+                handler.write(parts.pop(0).decode())
+                keyfile = '/tmp/keepassc/tmp_keyfile'
+            server = parts.pop(0).decode()
+            port = int(parts.pop(0))
+            if parts.pop(0) == b'True':
+                ssl = True
+            else:
+                ssl = False
+            tls_dir = parts.pop(0).decode()
         else:
-            tls_dir = None
-        client = Client(logging.INFO, 'client.log', server, port, None, 
-                        password, keyfile, ssl, tls_dir)
-        db_buf = client.get_db()
-        if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
-            self.draw_text(False,
-                           (1, 0, db_buf),
-                           (3, 0, 'Press any key.'))
-            if self.any_key() == -1:
-                self.close()
-            return False
+            if isfile(self.remote_home):
+                with open(self.remote_home, 'r') as handler:
+                    last_address = handler.readline()
+                    last_port = handler.readline()
+            else:
+                last_address = '127.0.0.1'
+                last_port = None
+
+            pass_auth = False
+            pass_ssl = False
+            while True:
+                if pass_auth is False:
+                    ret = self.get_authentication()
+                    if ret is False:
+                        return False
+                    elif ret == -1:
+                        self.close()
+                    password, keyfile = ret
+                pass_auth = True
+                if pass_ssl is False:
+                    ssl = self.gen_menu(1, ((1, 0, 'Use SSL/TLS (1)'),
+                                            (2, 0, 'Plain text (2)')))
+                    if ssl is False:
+                        pass_auth = False
+                        continue
+                    elif ssl == -1:
+                        self.close()
+                pass_ssl = True
+                server = Editor(self.stdscr, max_text_size=1,
+                                inittext=last_address,
+                                win_location=(0, 1),
+                                win_size=(1, self.xsize), 
+                                title="Server address")()
+                if server is False:
+                    pass_ssl = False
+                    continue
+                elif server == -1:
+                    self.close()
+                if last_port is None:
+                    if ssl == 1:
+                        ssl = True # for later use
+                        std_port = "50002"
+                    else:
+                        ssl = False
+                        std_port = "50000"
+                else:
+                    if ssl == 1:
+                        ssl = True # for later use
+                    else:
+                        ssl = False
+                    std_port = last_port
+
+                port = self.get_num("Server port: ", std_port, 5)
+                if port is False:
+                    path_auth = True
+                    path_ssl = True
+                    continue
+                elif port == -1:
+                    self.close()
+                break
+            
+            if ssl is True:
+                try:
+                    datapath = realpath(expanduser(getenv('XDG_DATA_HOME')))
+                except:
+                    datapath = realpath(expanduser('~/.local/share'))
+                finally:
+                    tls_dir = join(datapath, 'keepassc', 'cacert.pem')
+            else:
+                tls_dir = None
+
+            client = Client(logging.INFO, 'client.log', server, port, None, 
+                            password, keyfile, ssl, tls_dir)
+            db_buf = client.get_db()
+            if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
+                self.draw_text(False,
+                               (1, 0, db_buf),
+                               (3, 0, 'Press any key.'))
+                if self.any_key() == -1:
+                    self.close()
+                return False
         self.db = KPDBv1(None, password, keyfile)
         self.db.load(db_buf)
         db = DBBrowser(self, True, server, port, ssl, tls_dir)
