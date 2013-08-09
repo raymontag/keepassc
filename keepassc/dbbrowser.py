@@ -498,7 +498,6 @@ class DBBrowser(object):
                 if auth != 3:
                     password = None
                     tmp_password = None
-                    self.db.password = None
 
             if auth == 1 or auth == 3:
                 password = self.control.get_password('New Password: ')
@@ -526,7 +525,6 @@ class DBBrowser(object):
                 if auth != 3:
                     filepath = None
                     tmp_keyfile = None
-                    self.db.keyfile = None
 
             if auth is False:
                 return False
@@ -1238,7 +1236,7 @@ class DBBrowser(object):
                 self.changed = True
 
     def client(self):
-        return Client(logging.INFO, 'client.log', 
+        return Client(logging.ERROR, 'client.log', 
                       self.address, 
                       self.port, None, self.db.password, 
                       self.db.keyfile, self.ssl, 

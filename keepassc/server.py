@@ -62,7 +62,7 @@ class Server(Connection, Daemon):
             self.keyfile = None
 
         try:
-            self.db = KPDBv1(self.db_path, password, keyfile)
+            self.db = KPDBv1(self.db_path, password, self.keyfile)
             self.db.load()
         except KPError as err:
             print(err)
