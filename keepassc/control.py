@@ -64,6 +64,7 @@ class Control(object):
         finally:
             self.data_home = join(self.data_home, 'keepassc')
         self.last_home = join(self.data_home, 'last')
+        self.remote_home = join(self.data_home, 'remote')
         self.key_home = join(self.data_home, 'key')
 
         self.config = parse_config(self)
@@ -949,6 +950,15 @@ class Control(object):
             return False
 
     def remote_interface(self):
+
+        if isfile(self.remote_home):
+            with open(self.remote_home, 'r') as handler:
+                last_address = handler.readline()
+                last_port = handler.readline()
+        else:
+            last_address = '127.0.0.1'
+            last_port = None
+
         pass_auth = False
         pass_ssl = False
         while True:
@@ -970,7 +980,7 @@ class Control(object):
                     self.close()
             pass_ssl = True
             server = Editor(self.stdscr, max_text_size=1,
-                            inittext="127.0.0.1",
+                            inittext=last_address,
                             win_location=(0, 1),
                             win_size=(1, self.xsize), 
                             title="Server address")()
@@ -979,12 +989,15 @@ class Control(object):
                 continue
             elif server == -1:
                 self.close()
-            if ssl == 1:
-                ssl = True # for later use
-                std_port = "50002"
+            if last_port is None:
+                if ssl == 1:
+                    ssl = True # for later use
+                    std_port = "50002"
+                else:
+                    ssl = False
+                    std_port = "50000"
             else:
-                ssl = False
-                std_port = "50000"
+                std_port = last_port
             port = self.get_num("Server port: ", std_port, 5)
             if port is False:
                 path_auth = True

@@ -42,14 +42,24 @@ class DBBrowser(object):
                  ssl = False, tls_dir = None):
         self.control = control
         if (self.control.cur_dir[-4:] == '.kdb' and 
-            self.control.config['rem_db'] is True):
-            if not isdir(self.control.last_home[:-5]):
-                if isfile(self.control.last_home[:-5]):
-                    os.remove(self.control.last_home[:-5])
-                os.makedirs(self.control.last_home[:-5])
-            handler = open(self.control.last_home, 'w')
-            handler.write(self.control.cur_dir)
-            handler.close()
+            self.control.config['rem_db'] is True and
+            remote is False):
+            if not isdir(self.control.data_home):
+                if isfile(self.control.data_home):
+                    os.remove(self.control.data_home)
+                os.makedirs(self.control.data_home)
+            with open(self.control.last_home, 'w') as handler:
+                handler.write(self.control.cur_dir)
+
+        if remote is True and self.control.config['rem_db'] is True:
+            if not isdir(self.control.data_home):
+                if isfile(self.control.data_home):
+                    os.remove(self.control.data_home)
+                os.makedirs(self.control.data_home)
+            with open(self.control.remote_home, 'w') as handler:
+                handler.write(address+'\n')
+                handler.write(str(port))
+            
         self.db = self.control.db
         self.cur_root = self.db.root_group
         self.lock_timer = None
