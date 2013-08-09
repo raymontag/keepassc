@@ -314,53 +314,54 @@ class DBBrowser(object):
                                     (3, 0, 'Use both (3)'))
 
     def reload_remote_db(self, db_buf = None):
-        old_root = self.cur_root
-        if self.groups:
-            old_group_id = self.groups[self.g_highlight].id_
-        else:
-            old_group_id = None
-        if self.entries:
-            old_entry_uuid = self.entries[self.e_highlight].uuid
-        else:
-            old_entry_uuid = None
-
-        if db_buf == None:
-            db_buf = self.client().get_db()
-            if self.check_answer(db_buf) is False:
-                return False
-        self.db = KPDBv1(None, self.db.password, self.db.keyfile)
-        self.db.load(db_buf)
-        self.control.db = self.db
-
-        # This loop has to be executed _before_ sort_tables is called
-        for i in self.db.groups:
-            if i.id_ == old_root.id_:
-                self.cur_root = i
-                break
+        if self.remote is True:
+            old_root = self.cur_root
+            if self.groups:
+                old_group_id = self.groups[self.g_highlight].id_
             else:
-                self.cur_root = self.db.root_group
+                old_group_id = None
+            if self.entries:
+                old_entry_uuid = self.entries[self.e_highlight].uuid
+            else:
+                old_entry_uuid = None
 
-        self.sort_tables(True, True)
+            if db_buf == None:
+                db_buf = self.client().get_db()
+                if self.check_answer(db_buf) is False:
+                    return False
+            self.db = KPDBv1(None, self.db.password, self.db.keyfile)
+            self.db.load(db_buf)
+            self.control.db = self.db
 
-        if self.groups and old_group_id:
-            for i in self.groups:
-                if i.id_ == old_group_id:
-                    self.g_highlight = self.groups.index(i)
+            # This loop has to be executed _before_ sort_tables is called
+            for i in self.db.groups:
+                if i.id_ == old_root.id_:
+                    self.cur_root = i
                     break
                 else:
-                    self.g_highlight = 0
-        else:
-            self.g_highlight = 0
+                    self.cur_root = self.db.root_group
 
-        if self.entries and old_entry_uuid:
-            for i in self.entries:
-                if i.uuid == old_entry_uuid:
-                    self.e_highlight = self.entries.index(i)
-                    break
-                else:
-                    self.e_highlight = 0
-        else:
-            self.e_highlight = 0
+            self.sort_tables(True, True)
+
+            if self.groups and old_group_id:
+                for i in self.groups:
+                    if i.id_ == old_group_id:
+                        self.g_highlight = self.groups.index(i)
+                        break
+                    else:
+                        self.g_highlight = 0
+            else:
+                self.g_highlight = 0
+
+            if self.entries and old_entry_uuid:
+                for i in self.entries:
+                    if i.uuid == old_entry_uuid:
+                        self.e_highlight = self.entries.index(i)
+                        break
+                    else:
+                        self.e_highlight = 0
+            else:
+                self.e_highlight = 0
 
     def unlock_with_password(self):
         '''Unlock the database with a password'''

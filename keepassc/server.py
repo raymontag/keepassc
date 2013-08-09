@@ -51,7 +51,7 @@ class Server(Connection, Daemon):
         if db is None:
             print('Need a database path')
             sys.exit(1)
-
+            
         self.db_path = realpath(expanduser(db))
 
         # To use this idiom only once, I store the keyfile path
