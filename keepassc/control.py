@@ -176,6 +176,54 @@ class Control(object):
         finally:
             self.stdscr.refresh()
 
+    def draw_help(self, *text):
+        if len(text) > self.ysize -1:
+            length = self.ysize - 1
+            offset = 0
+            spill = len(text) - self.ysize + 2
+        else:
+            length = len(text)
+            offset = 0
+            spill = 0
+
+        while True:
+            try:
+                self.draw_text(False)
+                for i in range(length):
+                    self.stdscr.addstr(
+                    i + 1, 0, text[(i + offset)])
+            except:
+                pass
+            finally:
+                self.stdscr.refresh()
+            try:
+                e = self.stdscr.getch()
+            except KeyboardInterrupt:
+                e = 4
+
+            if e == cur.KEY_DOWN:
+                if offset < spill:
+                    offset += 1
+            elif e == cur.KEY_UP:
+                if offset > 0:
+                    offset -= 1
+            elif e == NL:
+                return
+            elif e == cur.KEY_RESIZE:
+                self.resize_all()
+                if len(text) > self.ysize -1:
+                    length = self.ysize - 1
+                    offset = 0
+                    spill = len(text) - self.ysize + 2
+                else:
+                    length = len(text)
+                    offset = 0
+                    spill = 0
+            elif e == 4:
+                if self.db is not None:
+                    self.db.close()
+                self.close()
+
     def get_password(self, std, needed=True):
         '''This method is used to get a password.
 
@@ -1101,71 +1149,59 @@ class Control(object):
     def browser_help(self, mode_new):
         '''Print help for filebrowser'''
 
-        cur.nocbreak()
-        self.stdscr.keypad(0)
-        cur.endwin()
         if mode_new:
-            print('Navigate with arrow keys.')
-            print('\'o\' - choose directory')
-            print('\'e\' - abort')
-            print('\'H\' - show/hide hidden files')
-            print('\'ngg\' - move to line n')
-            print('\'G\' - move to last line')
-            print('/text - go to \'text\' (like in vim/ranger)')
+            self.draw_help(
+            'Navigate with arrow keys.',
+            '\'o\' - choose directory',
+            '\'e\' - abort',
+            '\'H\' - show/hide hidden files',
+            '\'ngg\' - move to line n',
+            '\'G\' - move to last line',
+            '/text - go to \'text\' (like in vim/ranger)',
+            '\m',
+            'Press return.')
         else:
-            print('Navigate with arrow keys.')
-            print('\'q\' - close program')
-            print('\'e\' - abort')
-            print('\'H\' - show/hide hidden files')
-            print('\'ngg\' - move to line n')
-            print('\'G\' - move to last line')
-            print('/text - go to \'text\' (like in vim/ranger)')
-        try:
-            input('Press return')
-        except EOFError:
-            print('')
-            if self.db is not None:
-                self.db.db_close()
-            exit()
-        self.initialize_cur()
+            self.draw_help(
+            'Navigate with arrow keys.',
+            '\'q\' - close program',
+            '\'e\' - abort',
+            '\'H\' - show/hide hidden files',
+            '\'ngg\' - move to line n',
+            '\'G\' - move to last line',
+            '/text - go to \'text\' (like in vim/ranger)',
+            '\n',
+            'Press return.')
 
     def dbbrowser_help(self):
-        cur.nocbreak()
-        self.stdscr.keypad(0)
-        cur.endwin()
-        print('\'e\' - go to main menu')
-        print('\'q\' - close program')
-        print('\'x\' - save db and close program')
-        print('\'s\' - save db')
-        print('\'S\' - save db with alternative filepath')
-        print('\'c\' - copy password of current entry')
-        print('\'b\' - copy username of current entry')
-        print('\'H\' - show password of current entry')
-        print('\'o\' - open URL of entry in standard webbrowser')
-        print('\'P\' - edit db password')
-        print('\'g\' - create group')
-        print('\'G\' - create subgroup')
-        print('\'y\' - create entry')
-        print('\'d\' - delete group or entry')
-        print('\'t\' - edit title of selected group or entry')
-        print('\'u\' - edit username')
-        print('\'p\' - edit password')
-        print('\'U\' - edit URL')
-        print('\'C\' - edit comment')
-        print('\'E\' - edit expiration date')
-        print('\'f\' or \'/\' - find entry by title')
-        print('\'L\' - lock db')
-        print('Navigate with arrow keys or h/j/k/l like in vim')
-        print('Type \'F5\' in a dialog to return to the previous one')
-        print('Type \'return\' to enter subgroups')
-        print('Type \'backspace\' to go back')
-        try:
-            input('Press return.')
-        except EOFError:
-            if not self.db is None:
-                self.db.db_close()
-            exit()
-        self.initialize_cur()
+        self.draw_help(
+        '\'e\' - go to main menu',
+        '\'q\' - close program',
+        '\'x\' - save db and close program',
+        '\'s\' - save db',
+        '\'S\' - save db with alternative filepath',
+        '\'c\' - copy password of current entry',
+        '\'b\' - copy username of current entry',
+        '\'H\' - show password of current entry',
+        '\'o\' - open URL of entry in standard webbrowser',
+        '\'P\' - edit db password',
+        '\'g\' - create group',
+        '\'G\' - create subgroup',
+        '\'y\' - create entry',
+        '\'d\' - delete group or entry',
+        '\'t\' - edit title of selected group or entry',
+        '\'u\' - edit username',
+        '\'p\' - edit password',
+        '\'U\' - edit URL',
+        '\'C\' - edit comment',
+        '\'E\' - edit expiration date',
+        '\'f\' or \'/\' - find entry by title',
+        '\'L\' - lock db',
+        'Navigate with arrow keys or h/j/k/l like in vim',
+        'Type \'F5\' in a dialog to return to the previous one',
+        'Type \'return\' to enter subgroups',
+        'Type \'backspace\' to go back',
+        '\n'
+        'Press return.')
 
     def show_dir(self, highlight, dir_cont):
         '''List a directory with highlighting.'''
