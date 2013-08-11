@@ -18,8 +18,9 @@ You should have received a copy of the GNU General Public License along
 with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
+import struct
 from os import makedirs, remove
-from os.path import isdir, isfile, expanduser, realpath
+from os.path import isdir, isfile
 
 from Crypto.Hash import SHA256
 from Crypto.Cipher import AES
@@ -182,54 +183,4 @@ def get_key(password, keyfile, remote = False):
         masterkey = get_passwordkey(password)
 
     return masterkey
-
-def cbc_decrypt(final_key, crypted_content, vec):
-    """This method decrypts the content with AES-CBC"""
-
-    # Just decrypt the content with the created key
-    if final_key is None or crypted_content is None or vec is None:
-        raise TypeError('None type not allowed')
-    aes = AES.new(final_key, AES.MODE_CBC, vec)
-    decrypted_content = aes.decrypt(crypted_content)
-    padding = decrypted_content[-1]
-    decrypted_content = decrypted_content[:len(decrypted_content)-padding]
-    
-    return decrypted_content
-
-def cbc_encrypt(content, final_key, vec):
-    """This method encrypts the content with AES-CBC."""
-
-    if content is None or final_key is None or vec is None:
-        raise TypeError('None type not allowed')
-    aes = AES.new(final_key, AES.MODE_CBC, vec)
-    padding = (16 - len(content) % AES.block_size)
-
-    for i in range(padding):
-        content += chr(padding).encode()
-
-    return aes.encrypt(content)
-
-def ecb_decrypt(key, content):
-    """This method decrypts the content with AES-ECB"""
-
-    if key is None or content is None:
-        raise TypeError('None type not allowed')
-    aes = AES.new(key, AES.MODE_ECB)
-    decrypted_content = aes.decrypt(content)
-    padding = decrypted_content[-1]
-    decrypted_content = decrypted_content[:len(decrypted_content)-padding]
-    return decrypted_content
-
-def ecb_encrypt(content, key):
-    """This method encrypts the content with AES-ECB."""
-
-    if content is None or key is None:
-        raise TypeError('None type not allowed')
-    aes = AES.new(key, AES.MODE_ECB)
-    padding = (16 - len(content) % AES.block_size)
-
-    for i in range(padding):
-        content += chr(padding).encode()
-
-    return aes.encrypt(content)
 

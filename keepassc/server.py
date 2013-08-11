@@ -1,24 +1,19 @@
 import logging
-import os
 import signal
 import socket
 import ssl
-import struct
 import sys
 import time
 import threading
 from datetime import datetime
 from os.path import join, expanduser, realpath
 
-from Crypto.Hash import SHA256
 from kppy.database import KPDBv1
 from kppy.exceptions import KPError
 
 from keepassc.conn import Connection
 from keepassc.daemon import Daemon
-from keepassc.helper import (get_passwordkey, get_filekey, get_key, 
-                             transform_key, cbc_decrypt, cbc_encrypt, 
-                             ecb_encrypt)
+from keepassc.helper import get_key, transform_key
 
 class waitDecorator(object):
     def __init__(self, func):
@@ -185,7 +180,8 @@ class Server(Connection, Daemon):
                 logging.error(err.__str__())
             else:
                 logging.info('Connection from '+client[0]+':'+str(client[1]))
-                client_thread = threading.Thread(target=self.handle_client, args=(conn,client,))
+                client_thread = threading.Thread(target=self.handle_client, 
+                                                 args=(conn, client,))
                 client_thread.daemon = True
                 client_thread.start()
 

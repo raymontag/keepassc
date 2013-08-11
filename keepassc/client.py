@@ -1,9 +1,12 @@
+"""This module implements the Client class for KeePassC.
+
+Classes:
+    Client(Connection)
+"""
+
 import logging
 import socket
 import ssl
-import struct
-
-from Crypto.Hash import SHA256
 
 from keepassc.conn import Connection
 
@@ -23,8 +26,13 @@ class Client(Connection):
             self.context.load_verify_locations(tls_dir)
         else:
             self.context = None
-    
+
     def send_cmd(self, *cmd):
+        """Send a command to server
+
+        *cmd are arbitary byte strings
+
+        """
         if self.keyfile is not None:
             with open(self.keyfile, 'rb') as keyfile:
                 key = keyfile.read()
@@ -33,7 +41,7 @@ class Client(Connection):
         if self.password is None:
             password = b''
         else:
-            password = self.password.encode() 
+            password = self.password.encode()
 
         tmp = [password, key]
         tmp.extend(cmd)
@@ -70,6 +78,13 @@ class Client(Connection):
         return answer
 
     def get_bytes(self, cmd, *misc):
+        """Send a command and get the answer as bytes
+
+        cmd is a bytestring with the command
+        *misc are arbitary bytestring needed for the command
+
+        """
+
         try:
             db_buf = self.send_cmd(cmd, *misc)
             if db_buf[:4] == b'FAIL':
@@ -80,6 +95,8 @@ class Client(Connection):
             return err.__str__()
 
     def get_string(self, cmd, *misc):
+        """Send a command and get the answer decoded"""
+
         try:
             answer = self.send_cmd(cmd, *misc).decode()
             if answer[:4] == b'FAIL':
@@ -90,84 +107,138 @@ class Client(Connection):
             return err.__str__()
 
     def find(self, title):
+        """Find entries by title"""
+
         return self.get_string(b'FIND', title)
 
     def get_db(self):
+        """Just get the whole encrypted database from server"""
+
         return self.get_bytes(b'GET')
-        
+
     def change_password(self, password, keyfile):
+        """Change the password of the remote database
+
+        This is only allowed from localhost (127.0.0.1
+
+        """
+
         return self.get_string(b'CHANGESECRET', password, keyfile)
 
     def create_group(self, title, root):
+        """Create a group
+
+        
+        title is the group title, root is the id of the parent group
+
+        """
+
         return self.get_bytes(b'NEWG', title, root)
 
     def create_entry(self, title, url, username, password, comment, y, mon, d,
                      group_id):
+        """Create an entry
+
+        Watch the kppy documentation for an explanation of the arguments
+
+        """
+
         return self.get_bytes(b'NEWE', title, url, username, password, comment,
                               y, mon, d, group_id)
 
     def delete_group(self, group_id, last_mod):
+        """Delete a group by the id
+
+        last_mod is needed to check if the group was updated since the
+        last refresh
+
+        """
+
         return self.get_bytes(b'DELG', group_id, str(last_mod[0]).encode(),
                          str(last_mod[1]).encode(), str(last_mod[2]).encode(),
                          str(last_mod[3]).encode(), str(last_mod[4]).encode(),
                          str(last_mod[5]).encode())
-        
+
     def delete_entry(self, uuid, last_mod):
+        """Delete an entry by uuid"""
+
         return self.get_bytes(b'DELE', uuid, str(last_mod[0]).encode(),
                          str(last_mod[1]).encode(), str(last_mod[2]).encode(),
                          str(last_mod[3]).encode(), str(last_mod[4]).encode(),
                          str(last_mod[5]).encode())
 
     def move_group(self, group_id, root):
+        """Move a group to a new parent
+
+        If root is 0 the group with id group_id is moved to the root
+
+        """
+
         return self.get_bytes(b'MOVG', group_id, root)
 
     def move_entry(self, uuid, root):
+        """Move an entry with uuid to the group with id root"""
+
         return self.get_bytes(b'MOVE', uuid, root)
 
     def set_g_title(self, title, group_id, last_mod):
-        return self.get_bytes(b'TITG', title, group_id, 
+        """Set the title of a group"""
+
+        return self.get_bytes(b'TITG', title, group_id,
                          str(last_mod[0]).encode(),
                          str(last_mod[1]).encode(), str(last_mod[2]).encode(),
                          str(last_mod[3]).encode(), str(last_mod[4]).encode(),
                          str(last_mod[5]).encode())
 
     def set_e_title(self, title, uuid, last_mod):
+        """Set the title of an entry"""
+
         return self.get_bytes(b'TITE', title, uuid, str(last_mod[0]).encode(),
                          str(last_mod[1]).encode(), str(last_mod[2]).encode(),
                          str(last_mod[3]).encode(), str(last_mod[4]).encode(),
                          str(last_mod[5]).encode())
 
     def set_e_user(self, username, uuid, last_mod):
-        return self.get_bytes(b'USER', username, uuid, 
+        """Set the username of an entry"""
+
+        return self.get_bytes(b'USER', username, uuid,
                          str(last_mod[0]).encode(),
                          str(last_mod[1]).encode(), str(last_mod[2]).encode(),
                          str(last_mod[3]).encode(), str(last_mod[4]).encode(),
                          str(last_mod[5]).encode())
 
     def set_e_url(self, url, uuid, last_mod):
+        """Set the URL of an entry"""
+
         return self.get_bytes(b'URL', url, uuid, str(last_mod[0]).encode(),
                          str(last_mod[1]).encode(), str(last_mod[2]).encode(),
                          str(last_mod[3]).encode(), str(last_mod[4]).encode(),
                          str(last_mod[5]).encode())
 
     def set_e_comment(self, comment, uuid, last_mod):
-        return self.get_bytes(b'COMM', comment, uuid, 
+        """Set the comment of an entry"""
+
+        return self.get_bytes(b'COMM', comment, uuid,
                          str(last_mod[0]).encode(),
                          str(last_mod[1]).encode(), str(last_mod[2]).encode(),
                          str(last_mod[3]).encode(), str(last_mod[4]).encode(),
                          str(last_mod[5]).encode())
 
     def set_e_pass(self, password, uuid, last_mod):
-        return self.get_bytes(b'PASS', password, uuid, 
+        """Set the password of an entry"""
+
+        return self.get_bytes(b'PASS', password, uuid,
                          str(last_mod[0]).encode(),
                          str(last_mod[1]).encode(), str(last_mod[2]).encode(),
                          str(last_mod[3]).encode(), str(last_mod[4]).encode(),
                          str(last_mod[5]).encode())
 
     def set_e_exp(self, y, mon, d, uuid, last_mod):
-        return self.get_bytes(b'DATE', y, mon, d, uuid, 
+        """Set the expiration date of an entry"""
+
+        return self.get_bytes(b'DATE', y, mon, d, uuid,
                          str(last_mod[0]).encode(),
                          str(last_mod[1]).encode(), str(last_mod[2]).encode(),
                          str(last_mod[3]).encode(), str(last_mod[4]).encode(),
                          str(last_mod[5]).encode())
-    
+

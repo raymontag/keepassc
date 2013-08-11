@@ -177,6 +177,12 @@ class Control(object):
             self.stdscr.refresh()
 
     def draw_help(self, *text):
+        """Draw a help
+
+        *text are arbitary string
+
+        """
+
         if len(text) > self.ysize -1:
             length = self.ysize - 1
             offset = 0
@@ -241,6 +247,8 @@ class Control(object):
             return password
 
     def get_authentication(self):
+        """Get authentication credentials"""
+
         while True:
             if (self.config['skip_menu'] is False or
                 (self.config['rem_db'] is False and
@@ -287,7 +295,8 @@ class Control(object):
                     else:
                         ask_for_lf = True
 
-                    keyfile = FileBrowser(self, ask_for_lf, True, self.last_key)()
+                    keyfile = FileBrowser(self, ask_for_lf, True, 
+                                          self.last_key)()
                     if keyfile is False:
                         break
                     elif keyfile == -1:
@@ -868,8 +877,8 @@ class Control(object):
                                          (2, 0, 'Use a keyfile (2)'),
                                          (3, 0, 'Use both (3)')))
                     password = None
-                    keyfile = None
                     confirm = None
+                    filepath = None
                     self.db = KPDBv1(new=True)
                     if auth is False:
                         break
@@ -1001,7 +1010,7 @@ class Control(object):
     def remote_interface(self, ask_for_agent = True, agent = False):
         if ask_for_agent is True and agent is False:
             use_agent = self.gen_menu(1, ((1, 0, 'Use agent (1)'),
-                                          (2, 0, 'Use no agent (2)'))) 
+                                          (2, 0, 'Use no agent (2)')))
         elif agent is True:
             use_agent = 1
         else:
@@ -1090,7 +1099,7 @@ class Control(object):
                 server = Editor(self.stdscr, max_text_size=1,
                                 inittext=last_address,
                                 win_location=(0, 1),
-                                win_size=(1, self.xsize), 
+                                win_size=(1, self.xsize),
                                 title="Server address")()
                 if server is False:
                     pass_ssl = False
@@ -1119,7 +1128,7 @@ class Control(object):
                 elif port == -1:
                     self.close()
                 break
-            
+
             if ssl is True:
                 try:
                     datapath = realpath(expanduser(getenv('XDG_DATA_HOME')))
@@ -1130,7 +1139,7 @@ class Control(object):
             else:
                 tls_dir = None
 
-            client = Client(logging.INFO, 'client.log', server, port, None, 
+            client = Client(logging.INFO, 'client.log', server, port, None,
                             password, keyfile, ssl, tls_dir)
             db_buf = client.get_db()
             if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":
@@ -1158,7 +1167,7 @@ class Control(object):
             '\'ngg\' - move to line n',
             '\'G\' - move to last line',
             '/text - go to \'text\' (like in vim/ranger)',
-            '\m',
+            '\n',
             'Press return.')
         else:
             self.draw_help(

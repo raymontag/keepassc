@@ -1,23 +1,24 @@
+"""This module implements an agent for KeePassC
+
+    Classes:
+        Agent(Client, Daemon)
+"""
+
 import logging
 import signal
 import socket
 import ssl
-import struct
-import sys
 from os.path import expanduser, realpath
-
-from Crypto.Hash import SHA256
 
 from keepassc.client import Client
 from keepassc.daemon import Daemon
-from keepassc.helper import (cbc_encrypt, cbc_decrypt, ecb_decrypt, get_key, 
-                             transform_key)
+
 
 class Agent(Client, Daemon):
     """The KeePassC agent daemon"""
 
-    def __init__(self, pidfile, loglevel, logfile, 
-                 server_address = 'localhost', server_port = 50000, 
+    def __init__(self, pidfile, loglevel, logfile,
+                 server_address = 'localhost', server_port = 50000,
                  agent_port = 50001, password = None, keyfile = None,
                  tls = False, tls_dir = None):
         Client.__init__(self, loglevel, logfile, server_address, server_port,
@@ -57,7 +58,7 @@ class Agent(Client, Daemon):
         if self.password is None:
             password = b''
         else:
-            password = self.password.encode() 
+            password = self.password.encode()
 
         tmp = [password, self.keyfile]
         tmp.extend(cmd)
@@ -145,6 +146,8 @@ class Agent(Client, Daemon):
             logging.error(err.__str__())
 
     def get_db(self, conn, cmd_misc):
+        """Get the whole encrypted database from server"""
+
         try:
             answer = self.send_cmd(b'GET')
             self.sendmsg(conn, answer)
@@ -154,17 +157,19 @@ class Agent(Client, Daemon):
             logging.error(err.__str__())
 
     def get_credentials(self, conn, cmd_misc):
+        """Send password credentials to client"""
+
         if self.password is None:
             password = b''
         else:
-            password = self.password.encode() 
+            password = self.password.encode()
         if self.context:
-            ssl = b'True'
+            tls = b'True'
         else:
-            ssl = b'False'
+            tls = b'False'
 
         tmp = [password, self.keyfile, self.server_address[0].encode(),
-               str(self.server_address[1]).encode(), ssl, 
+               str(self.server_address[1]).encode(), tls,
                self.tls_dir]
         chain = self.build_message(tmp)
         try:
@@ -173,6 +178,8 @@ class Agent(Client, Daemon):
             logging.error(err.__str__())
 
     def handle_sigterm(self, signum, frame):
+        """Handle SIGTERM"""
+
         self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
         del self.keyfile

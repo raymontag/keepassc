@@ -1,13 +1,17 @@
+"""This module implements the Connection class.
+
+Classes:
+    Connection(object)
+"""
+
 import logging
-import socket
-import sys
+from os import getenv
 from os.path import expanduser, realpath, join
 
-from Crypto.Hash import SHA256
-
-from keepassc.helper import cbc_encrypt, cbc_decrypt, get_key
 
 class Connection(object):
+    """This class represents a connection with some simple methods"""
+
     def __init__(self, loglevel = logging.ERROR, logfile = 'keepassc.log',
                  password = None, keyfile = None):
         try:
@@ -19,12 +23,12 @@ class Connection(object):
 
         logging.basicConfig(format='[%(levelname)s] in %(filename)s:'
                                    '%(funcName)s at %(asctime)s\n%(message)s',
-                            level=loglevel, filename=logfile, 
+                            level=loglevel, filename=logfile,
                             filemode='a')
         self.password = password
         self.keyfile = keyfile
 
-    def build_message(self, parts):    
+    def build_message(self, parts):
         """Join many parts to one message with a seperator
 
         A message will look like
@@ -54,7 +58,7 @@ class Connection(object):
                 received = conn.recv(16)
             except:
                 raise
-            if b'\xDE\xAD\xE1\x1D' in received: 
+            if b'\xDE\xAD\xE1\x1D' in received:
                 data += received[:received.find(b'\xDE\xAD\xE1\x1D')]
                 break
             else:
@@ -68,14 +72,14 @@ class Connection(object):
         """Send message
 
         \xDE\xAD\xE1\x1D marks the end of the message
-        
+
         """
 
         ip, port = sock.getpeername()
         try:
             logging.info('Send a message to '+ip+':'+str(port))
             # \xDE\xAD\xE1\x1D = DEAD END
-            sock.sendall(msg + b'\xDE\xAD\xE1\x1D') 
+            sock.sendall(msg + b'\xDE\xAD\xE1\x1D')
         except:
             raise
 

@@ -1,4 +1,4 @@
-.TH KeePassC v.1.5.5
+.TH KeePassC v.1.6.0
 .SH NAME
 KeePassC \- KeePassC is a curses-based password manager compatible to KeePass v.1.x and KeePassX
 .SH SYNOPSIS
@@ -8,38 +8,69 @@ KeePassC is a password manager fully compatible to KeePass v.1.x and KeePassX. T
 .PP
 KeePassC is written in Python 3 and comes with a curses-interface. It is completely controlled with the keyboard.
 .PP
-Actually KeePassC provides everything to read and edit the password databases. Watch http://raymontag.github.com/keepassc/ for a full feature list.
+KeePassC provides everything to read and edit the password databases. Watch http://raymontag.github.com/keepassc/ for a full feature list.
+.SH USAGE
+For a short introduction have a look at http://raymontag.github.com/keepassc/docu.html.
+.PP
+For help using the server have a look at http://raymontag.github.com/keepassc/server.html
+.PP
+You can get help at any time by pressing F1 in the file or database browser.
 .SH OPTIONS
 .TP
-.B --asroot
-Using the program as root user, what is not recommend because it makes core dumps easy.
-.TP
 .B -h, --help
-Show help.
+show this help message and exit
+.TP
+.B --asroot
+parse option to execute keepassc as root user
 .TP
 .B -d DATABASE, --database DATABASE
-Path to a database file to open it directly.
+Path to database file.
 .TP
 .B -k KEYFILE, --keyfile KEYFILE
 Path to keyfile.
 .TP
+.B -c, --curses
+Use curses interface while using a remote connection.
+.TP
+.B -as ADDRESS_SERVER, --address_server ADDRESS_SERVER
+Server address (not required if using agent)
+.TP
+.B -ps PORT_SERVER, --port_server PORT_SERVER
+Server port (not required if using agent)
+.TP
+.B -pa PORT_AGENT, --port_agent PORT_AGENT
+Agent port
+.TP
+.B -a, --agent
+Use agent for remote connection
+.TP
+.B -dc, --direct_conn
+Connect directly to server
+.TP
+.B -s, --ssl
+Use SSL/TLS
+.TP
 .B -e ENTRY, --entry ENTRY
-Print entry with parsed title. 
-You will see a password promt; leave it blank if you only want to use a key-file. 
-Just type a part of the entry title lower-case, it's case-insensitive and will search for matching string parts.
-
-WARNING: Your passwords will be displayed directly on your command line!
-.SH USAGE
-For a short introduction have a look at http://raymontag.github.com/keepassc/docu.html.
-.PP
-You can get help at any time by pressing F1 in the file or database browser.
+Print entry with parsed title You will see a password
+prompt; leave it blank if you only want to use a key-
+file Just type a part of the entry title lower-case,
+it's case-insensitive and will search for matching
+string parts WARNING: Your passwords will be displayed
+directly on your command line!
+.TP
+.B -l, --log_level
+Set logging level for network use. Default is ERROR
+but for analyzing network flow INFO could be useful.
+Set it with keepassc [...] -l [...] to INFO
 .SH USING TLS (formally SSL)
 To use TLS when using keepassc-server you have to generate a server certificate. This is a manual how to do this:
 .PP
 First you need openssl. If you've installed it make a new directory to execute the following steps. Now lets generate the root certificate:
 .TP
 .B # openssl req -new -x509 -newkey rsa:4096 -keyout cakey.pem -out cacert.pem -days 3650
-TLS works with an asymmetric cipher. Therefore you've to take care of cakey.pem (the private key)! Otherwise everybody could generate it's own certificates and could phish your passphrase credentials. A strong password for the private key is self-evident. The other fields are not necessary (for KeePassC. For other uses it could but that's not the topic). The last parameter specifies that the root certificate is valid for 10 years. You can change this if you need to.
+TLS works with an asymmetric cipher. Therefore you've to take care of cakey.pem (the private key)! Otherwise everybody could generate it's own certificates and could phish your passphrase credentials. A strong password for the private key is self-evident. E.g. move the key after this whole procedure on a flash drive. You should never store the private key on the server. 
+
+The other fields are not necessary (for KeePassC. For other uses it could but that's not the topic). The last parameter specifies that the root certificate is valid for 10 years. You can change this if you need to.
 .PP
 To check if you could open the key do
 .TP
