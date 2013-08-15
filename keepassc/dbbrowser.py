@@ -1287,6 +1287,8 @@ class DBBrowser(object):
                 Popen(['xsel', '-bi'], stdin=PIPE, stderr=PIPE,
                       stdout=PIPE).communicate(stuff.encode())
                 if self.control.config['del_clip'] is True:
+                    if type(self.clip_timer) is threading.Timer:
+                        self.clip_timer.cancel()
                     self.clip_timer = threading.Timer(
                         self.control.config['clip_delay'],
                         self.del_clipboard)
