@@ -34,7 +34,6 @@ from kppy.exceptions import KPError
 from keepassc.client import Client
 from keepassc.conn import Connection
 from keepassc.control import Control
-from keepassc.helper import cbc_decrypt, cbc_encrypt
 
 
 __doc__ = '''This program gives you access to your KeePass 1.x or
@@ -155,7 +154,7 @@ def direct_connection():
         except:
             datapath = realpath(expanduser('~/.local/share'))
         finally:
-            tls_dir = join(datapath, 'keepassc', 'cacert.pem')
+            tls_dir = join(datapath, 'keepassc')
     else:
         tls_dir = None
 

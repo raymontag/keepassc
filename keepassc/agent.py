@@ -45,7 +45,7 @@ class Agent(Client, Daemon):
         if tls is True:
             self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
             self.context.verify_mode = ssl.CERT_REQUIRED
-            self.context.load_verify_locations(tls_dir)
+            self.context.load_verify_locations(tls_dir + "/cacert.pem")
         else:
             self.context = None
 

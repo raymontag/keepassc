@@ -40,7 +40,7 @@ if __name__ == '__main__':
     finally:
         pidfile = join(datapath, 'keepassc', 'agent.pid')
         if args.ssl is True:
-            tls_dir = join(datapath, 'keepassc', 'cacert.pem')
+            tls_dir = join(datapath, 'keepassc')
         else:
             tls_dir = None
 

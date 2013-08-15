@@ -7,6 +7,8 @@ Classes:
 import logging
 import socket
 import ssl
+from os.path import isfile
+from hashlib import sha256
 
 from keepassc.conn import Connection
 
@@ -20,10 +22,13 @@ class Client(Connection):
         self.server_address = (server_address, server_port)
         self.agent_address = ('localhost', agent_port)
 
+        self.tls_dir = tls_dir
+
         if tls is True:
             self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
             self.context.verify_mode = ssl.CERT_REQUIRED
-            self.context.load_verify_locations(tls_dir)
+            logging.error(tls_dir)
+            self.context.load_verify_locations(tls_dir + "/cacert.pem")
         else:
             self.context = None
 
@@ -62,6 +67,20 @@ class Client(Connection):
         try:
             conn.settimeout(60)
             if self.context is not None:
+                if not isfile(self.tls_dir + '/pin'):
+                    sha = sha256()
+                    sha.update(conn.getpeercert(True))
+                    with open(self.tls_dir + '/pin', 'wb') as pin:
+                        pin.write(sha.digest())
+                else:
+                    logging.error(self.tls_dir)
+                    with open(self.tls_dir + '/pin', 'rb') as pin:
+                        pinned_key = pin.read()
+                    sha = sha256()
+                    sha.update(conn.getpeercert(True))
+                    if pinned_key != sha.digest():
+                        return (b'FAIL: Server certificate differs from '
+                                b'pinned certificate')
                 cert = conn.getpeercert()
                 try:
                     ssl.match_hostname(cert, "KeePassC Server")

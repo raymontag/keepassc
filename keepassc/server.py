@@ -1,3 +1,12 @@
+"""This file implements the server daemon.
+
+Decorator:
+    class waitDecorator(object)
+
+Classes:
+    class Server(Connection, Daemon)
+"""
+
 import logging
 import signal
 import socket
@@ -6,6 +15,7 @@ import sys
 import time
 import threading
 from datetime import datetime
+from os import chdir
 from os.path import join, expanduser, realpath
 
 from kppy.database import KPDBv1
@@ -52,12 +62,12 @@ class Server(Connection, Daemon):
         # To use this idiom only once, I store the keyfile path
         # as a class attribute
         if keyfile is not None:
-            self.keyfile = realpath(expanduser(keyfile))
+            keyfile = realpath(expanduser(keyfile))
         else:
-            self.keyfile = None
+            keyfile = None
 
         try:
-            self.db = KPDBv1(self.db_path, password, self.keyfile)
+            self.db = KPDBv1(self.db_path, password, keyfile)
             self.db.load()
         except KPError as err:
             print(err)
@@ -101,6 +111,8 @@ class Server(Connection, Daemon):
         #Handle SIGTERM
         signal.signal(signal.SIGTERM, self.handle_sigterm)
 
+        chdir("/var/empty")
+
     def check_password(self, password, keyfile):
         """Check received password"""
         
@@ -108,7 +120,7 @@ class Server(Connection, Daemon):
         remote_final =  transform_key(master, self.db._transf_randomseed,
                                       self.db._final_randomseed, 
                                       self.db._key_transf_rounds)
-        master = get_key(self.db.password, self.keyfile)
+        master = get_key(self.db.password, self.db.keyfile)
         final =  transform_key(master, self.db._transf_randomseed,
                                self.db._final_randomseed, 
                                self.db._key_transf_rounds)
@@ -288,7 +300,6 @@ class Server(Connection, Daemon):
         else:
             self.db.keyfile = realpath(expanduser(new_keyfile))
 
-        self.keyfile = self.db.keyfile
         self.db.save()
         self.sendmsg(conn, b"Password changed")
 

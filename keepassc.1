@@ -80,7 +80,7 @@ and type your password.
 .PP
 Now we generate the certificate for the server.
 .TP
-.B # openssl genrsa -out serverkey.pem -aes128 2048 -days 3650
+.B # openssl genrsa -out serverkey.pem -aes256 4096 -days 3650
 .TP
 .B # openssl rsa -in serverkey.pem -out serverkey.pem
 Take care of serverkey.pem! It's a private key, too and with this key everybody could act as your server.

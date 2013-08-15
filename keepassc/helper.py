@@ -41,7 +41,8 @@ def parse_config(control):
               'lock_delay': 60,
               'rem_db': True,
               'rem_key': False,
-              'skip_menu': False}
+              'skip_menu': False,
+              'pin': True}
 
     if isfile(control.config_home):
         try:

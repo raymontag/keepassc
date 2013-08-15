@@ -739,9 +739,10 @@ class Control(object):
                  (7, 0, 'Use directly password and key if one of the two '
                         'above is True: ' +
                   str(self.config['skip_menu'])),
-                 (8, 0, 'Generate default configuration'),
-                 (9, 0, 'Write config')),
-                (11, 0, 'Automatic locking works only for saved databases!'))
+                 (8, 0, 'Pin server certificate: ' + str(self.config['pin'])),
+                 (9, 0, 'Generate default configuration'),
+                 (10, 0, 'Write config')),
+                (12, 0, 'Automatic locking works only for saved databases!'))
             if menu == 1:
                 if self.config['del_clip'] is True:
                     self.config['del_clip'] = False
@@ -786,6 +787,11 @@ class Control(object):
                 elif self.config['skip_menu'] is False:
                     self.config['skip_menu'] = True
             elif menu == 8:
+                if self.config['pin'] is True:
+                    self.config['pin'] = False
+                elif self.config['pin'] is False:
+                    self.config['pin'] = True
+            elif menu == 9:
                 self.config = {'del_clip': True,  # standard config
                                'clip_delay': 20,
                                'lock_db': True,
@@ -793,7 +799,7 @@ class Control(object):
                                'rem_db': True,
                                'rem_key': False,
                                'skip_menu': False}
-            elif menu == 9:
+            elif menu == 10:
                 write_config(self, self.config)
                 return True
             elif menu is False:
@@ -1018,6 +1024,11 @@ class Control(object):
 
         if use_agent == 1:
             port = self.get_num("Agent port: ", "50001", 5)
+            if port is False:
+                return False
+            elif port == -1:
+                self.close()
+
             conn = Connection(logging.ERROR, 'client.log')
             sock = socket(AF_INET, SOCK_STREAM)
             sock.settimeout(60)
@@ -1025,11 +1036,12 @@ class Control(object):
                 sock.connect(('localhost', port))
                 conn.sendmsg(sock, conn.build_message((b'GET',)))
             except OSError as err:
-                self.draw_text(False, (1, 0, err.__str__())
+                self.draw_text(False, (1, 0, err.__str__()),
                                       (3, 0, "Press any key."))
                 if self.any_key() == -1:
                     self.close()
                 return False
+
             db_buf = conn.receive(sock)
             if db_buf[:4] == b'FAIL' or db_buf[:4] == b'[Err':
                 self.draw_text(False,
@@ -1047,19 +1059,25 @@ class Control(object):
                 sock.connect(('localhost', port))
                 conn.sendmsg(sock, conn.build_message((b'GETC',)))
             except OSError as err:
-                self.draw_text(False, (1, 0, err.__str__())
+                self.draw_text(False, (1, 0, err.__str__()),
                                       (3, 0, "Press any key."))
                 if self.any_key() == -1:
                     self.close()
                 return False
+
             answer = conn.receive(sock)
             parts = answer.split(b'\xB2\xEA\xC0')
             password = parts.pop(0).decode()
-            if not isdir('/tmp/keepassc'):
-                makedirs('/tmp/keepassc')
-            with open('/tmp/keepassc/tmp_keyfile', 'w') as handler:
-                handler.write(parts.pop(0).decode())
-                keyfile = '/tmp/keepassc/tmp_keyfile'
+            keyfile_cont = parts.pop(0).decode()
+            if keyfile_cont == '':
+                keyfile = None
+            else:
+                if not isdir('/tmp/keepassc'):
+                    makedirs('/tmp/keepassc')
+                with open('/tmp/keepassc/tmp_keyfile', 'w') as handler:
+                    handler.write(parts.pop(0).decode())
+                    keyfile = '/tmp/keepassc/tmp_keyfile'
+
             server = parts.pop(0).decode()
             port = int(parts.pop(0))
             if parts.pop(0) == b'True':
@@ -1067,6 +1085,10 @@ class Control(object):
             else:
                 ssl = False
             tls_dir = parts.pop(0).decode()
+        elif use_agent is False:
+            return False
+        elif use_agent == -1:
+            self.close()
         else:
             if isfile(self.remote_home):
                 with open(self.remote_home, 'r') as handler:
@@ -1135,7 +1157,7 @@ class Control(object):
                 except:
                     datapath = realpath(expanduser('~/.local/share'))
                 finally:
-                    tls_dir = join(datapath, 'keepassc', 'cacert.pem')
+                    tls_dir = join(datapath, 'keepassc')
             else:
                 tls_dir = None
 
