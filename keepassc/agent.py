@@ -8,6 +8,7 @@ import logging
 import signal
 import socket
 import ssl
+from os import chdir
 from os.path import expanduser, realpath
 
 from keepassc.client import Client
@@ -24,6 +25,7 @@ class Agent(Client, Daemon):
         Client.__init__(self, loglevel, logfile, server_address, server_port,
                         agent_port, password, keyfile)
         Daemon.__init__(self, pidfile)
+
         self.lookup = {
             b'FIND': self.find,
             b'GET': self.get_db,
@@ -33,6 +35,8 @@ class Agent(Client, Daemon):
             self.tls_dir = realpath(expanduser(tls_dir)).encode()
         else:
             self.tls_dir = b''
+
+        chdir("/var/empty")
 
         # Agent is a daemon and cannot find the keyfile after run
         if self.keyfile is not None:

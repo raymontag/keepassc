@@ -53,6 +53,7 @@ class Server(Connection, Daemon):
                  tls_req = False):
         Connection.__init__(self, loglevel, logfile, password, keyfile)
         Daemon.__init__(self, pidfile)
+
         if db is None:
             print('Need a database path')
             sys.exit(1)
@@ -65,6 +66,8 @@ class Server(Connection, Daemon):
             keyfile = realpath(expanduser(keyfile))
         else:
             keyfile = None
+
+        chdir("/var/empty")
 
         try:
             self.db = KPDBv1(self.db_path, password, keyfile)
@@ -110,8 +113,6 @@ class Server(Connection, Daemon):
 
         #Handle SIGTERM
         signal.signal(signal.SIGTERM, self.handle_sigterm)
-
-        chdir("/var/empty")
 
     def check_password(self, password, keyfile):
         """Check received password"""

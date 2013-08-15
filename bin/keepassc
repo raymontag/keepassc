@@ -24,7 +24,7 @@ import logging
 import socket
 from curses import wrapper
 from getpass import getpass
-from os import geteuid
+from os import chdir, geteuid
 from os.path import expanduser, realpath, splitext, join
 from sys import exit, stdout
 
@@ -98,6 +98,7 @@ def parse_entry(entry, database, password, keyfile):
         keyfile:    path to the keyfile
 
     """
+
     try:
         db = KPDBv1(database, password, keyfile)
         db.load()
@@ -142,11 +143,11 @@ def direct_connection():
     elif password == '':
         password = None
 
-    # Get entry title
-    if args.entry:
-        entry = args.entry.encode()
+
+    if args.keyfile is not None:
+        keyfile = realpath(expanduser(args.keyfile))
     else:
-        entry = input('Part of title: ').encode()
+        keyfile = args.keyfile
 
     if args.ssl is True:
         try:
@@ -157,6 +158,14 @@ def direct_connection():
             tls_dir = join(datapath, 'keepassc')
     else:
         tls_dir = None
+
+    chdir("/var/empty")
+
+    # Get entry title
+    if args.entry:
+        entry = args.entry.encode()
+    else:
+        entry = input('Part of title: ').encode()
 
     if args.log_level is True:
         loglevel = logging.INFO
@@ -228,7 +237,13 @@ if __name__ == '__main__':
             password = getpass()
             if password == '':
                 password = None
-            parse_entry(args.entry, args.database, password, args.keyfile)
+            db = realpath(expanduser(args.database))
+            if args.keyfile is not None:
+                keyfile = realpath(expanduser(args.keyfile))
+            else:
+                keyfile = args.keyfile
+            chdir("/var/empty")
+            parse_entry(args.entry, db, password, keyfile)
         elif args.curses:
             app = Control()
             wrapper(app.main_loop(remote=True))
