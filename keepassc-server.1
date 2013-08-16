@@ -1,0 +1,123 @@
+.TH KeePassC v.1.6.0
+.SH NAME
+KeePassC \- KeePassC is a curses-based password manager compatible to KeePass v.1.x and KeePassX
+.PP
+This manpage describes the server.
+.SH SYNOPSIS
+keepassc-server [options] [cmd]
+.SH DESCRIPTION
+Since v.1.6.0 network usage is implemented. This manpage describes how to use the server-daemon. The server is not for network-usage only. You can use it to omit password entering by using the agent additionaly, too.
+.SH USAGE
+For a short introduction have a look at http://raymontag.github.com/keepassc/server.html.
+.PP
+You start the server with 'keepassc-server -d /path/to/database start'. The database path is always needed. You will be prompted for a password. If you need a keyfile use the -k option.
+.PP
+In the case above the server is binded to 'localhost:50000'. The server binds always to this address even if you specify a network address. The latter can be done by the -a option. The standard port is 50002 for network use. If you want another use -p.
+.PP
+If you just use -a the communication between the server and the client is plain text. If you want to use TLS use
+-s or -S (for TLS only). A port for the TLS connection can be specified by -ps, standard is 50003. For a tutorial how to create TLS certificates scroll down.
+.SH COMMANDS
+The server is implemented as a daemon. Therefore commands to start and stop the server are needed.
+.TP
+.B start
+Start the server-daemon. Additional options are needed.
+.TP
+.B stop
+Stop the server-daemon.
+.SH OPTIONS
+.TP
+.B -h, --help            
+show the help message and exit
+.TP
+.B --asroot
+Execute server as root user.
+.TP
+.B -d DATABASE, --database DATABASE
+Path to database file.
+.TP
+.B -k KEYFILE, --keyfile KEYFILE
+Path to keyfile.
+.TP
+.B -a ADDRESS, --address ADDRESS
+Address for the server.
+.TP
+.B -p PORT, --port PORT
+Port for the server.
+.TP
+.B -ps PORT_TLS, --port_tls PORT_TLS
+Port for server's TLS-port if -S is used.
+.TP
+.B -l, --log_level
+Set logging level. Default is ERROR but foranalyzing
+network flow INFO could be useful. Set it with
+keepassc-server [...] -l [...] to INFO
+.TP
+.B -s, --ssl
+Use SSL/TLS additionaly.
+.TP
+.B -S, --ssl_req
+Use SSL/TLS only.
+.SH USING TLS (formally SSL)
+To use TLS when using keepassc-server you have to generate a server certificate. This is a manual how to do this:
+.PP
+First you need openssl. If you've installed it make a new directory to execute the following steps. Now lets generate the root certificate:
+.TP
+.B # openssl req -new -x509 -newkey rsa:4096 -keyout cakey.pem -out cacert.pem -days 3650
+TLS works with an asymmetric cipher. Therefore you've to take care of cakey.pem (the private key)! Otherwise everybody could generate it's own certificates and could phish your passphrase credentials. A strong password for the private key is self-evident. E.g. move the key after this whole procedure on a flash drive. You should never store the private key on the server. 
+
+The other fields are not necessary (for KeePassC. For other uses it could but that's not the topic). The last parameter specifies that the root certificate is valid for 10 years. You can change this if you need to.
+.PP
+To check if you could open the key do
+.TP
+.B # openssl rsa -in cakey.pem -noout -text
+.PP
+and type your password.
+.PP
+Now we generate the certificate for the server.
+.TP
+.B # openssl genrsa -out serverkey.pem -aes256 4096 -days 3650
+.TP
+.B # openssl rsa -in serverkey.pem -out serverkey.pem
+Take care of serverkey.pem! It's a private key, too and with this key everybody could act as your server.
+.PP
+Now we'll sign this key with the root certificate.
+.TP
+.B # openssl req -new -key serverkey.pem -out req.pem -nodes
+It is essential that you type "KeePassC Server" for "Common Name". Otherwise the client would never accept the server. Everything else is not necessary and could be empty.
+.PP
+Now change your openssl configuration:
+.TP
+.B /etc/ssl/openssl.cnf
+dir = .
+
+new_certs_dir = $dir
+
+private_key = $dir/cakey.pem
+
+RANDFILE = $dir/.rand
+
+default_days = 3650
+
+stateOrProvinceName = optional
+.PP
+Now do
+.TP
+.B # echo 01 > serial
+.TP
+.B # touch index.txt
+Now we do the final step: We sign the certificate:
+.TP
+.B openssl ca -in req.pem -notext -out servercert.pem
+You need to type the password of the root certificate.
+.PP
+To install the certificates move servercert.pem and serverkey.pem into .local/share/keepassc/ or any other directory specified by XDG_DATA_HOME with keepassc as subfolder on the server.
+.PP
+On the client side you move cacert.pem into the same folder. You're now ready to use TLS with KeePassC.
+.SH AUTHOR
+Karsten-Kai König <kkoenig@posteo.de>
+.SH LICENSE
+ KeePassC is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or at your option) any later version.
+.PP
+KeePassC is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+.PP
+You should have received a copy of the GNU General Public License along with KeePassC. If not, see <http://www.gnu.org/licenses/ >. 

@@ -1,0 +1,61 @@
+.TH KeePassC v.1.6.0
+.SH NAME
+KeePassC \- KeePassC is a curses-based password manager compatible to KeePass v.1.x and KeePassX
+.PP
+This manpage describes the agent.
+.SH SYNOPSIS
+keepassc-agent [options] [cmd]
+.SH DESCRIPTION
+Since v.1.6.0 network usage is implemented. This manpage describes how to use the agent-daemon.
+.SH USAGE
+For a short introduction have a look at http://raymontag.github.com/keepassc/server.html.
+.PP
+You start the agent with 'keepassc-agent start'. You will be prompted for a password. If you need a keyfile use the -k option.
+.PP
+In the case above the agent is binded to 'localhost:50001'. The alwas binds always to localhost. If you want to use another port use -pc.
+.PP
+The agent uses 'localhost:50000' for the server address by default. If you want to use another server address use -as and -ps.
+.PP
+The agent is implemented as a daemon. Therefore commands to start and stop the agent are needed.
+.SH COMMANDS
+.TP
+.B start
+Start the agent-daemon.
+.TP
+.B stop
+Stop the agent-daemon.
+.SH OPTIONS
+.TP
+.B -h, --help            
+show the help message and exit
+.TP
+.B --asroot
+Execute server as root user.
+.TP
+.B -k KEYFILE, --keyfile KEYFILE
+Path to keyfile.
+.TP
+.B -as ADDRESS, --address ADDRESS
+Address for the server.
+.TP
+.B -ps PORT, --port PORT
+Port for the server.
+.TP
+.B -pc PORT_AGENT, --port_agent PORT_AGENT
+Port for the agent.
+.TP
+.B -l, --log_level
+Set logging level. Default is ERROR but foranalyzing
+network flow INFO could be useful. Set it with
+keepassc-server [...] -l [...] to INFO
+.TP
+.B -s, --ssl
+Use SSL/TLS.
+.SH AUTHOR
+Karsten-Kai König <kkoenig@posteo.de>
+.SH LICENSE
+ KeePassC is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or at your option) any later version.
+.PP
+KeePassC is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+.PP
+You should have received a copy of the GNU General Public License along with KeePassC. If not, see <http://www.gnu.org/licenses/ >. 

@@ -1,3 +1,10 @@
+Version 1.6 ()
+
+    A server-client structure is implemented for network usage or to omit password entering. SSL/TLS, threading i    supported, too.
+    Some little performance tweaks.
+    Entry information are not cutted anymore if the window is to small.
+    Expired entries are marked red.
+
 Version 1.5 (February 22, 2013)
 
     Support for moving groups and entries

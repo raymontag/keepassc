@@ -19,6 +19,8 @@ password database is fully encrypted with AES.
 KeePassC is written in Python 3 and comes with a curses-interface. It is completely controlled
 with the keyboard.
 
+Since v.1.6.0 network usage is implemented.
+
 Install:
 --------
 
@@ -52,7 +54,7 @@ information to the current window (not in main menu).
 
 For a short introduction have a look at http://raymontag.github.com/keepassc/docu.html. Also use 'man keepassc'.
 
-For help using the server have a look at http://raymontag.github.com/keepassc/server.html
+For help using the server have a look at http://raymontag.github.com/keepassc/server.html, 'man keepassc-server' and 'man keepassc-agent'.
 
 You can get help at any time by pressing F1 in the file or database browser.
 

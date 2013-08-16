@@ -36,6 +36,6 @@ setup(name = "keepassc",
           'Development Status :: 5 - Production/Stable',
           'Environment :: Console :: Curses'],
       license = "GPL v3 or later, MIT",
-      data_files = [('share/man/man1', ['keepassc.1']),
-                    ('share/doc/keepassc', ['README', 'COPYING'])]
+      data_files = [('share/man/man1', ['keepassc.1', 'keepassc-server.1', 'keepassc-agent.1']),
+                    ('share/doc/keepassc', ['README', 'COPYING', 'CHANGELOG'])]
 )
