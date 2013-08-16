@@ -1,0 +1,73 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <title>KeepassC by raymontag</title>
+  </head>
+
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>KeepassC</h1>
+        <h2>KeePassC is a curses-based password manager compatible to KeePass v.1.x and KeePassX</h2>
+
+        <section id="downloads">
+          <a href="https://github.com/raymontag/keepassc/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/raymontag/keepassc" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+        <h1>KeePassC server - Introduction</h1>
+        <p>Since v.1.6.0 KeePassC provides you a server. You can use it to connect to a database on a remote server (use as a 
+        multiuser database is supported) or to omit the password entering.</p>
+        <p>First you need to start the server with 'keepassc-server -d /path/to/database start'. Doing this the server binds to
+        'localhost:50000'. If you want to use the database in a network or on the internet (not tested yet but should work) use
+        -a for the address and -p for another port, e.g. 'keepassc-server -a 192.168.0.5 -p 50010 -d /path/to/database start'.
+        The server binds to this address additionaly, i.e. it binds to 'localhost:50000', too, to enable database maintaining on
+        the host. E.g. changing the database password is only possible from localhost! If you just use -a the server binds to port
+        50002 by default.</p>
+        <p>The whole communication is plain text. If you want to use TLS (former SSL) to encrypt the communication you can do this
+        by using the -s option. If you want to forbid plain text communication use -S. However connection to "localhost:50000" is 
+        always without TLS, that's not a security hole. For a manual how to create TLS certificates look in 'man keepassc-server'
+        </p>
+        <p>Using TLS is also recommended to check if the server does not pretend to be a valid KeePassC server. The client is
+        doing this by checking if the certificate matches the correct hostname, by checking if it's signed by a valid CA and 
+        optionally by checking if the certificate has a correct fingerprint.</p>
+        <p>The last mentioned thing is called 'pinning' and is a better protection againt MITM-attacks. It's activated by default,
+        for deactivation use the configuration menu (not recommended). How it works: At the first connect to the server the client
+        checks if a fingerprint is saved. If not the client creates the fingerprint and saves it for the next time. If it's saved
+        the client checks always if the fingerprint of the server matches the saved. If the server has a new certificate and 
+        you're sure that it's valid delete '~/.local/share/keepassc/pin'. If you use the enviroment variable 'XDG_DATA_HOME' the
+        path is 'XDG_DATA_HOME/keepassc/pin'.</p>
+        <p><b>The first connection without a saved fingerprint is the most critical part. You've to be sure that the server is 
+        valid!</b></p>
+        <p>Summarized the database is protected by the following:
+        <ul>
+        <li>The server checks if the password and keyfile is correct.</li>
+        <li>If the client uses SSL the whole communication is encrypted and the client checks if the server is valid and has a
+            valid certificate</li>
+        </ul>
+        <p>Now we've talked a lot about the client but how can we use it? There are many options: First you've to specify if you
+        want to use the agent or not. Let's first look at the latter: Use 'keepassc -dc -e foo' to list all entries with 'foo' in
+        title similar to the normal -e option. The -dc marks to use a direct connection to "localhost:50000" without the agent. If
+        you want to connect to another server use -as for the server address and -ps for the port. Default for the port is 50002.
+        If you want to use TLS use -s. If you need a keyfile use '-k /path/to/keyfile', i.e. you need the keyfile, too!</p>
+        <p>Using the agent to omit password entering is very simple, too: Just start it with 'keepassc-agent start'. The options 
+        are similar to the ones of
+        'keepassc -dc', just use 'keepassc-agent help' to watch them. By default the agent binds to port 50001 on localhost. Use
+        -pc bind to another port.</p>
+        <p>If you want to use the normal KeePassC-interface 'keepassc -c'. You will be prompted for everything and do not need
+        to specify options.</p>
+  </body>
+</html>
