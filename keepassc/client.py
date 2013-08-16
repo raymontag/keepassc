@@ -7,20 +7,32 @@ Classes:
 import logging
 import socket
 import ssl
-from os.path import isfile
+from os.path import join, expanduser, realpath, isfile
 from hashlib import sha256
 
-from keepassc.conn import Connection
+from keepassc.conn import *
 
-class Client(Connection):
+class Client(object):
     """The KeePassC client"""
 
     def __init__(self, loglevel, logfile, server_address = 'localhost',
-                 server_port = 50000, agent_port = 50001, password = None,
-                 keyfile = None, tls = False, tls_dir = None):
-        Connection.__init__(self, loglevel, logfile, password, keyfile)
+                 server_port = 50000, password = None, keyfile = None,
+                 tls = False, tls_dir = None):
+        try:
+            logdir = realpath(expanduser(getenv('XDG_DATA_HOME')))
+        except:
+            logdir = realpath(expanduser('~/.local/share'))
+        finally:
+            logfile = join(logdir, 'keepassc', logfile)
+
+        logging.basicConfig(format='[%(levelname)s] in %(filename)s:'
+                                   '%(funcName)s at %(asctime)s\n%(message)s',
+                            level=loglevel, filename=logfile,
+                            filemode='a')
+
+        self.password = password
+        self.keyfile = keyfile
         self.server_address = (server_address, server_port)
-        self.agent_address = ('localhost', agent_port)
 
         self.tls_dir = tls_dir
 
@@ -50,7 +62,7 @@ class Client(Connection):
 
         tmp = [password, key]
         tmp.extend(cmd)
-        cmd_chain = self.build_message(tmp)
+        cmd_chain = build_message(tmp)
 
         try:
             tmp_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -73,7 +85,6 @@ class Client(Connection):
                     with open(self.tls_dir + '/pin', 'wb') as pin:
                         pin.write(sha.digest())
                 else:
-                    logging.error(self.tls_dir)
                     with open(self.tls_dir + '/pin', 'rb') as pin:
                         pinned_key = pin.read()
                     sha = sha256()
@@ -86,8 +97,8 @@ class Client(Connection):
                     ssl.match_hostname(cert, "KeePassC Server")
                 except:
                     return b'FAIL: TLS - Hostname does not match'
-            self.sendmsg(conn, cmd_chain)
-            answer = self.receive(conn)
+            sendmsg(conn, cmd_chain)
+            answer = receive(conn)
         except:
             raise
         finally:

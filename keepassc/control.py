@@ -32,7 +32,7 @@ from sys import exit
 from kppy.database import KPDBv1
 from kppy.exceptions import KPError
 
-from keepassc.conn import Connection
+from keepassc.conn import *
 from keepassc.client import Client
 from keepassc.editor import Editor
 from keepassc.helper import parse_config, write_config
@@ -1029,12 +1029,11 @@ class Control(object):
             elif port == -1:
                 self.close()
 
-            conn = Connection(logging.ERROR, 'client.log')
             sock = socket(AF_INET, SOCK_STREAM)
             sock.settimeout(60)
             try:
                 sock.connect(('localhost', port))
-                conn.sendmsg(sock, conn.build_message((b'GET',)))
+                sendmsg(sock, build_message((b'GET',)))
             except OSError as err:
                 self.draw_text(False, (1, 0, err.__str__()),
                                       (3, 0, "Press any key."))
@@ -1042,7 +1041,7 @@ class Control(object):
                     self.close()
                 return False
 
-            db_buf = conn.receive(sock)
+            db_buf = receive(sock)
             if db_buf[:4] == b'FAIL' or db_buf[:4] == b'[Err':
                 self.draw_text(False,
                                (1, 0, db_buf),
@@ -1057,7 +1056,7 @@ class Control(object):
             sock.settimeout(60)
             try:
                 sock.connect(('localhost', port))
-                conn.sendmsg(sock, conn.build_message((b'GETC',)))
+                sendmsg(sock, build_message((b'GETC',)))
             except OSError as err:
                 self.draw_text(False, (1, 0, err.__str__()),
                                       (3, 0, "Press any key."))
@@ -1065,7 +1064,7 @@ class Control(object):
                     self.close()
                 return False
 
-            answer = conn.receive(sock)
+            answer = receive(sock)
             parts = answer.split(b'\xB2\xEA\xC0')
             password = parts.pop(0).decode()
             keyfile_cont = parts.pop(0).decode()
@@ -1161,7 +1160,7 @@ class Control(object):
             else:
                 tls_dir = None
 
-            client = Client(logging.INFO, 'client.log', server, port, None,
+            client = Client(logging.INFO, 'client.log', server, port,
                             password, keyfile, ssl, tls_dir)
             db_buf = client.get_db()
             if db_buf[:4] == 'FAIL' or db_buf[:4] == "[Err":

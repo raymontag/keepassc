@@ -8,29 +8,56 @@ import logging
 import signal
 import socket
 import ssl
+import sys
+from hashlib import sha256
 from os import chdir
-from os.path import expanduser, realpath
+from os.path import expanduser, realpath, isfile, join
 
+from keepassc.conn import *
 from keepassc.client import Client
 from keepassc.daemon import Daemon
 
 
-class Agent(Client, Daemon):
+class Agent(Daemon):
     """The KeePassC agent daemon"""
 
     def __init__(self, pidfile, loglevel, logfile,
                  server_address = 'localhost', server_port = 50000,
                  agent_port = 50001, password = None, keyfile = None,
                  tls = False, tls_dir = None):
-        Client.__init__(self, loglevel, logfile, server_address, server_port,
-                        agent_port, password, keyfile)
         Daemon.__init__(self, pidfile)
+
+        try:
+            logdir = realpath(expanduser(getenv('XDG_DATA_HOME')))
+        except:
+            logdir = realpath(expanduser('~/.local/share'))
+        finally:
+            logfile = join(logdir, 'keepassc', logfile)
+
+        logging.basicConfig(format='[%(levelname)s] in %(filename)s:'
+                                   '%(funcName)s at %(asctime)s\n%(message)s',
+                            level=loglevel, filename=logfile,
+                            filemode='a')
 
         self.lookup = {
             b'FIND': self.find,
             b'GET': self.get_db,
             b'GETC': self.get_credentials}
-        self.sock = None
+
+        self.server_address = (server_address, server_port)
+        try:
+            # Listen for commands
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.bind(("localhost", agent_port))
+            self.sock.listen(1)
+        except OSError as err:
+            print(err)
+            logging.error(err.__str__())
+            sys.exit(1)
+        else:
+            logging.info('Agent socket created on localhost:'+
+                         str(agent_port))
+
         if tls_dir is not None:
             self.tls_dir = realpath(expanduser(tls_dir)).encode()
         else:
@@ -38,9 +65,10 @@ class Agent(Client, Daemon):
 
         chdir("/var/empty")
 
+        self.password = password
         # Agent is a daemon and cannot find the keyfile after run
-        if self.keyfile is not None:
-            with open(self.keyfile, "rb") as handler:
+        if keyfile is not None:
+            with open(keyfile, "rb") as handler:
                 self.keyfile = handler.read()
                 handler.close()
         else:
@@ -66,7 +94,7 @@ class Agent(Client, Daemon):
 
         tmp = [password, self.keyfile]
         tmp.extend(cmd)
-        cmd_chain = self.build_message(tmp)
+        cmd_chain = build_message(tmp)
 
         try:
             tmp_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -84,13 +112,26 @@ class Agent(Client, Daemon):
         try:
             conn.settimeout(60)
             if self.context is not None:
+                if not isfile(self.tls_dir.decode() + '/pin'):
+                    sha = sha256()
+                    sha.update(conn.getpeercert(True))
+                    with open(self.tls_dir.decode() + '/pin', 'wb') as pin:
+                        pin.write(sha.digest())
+                else:
+                    with open(self.tls_dir.decode() + '/pin', 'rb') as pin:
+                        pinned_key = pin.read()
+                    sha = sha256()
+                    sha.update(conn.getpeercert(True))
+                    if pinned_key != sha.digest():
+                        return (b'FAIL: Server certificate differs from '
+                                b'pinned certificate')
                 cert = conn.getpeercert()
                 try:
                     ssl.match_hostname(cert, "KeePassC Server")
                 except:
                     return b'FAIL: TLS - Hostname does not match'
-            self.sendmsg(conn, cmd_chain)
-            answer = self.receive(conn)
+            sendmsg(conn, cmd_chain)
+            answer = receive(conn)
         except:
             raise
         finally:
@@ -102,19 +143,6 @@ class Agent(Client, Daemon):
     def run(self):
         """Overide Daemon.run() and provide sockets"""
 
-        try:
-            # Listen for commands
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.bind(self.agent_address)
-            self.sock.listen(1)
-        except OSError as err:
-            print(err)
-            logging.error(err.__str__())
-            self.stop()
-        else:
-            logging.info('Agent socket created on '+self.agent_address[0]+':'+
-                         str(self.agent_address[1]))
-
         while True:
             try:
                 conn, client = self.sock.accept()
@@ -125,13 +153,13 @@ class Agent(Client, Daemon):
             conn.settimeout(60)
 
             try:
-                parts = self.receive(conn).split(b'\xB2\xEA\xC0')
+                parts = receive(conn).split(b'\xB2\xEA\xC0')
                 cmd = parts.pop(0)
                 if cmd in self.lookup:
                     self.lookup[cmd](conn, parts)
                 else:
                     logging.error('Received a wrong command')
-                    self.sendmsg(conn, b'FAIL: Command isn\'t available')
+                    sendmsg(conn, b'FAIL: Command isn\'t available')
             except OSError as err:
                 logging.error(err.__str__())
             finally:
@@ -143,7 +171,7 @@ class Agent(Client, Daemon):
 
         try:
             answer = self.send_cmd(b'FIND', cmd_misc[0])
-            self.sendmsg(conn, answer)
+            sendmsg(conn, answer)
             if answer[:4] == b'FAIL':
                 raise OSError(answer.decode())
         except (OSError, TypeError) as err:
@@ -154,7 +182,7 @@ class Agent(Client, Daemon):
 
         try:
             answer = self.send_cmd(b'GET')
-            self.sendmsg(conn, answer)
+            sendmsg(conn, answer)
             if answer[:4] == b'FAIL':
                 raise OSError(answer.decode())
         except (OSError, TypeError) as err:
@@ -175,9 +203,9 @@ class Agent(Client, Daemon):
         tmp = [password, self.keyfile, self.server_address[0].encode(),
                str(self.server_address[1]).encode(), tls,
                self.tls_dir]
-        chain = self.build_message(tmp)
+        chain = build_message(tmp)
         try:
-            self.sendmsg(conn, chain)
+            sendmsg(conn, chain)
         except (OSError, TypeError) as err:
             logging.error(err.__str__())
 

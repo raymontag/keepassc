@@ -21,7 +21,7 @@ from os.path import join, expanduser, realpath
 from kppy.database import KPDBv1
 from kppy.exceptions import KPError
 
-from keepassc.conn import Connection
+from keepassc.conn import *
 from keepassc.daemon import Daemon
 from keepassc.helper import get_key, transform_key
 
@@ -44,15 +44,26 @@ class waitDecorator(object):
                 self.lock = False
                 break
         
-class Server(Connection, Daemon):
+class Server(Daemon):
     """The KeePassC server daemon"""
 
     def __init__(self, pidfile, loglevel, logfile, address = 'localhost',
                  port = 50000, db = None, password = None, keyfile = None,
                  tls = False, tls_dir = None, tls_port = 50002, 
                  tls_req = False):
-        Connection.__init__(self, loglevel, logfile, password, keyfile)
         Daemon.__init__(self, pidfile)
+
+        try:
+            logdir = realpath(expanduser(getenv('XDG_DATA_HOME')))
+        except:
+            logdir = realpath(expanduser('~/.local/share'))
+        finally:
+            logfile = join(logdir, 'keepassc', logfile)
+
+        logging.basicConfig(format='[%(levelname)s] in %(filename)s:'
+                                   '%(funcName)s at %(asctime)s\n%(message)s',
+                            level=loglevel, filename=logfile,
+                            filemode='a')
 
         if db is None:
             print('Need a database path')
@@ -97,8 +108,6 @@ class Server(Connection, Daemon):
 
         if tls_req is True:
             tls_port = port
-        self.address = (address, port)
-        self.tls_address = (address, tls_port)
         self.sock = None
         self.tls_sock = None
         self.tls_req = tls_req
@@ -110,6 +119,35 @@ class Server(Connection, Daemon):
             self.context.load_cert_chain(certfile=cert, keyfile=key)
         else:
             self.context = None
+
+        if self.tls_req is False:
+            try:
+                # Listen for commands
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.sock.bind((address, port))
+                self.sock.listen(5)
+            except OSError as err:
+                print(err)
+                logging.error(err.__str__())
+                sys.exit(1)
+            else:
+                logging.info('Server socket created on '+address+':'+
+                             str(port))
+
+        if self.context is not None:
+            try:
+                # Listen for commands
+                self.tls_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.tls_sock.bind((address, tls_port))
+                self.tls_sock.listen(5)
+            except OSError as err:
+                print(err)
+                logging.error(err.__str__())
+                sys.exit(1)
+            else:
+                logging.info('TLS-Server socket created on '+address+':'+
+                             str(tls_port))
+
 
         #Handle SIGTERM
         signal.signal(signal.SIGTERM, self.handle_sigterm)
@@ -142,18 +180,6 @@ class Server(Connection, Daemon):
             self.stop()
 
     def handle_non_tls(self):
-        try:
-            # Listen for commands
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.bind(self.address)
-            self.sock.listen(5)
-        except OSError as err:
-            logging.error(err.__str__())
-            self.stop()
-        else:
-            logging.info('Server socket created on '+self.address[0]+':'+
-                         str(self.address[1]))
-
         while True:
             try:
                 conn, client = self.sock.accept()
@@ -170,18 +196,6 @@ class Server(Connection, Daemon):
                 client_thread.start()
 
     def handle_tls(self):
-        try:
-            # Listen for commands
-            self.tls_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.tls_sock.bind(self.tls_address)
-            self.tls_sock.listen(5)
-        except OSError as err:
-            logging.error(err.__str__())
-            self.stop()
-        else:
-            logging.info('TLS-Server socket created on '+self.tls_address[0]+':'+
-                         str(self.tls_address[1]))
-
         while True:
             try:
                 conn_tmp, client = self.tls_sock.accept()
@@ -202,7 +216,7 @@ class Server(Connection, Daemon):
         conn.settimeout(60)
 
         try:
-            msg = self.receive(conn)
+            msg = receive(conn)
             parts = msg.split(b'\xB2\xEA\xC0')
             parts.append(client)
             password = parts.pop(0)
@@ -216,7 +230,7 @@ class Server(Connection, Daemon):
             if keyfile == b'':
                 keyfile = None
             if self.check_password(password, keyfile) is False:
-                self.sendmsg(conn, b'FAIL: Wrong password')
+                sendmsg(conn, b'FAIL: Wrong password')
                 raise OSError("Received wrong password")
         except OSError as err:
             logging.error(err.__str__())
@@ -226,7 +240,7 @@ class Server(Connection, Daemon):
                     self.lookup[cmd](conn, parts)
                 else:
                     logging.error('Received a wrong command')
-                    self.sendmsg(conn, b'FAIL: Command isn\'t available')
+                    sendmsg(conn, b'FAIL: Command isn\'t available')
             except (OSError, ValueError) as err:
                 logging.error(err.__str__())
         finally:
@@ -258,12 +272,12 @@ class Server(Connection, Daemon):
                 if i.comment is not None:
                     msg += 'Comment: '+i.comment+'\n'
                 msg += '\n'
-        self.sendmsg(conn, msg.encode())
+        sendmsg(conn, msg.encode())
 
     def send_db(self, conn, parts):
         with open(self.db_path, 'rb') as handler:
             buf = handler.read()
-        self.sendmsg(conn, buf)
+        sendmsg(conn, buf)
 
     @waitDecorator
     def create_group(self, conn, parts):
@@ -277,7 +291,7 @@ class Server(Connection, Daemon):
                     self.db.create_group(title, i)
                     break
                 elif i is self.db.groups[-1]:
-                    self.sendmsg(conn, b"FAIL: Parent doesn't exist anymore. "
+                    sendmsg(conn, b"FAIL: Parent doesn't exist anymore. "
                                        b"You should refresh")
                     return
         self.db.save()
@@ -287,7 +301,7 @@ class Server(Connection, Daemon):
     def change_password(self, conn, parts):
         client_add = parts[-1][0]
         if client_add != "localhost" and client_add != "127.0.0.1":
-            self.sendmsg(conn, b'Password change from remote is not allowed')
+            sendmsg(conn, b'Password change from remote is not allowed')
 
         new_password = parts.pop(0).decode()
         new_keyfile = parts.pop(0).decode()
@@ -302,7 +316,7 @@ class Server(Connection, Daemon):
             self.db.keyfile = realpath(expanduser(new_keyfile))
 
         self.db.save()
-        self.sendmsg(conn, b"Password changed")
+        sendmsg(conn, b"Password changed")
 
     @waitDecorator
     def create_entry(self, conn, parts):
@@ -322,7 +336,7 @@ class Server(Connection, Daemon):
                                      comment, y, mon, d)
                 break
             elif i is self.db.groups[-1]:
-                self.sendmsg(conn, b"FAIL: Group for entry doesn't exist "
+                sendmsg(conn, b"FAIL: Group for entry doesn't exist "
                                    b"anymore. You should refresh")
                 return
 
@@ -339,14 +353,14 @@ class Server(Connection, Daemon):
         for i in self.db.groups:
             if i.id_ == group_id:
                 if self.check_last_mod(i, time) is True:
-                    self.sendmsg(conn, b"FAIL: Group was modified. You should "
+                    sendmsg(conn, b"FAIL: Group was modified. You should "
                                        b"refresh and if you're sure you want "
                                        b"to delete this group try it again.")
                     return
                 i.remove_group()
                 break
             elif i is self.db.groups[-1]:
-                self.sendmsg(conn, b"FAIL: Group doesn't exist "
+                sendmsg(conn, b"FAIL: Group doesn't exist "
                                    b"anymore. You should refresh")
                 return
 
@@ -363,14 +377,14 @@ class Server(Connection, Daemon):
         for i in self.db.entries:
             if i.uuid == uuid:
                 if self.check_last_mod(i, time) is True:
-                    self.sendmsg(conn, b"FAIL: Entry was modified. You should "
+                    sendmsg(conn, b"FAIL: Entry was modified. You should "
                                        b"refresh and if you're sure you want "
                                        b"to delete this entry try it again.")
                     return
                 i.remove_entry()
                 break
             elif i is self.db.entries[-1]:
-                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
+                sendmsg(conn, b"FAIL: Entry doesn't exist "
                                    b"anymore. You should refresh")
                 return
 
@@ -392,13 +406,13 @@ class Server(Connection, Daemon):
                             i.move_group(j)
                             break
                         elif j is self.db.groups[-1]:
-                            self.sendmsg(conn, b"FAIL: New parent doesn't "
+                            sendmsg(conn, b"FAIL: New parent doesn't "
                                                b"exist anymore. You should "
                                                b"refresh")
                             return
                 break
             elif i is self.db.groups[-1]:
-                self.sendmsg(conn, b"FAIL: Group doesn't exist "
+                sendmsg(conn, b"FAIL: Group doesn't exist "
                                    b"anymore. You should refresh")
                 return
 
@@ -417,12 +431,12 @@ class Server(Connection, Daemon):
                         i.move_entry(j)
                         break
                     elif j is self.db.groups[-1]:
-                        self.sendmsg(conn, b"FAIL: New parent doesn't exist "
+                        sendmsg(conn, b"FAIL: New parent doesn't exist "
                                            b"anymore. You should refresh")
                         return
                 break
             elif i is self.db.entries[-1]:
-                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
+                sendmsg(conn, b"FAIL: Entry doesn't exist "
                                    b"anymore. You should refresh")
                 return
 
@@ -440,14 +454,14 @@ class Server(Connection, Daemon):
         for i in self.db.groups:
             if i.id_ == group_id:
                 if self.check_last_mod(i, time) is True:
-                    self.sendmsg(conn, b"FAIL: Group was modified. You should "
+                    sendmsg(conn, b"FAIL: Group was modified. You should "
                                        b"refresh and if you're sure you want "
                                        b"to edit this group try it again.")
                     return
                 i.set_title(title)
                 break
             elif i is self.db.groups[-1]:
-                self.sendmsg(conn, b"FAIL: Group doesn't exist "
+                sendmsg(conn, b"FAIL: Group doesn't exist "
                                    b"anymore. You should refresh")
                 return
 
@@ -465,14 +479,14 @@ class Server(Connection, Daemon):
         for i in self.db.entries:
             if i.uuid == uuid:
                 if self.check_last_mod(i, time) is True:
-                    self.sendmsg(conn, b"FAIL: Entry was modified. You should "
+                    sendmsg(conn, b"FAIL: Entry was modified. You should "
                                        b"refresh and if you're sure you want "
                                        b"to edit this entry try it again.")
                     return
                 i.set_title(title)
                 break
             elif i is self.db.entries[-1]:
-                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
+                sendmsg(conn, b"FAIL: Entry doesn't exist "
                                    b"anymore. You should refresh")
                 return
 
@@ -490,14 +504,14 @@ class Server(Connection, Daemon):
         for i in self.db.entries:
             if i.uuid == uuid:
                 if self.check_last_mod(i, time) is True:
-                    self.sendmsg(conn, b"FAIL: Entry was modified. You should "
+                    sendmsg(conn, b"FAIL: Entry was modified. You should "
                                        b"refresh and if you're sure you want "
                                        b"to edit this entry try it again.")
                     return
                 i.set_username(username)
                 break
             elif i is self.db.entries[-1]:
-                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
+                sendmsg(conn, b"FAIL: Entry doesn't exist "
                                    b"anymore. You should refresh")
                 return
 
@@ -515,14 +529,14 @@ class Server(Connection, Daemon):
         for i in self.db.entries:
             if i.uuid == uuid:
                 if self.check_last_mod(i, time) is True:
-                    self.sendmsg(conn, b"FAIL: Entry was modified. You should "
+                    sendmsg(conn, b"FAIL: Entry was modified. You should "
                                        b"refresh and if you're sure you want "
                                        b"to edit this entry try it again.")
                     return
                 i.set_url(url)
                 break
             elif i is self.db.entries[-1]:
-                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
+                sendmsg(conn, b"FAIL: Entry doesn't exist "
                                    b"anymore. You should refresh")
                 return
 
@@ -540,14 +554,14 @@ class Server(Connection, Daemon):
         for i in self.db.entries:
             if i.uuid == uuid:
                 if self.check_last_mod(i, time) is True:
-                    self.sendmsg(conn, b"FAIL: Entry was modified. You should "
+                    sendmsg(conn, b"FAIL: Entry was modified. You should "
                                        b"refresh and if you're sure you want "
                                        b"to edit this entry try it again.")
                     return
                 i.set_comment(comment)
                 break
             elif i is self.db.entries[-1]:
-                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
+                sendmsg(conn, b"FAIL: Entry doesn't exist "
                                    b"anymore. You should refresh")
                 return
 
@@ -565,14 +579,14 @@ class Server(Connection, Daemon):
         for i in self.db.entries:
             if i.uuid == uuid:
                 if self.check_last_mod(i, time) is True:
-                    self.sendmsg(conn, b"FAIL: Entry was modified. You should "
+                    sendmsg(conn, b"FAIL: Entry was modified. You should "
                                        b"refresh and if you're sure you want "
                                        b"to edit this entry try it again.")
                     return
                 i.set_password(password)
                 break
             elif i is self.db.entries[-1]:
-                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
+                sendmsg(conn, b"FAIL: Entry doesn't exist "
                                    b"anymore. You should refresh")
                 return
 
@@ -592,14 +606,14 @@ class Server(Connection, Daemon):
         for i in self.db.entries:
             if i.uuid == uuid:
                 if self.check_last_mod(i, time) is True:
-                    self.sendmsg(conn, b"FAIL: Entry was modified. You should "
+                    sendmsg(conn, b"FAIL: Entry was modified. You should "
                                        b"refresh and if you're sure you want "
                                        b"to edit this entry try it again.")
                     return
                 i.set_expire(y, mon, d)
                 break
             elif i is self.db.entries[-1]:
-                self.sendmsg(conn, b"FAIL: Entry doesn't exist "
+                sendmsg(conn, b"FAIL: Entry doesn't exist "
                                    b"anymore. You should refresh")
                 return
 

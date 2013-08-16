@@ -1238,7 +1238,7 @@ class DBBrowser(object):
     def client(self):
         return Client(logging.ERROR, 'client.log', 
                       self.address, 
-                      self.port, None, self.db.password, 
+                      self.port, self.db.password, 
                       self.db.keyfile, self.ssl, 
                       self.tls_dir)
 
