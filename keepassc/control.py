@@ -1130,7 +1130,7 @@ class Control(object):
                 if last_port is None:
                     if ssl == 1:
                         ssl = True # for later use
-                        std_port = "50002"
+                        std_port = "50003"
                     else:
                         ssl = False
                         std_port = "50000"

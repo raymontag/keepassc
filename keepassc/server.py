@@ -47,9 +47,9 @@ class waitDecorator(object):
 class Server(Daemon):
     """The KeePassC server daemon"""
 
-    def __init__(self, pidfile, loglevel, logfile, address = 'localhost',
-                 port = 50000, db = None, password = None, keyfile = None,
-                 tls = False, tls_dir = None, tls_port = 50002, 
+    def __init__(self, pidfile, loglevel, logfile, address = None,
+                 port = 50002, db = None, password = None, keyfile = None,
+                 tls = False, tls_dir = None, tls_port = 50003, 
                  tls_req = False):
         Daemon.__init__(self, pidfile)
 
@@ -106,9 +106,8 @@ class Server(Daemon):
             b'PASS': self.set_e_pass,
             b'DATE': self.set_e_exp}
 
-        if tls_req is True:
-            tls_port = port
         self.sock = None
+        self.net_sock = None
         self.tls_sock = None
         self.tls_req = tls_req
         
@@ -120,12 +119,24 @@ class Server(Daemon):
         else:
             self.context = None
 
-        if self.tls_req is False:
+        try:
+            # Listen for commands
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.bind(("localhost", 50000))
+            self.sock.listen(5)
+        except OSError as err:
+            print(err)
+            logging.error(err.__str__())
+            sys.exit(1)
+        else:
+            logging.info('Server socket created on localhost:50000')
+
+        if self.tls_req is False and address is not None:
             try:
                 # Listen for commands
-                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.sock.bind((address, port))
-                self.sock.listen(5)
+                self.net_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.net_sock.bind((address, port))
+                self.net_sock.listen(5)
             except OSError as err:
                 print(err)
                 logging.error(err.__str__())
@@ -134,7 +145,7 @@ class Server(Daemon):
                 logging.info('Server socket created on '+address+':'+
                              str(port))
 
-        if self.context is not None:
+        if self.context is not None and address is not None:
             try:
                 # Listen for commands
                 self.tls_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -169,8 +180,12 @@ class Server(Daemon):
         """Overide Daemon.run() and provide socets"""
         
         try:
+            local_thread = threading.Thread(target=self.handle_non_tls,
+                                            args=(self.sock,))
+            local_thread.start()
             if self.tls_req is False:
-                non_tls_thread = threading.Thread(target=self.handle_non_tls)
+                non_tls_thread = threading.Thread(target=self.handle_non_tls,
+                                                  args=(self.net_sock,))
                 non_tls_thread.start()
             if self.context is not None:
                 tls_thread = threading.Thread(target=self.handle_tls)
@@ -179,10 +194,10 @@ class Server(Daemon):
             logging.error(err.__str__())
             self.stop()
 
-    def handle_non_tls(self):
+    def handle_non_tls(self, sock):
         while True:
             try:
-                conn, client = self.sock.accept()
+                conn, client = sock.accept()
             except OSError as err:
                 # For correct closing
                 if "Bad file descriptor" in err.__str__():
@@ -628,6 +643,9 @@ class Server(Daemon):
         if self.sock is not None:
             self.sock.shutdown(socket.SHUT_RDWR)
             self.sock.close()
+        if self.net_sock is not None:
+            self.net_sock.shutdown(socket.SHUT_RDWR)
+            self.net_sock.close()
         if self.tls_sock is not None:
             self.tls_sock.shutdown(socket.SHUT_RDWR)
             self.tls_sock.close()

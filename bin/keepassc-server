@@ -16,11 +16,11 @@ def arg_parse():
                         help='Path to database file.', type=str)
     parser.add_argument('-k', '--keyfile', default=None,
                         help='Path to keyfile.', type=str)
-    parser.add_argument('-a', '--address', default='localhost',
+    parser.add_argument('-a', '--address', default=None,
                         help='Address for the server.', type=str)
-    parser.add_argument('-p', '--port', default=50000,
+    parser.add_argument('-p', '--port', default=50002,
                         help='Port for the server.', type=int)
-    parser.add_argument('-ps', '--port_tls', default=50002,
+    parser.add_argument('-ps', '--port_tls', default=50003,
                         help='Port for server\'s TLS-port if -S is used.', 
                         type=int)
     parser.add_argument('-l', '--log_level', default = False,
