@@ -21,7 +21,7 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 from distutils.core import setup
 
 setup(name = "keepassc",
-      version = "1.6.0",
+      version = "1.6.1",
       author = "Karsten-Kai König, Scott Hansen",
       author_email = "kkoenig@posteo.de",
       url = "http://raymontag.github.com/keepassc",
