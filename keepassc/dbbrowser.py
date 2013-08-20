@@ -965,6 +965,7 @@ class DBBrowser(object):
                     self.reload_remote_db(db_buf)
             else:
                 self.move_object.move_entry(self.groups[self.g_highlight])
+        self.changed = True
         self.move_object = None
         self.state = 0
         self.sort_tables(True, True)
@@ -1340,8 +1341,8 @@ class DBBrowser(object):
 
         if self.cur_win == 0 and self.g_highlight < len(self.groups) - 1:
             ysize = self.control.group_win.getmaxyx()[0]
-            if (self.g_highlight >= ysize - 4 and
-                    not self.g_offset >= len(self.groups) - ysize + 4):
+            if (self.g_highlight >= ysize - 4 + self.g_offset and
+                not self.g_offset >= len(self.groups) - ysize + 4):
                 self.g_offset += 1
             self.g_highlight += 1
             self.e_offset = 0
@@ -1349,8 +1350,8 @@ class DBBrowser(object):
             self.sort_tables(False, True)
         elif self.cur_win == 1 and self.e_highlight < len(self.entries) - 1:
             ysize = self.control.entry_win.getmaxyx()[0]
-            if (self.e_highlight >= ysize - 4 and
-                    not self.e_offset >= len(self.entries) - ysize + 3):
+            if (self.e_highlight >= ysize - 4 + self.e_offset and
+                not self.e_offset >= len(self.entries) - ysize + 3):
                 self.e_offset += 1
             self.e_highlight += 1
 
@@ -1379,9 +1380,6 @@ class DBBrowser(object):
 
         if self.entries:
             self.cur_win = 1
-            self.control.show_groups(self.g_highlight, self.groups,
-                                     self.cur_win, self.g_offset,
-                                     self.changed, self.cur_root)
 
     def go2sub(self):
         '''Change to subgroups of current root'''
@@ -1479,7 +1477,8 @@ class DBBrowser(object):
             NL: self.move_group_or_entry,
             cur.KEY_BACKSPACE: self.move2root,
             DEL: self.move2root,
-            ESC: self.move_abort}
+            ESC: self.move_abort,
+            cur.KEY_F1: self.control.move_help}
 
         exceptions = (ord('s'), ord('S'), ord('P'), ord('t'), ord('p'), 
                       ord('u'), ord('U'), ord('C'), ord('E'), ord('H'), 
@@ -1487,6 +1486,11 @@ class DBBrowser(object):
                       cur.KEY_F1, cur.KEY_RESIZE)
 
         while True:
+            old_g_highlight = self.g_highlight
+            old_e_highlight = self.e_highlight
+            old_window = self.cur_win
+            old_root = self.cur_root
+    
             if (self.control.config['lock_db'] and self.state == 0 and
                     self.db.filepath is not None):
                 self.lock_timer = threading.Timer(
@@ -1511,13 +1515,23 @@ class DBBrowser(object):
                     return False
                 # 'cause 'L' changes state
                 if self.state == 0 or self.state == 4:  
-                    if self.cur_win == 0 or c in exceptions:
+                    if ((self.cur_win == 0 and
+                         old_g_highlight != self.g_highlight) or
+                        c in exceptions or
+                        old_window != self.cur_win or
+                        old_root is not self.cur_root):
                         self.control.show_groups(self.g_highlight, self.groups,
                                                  self.cur_win, self.g_offset,
                                                  self.changed, self.cur_root)
-                    self.control.show_entries(self.e_highlight, 
-                                              self.entries,
-                                              self.cur_win, self.e_offset)
+                    if ((self.cur_win == 1 and
+                         old_e_highlight != self.e_highlight) or
+                        c in exceptions or
+                        old_window != self.cur_win or
+                        old_g_highlight != self.g_highlight or
+                        old_root is not self.cur_root):
+                        self.control.show_entries(self.e_highlight, 
+                                                  self.entries,
+                                                  self.cur_win, self.e_offset)
             elif self.state == 1 and c in locked_state:
                 locked_state[c]()
                 if self.state == 1:  # 'cause 'L' changes state
@@ -1534,8 +1548,12 @@ class DBBrowser(object):
                     self.lock_db()
             elif self.state > 2 and c in move_states:
                 move_states[c]()
-                self.control.show_groups(self.g_highlight, self.groups,
-                                         self.cur_win, self.g_offset,
-                                         self.changed, self.cur_root)
+                if ((self.cur_win == 0 and
+                     old_g_highlight != self.g_highlight) or
+                    old_window != self.cur_win or
+                    c == NL):
+                    self.control.show_groups(self.g_highlight, self.groups,
+                                             self.cur_win, self.g_offset,
+                                             self.changed, self.cur_root)
                 self.control.show_entries(self.e_highlight, self.entries,
                                           self.cur_win, self.e_offset)

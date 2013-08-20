@@ -1206,6 +1206,7 @@ class Control(object):
         self.draw_help(
         '\'e\' - go to main menu',
         '\'q\' - close program',
+        '\'CTRL+D\' or \'CTRL+C\' - close program at any time',
         '\'x\' - save db and close program',
         '\'s\' - save db',
         '\'S\' - save db with alternative filepath',
@@ -1217,7 +1218,7 @@ class Control(object):
         '\'g\' - create group',
         '\'G\' - create subgroup',
         '\'y\' - create entry',
-        '\'d\' - delete group or entry',
+        '\'d\' - delete group or entry (depends on what is marked)',
         '\'t\' - edit title of selected group or entry',
         '\'u\' - edit username',
         '\'p\' - edit password',
@@ -1226,11 +1227,28 @@ class Control(object):
         '\'E\' - edit expiration date',
         '\'f\' or \'/\' - find entry by title',
         '\'L\' - lock db',
+        '\'m\' - enter move mode for marked group or entry',
+        '\'r\' - reload remote database (no function if not remote)',
         'Navigate with arrow keys or h/j/k/l like in vim',
-        'Type \'F5\' in a dialog to return to the previous one',
         'Type \'return\' to enter subgroups',
-        'Type \'backspace\' to go back',
-        '\n'
+        'Type \'backspace\' to go back to parent',
+        'Type \'F5\' in a dialog to return to the previous one',
+        '\n',
+        'Press return.')
+
+    def move_help(self):
+        self.draw_help(
+        '\'e\' - go to main menu',
+        '\'q\' - close program',
+        '\'CTRL+D\' or \'CTRL+C\' - close program at any time',
+        'Navigate up or down with arrow keys or k and j',
+        'Navigate to subgroup with right arrow key or h',
+        'Navigate to parent with left arrow key or l',
+        'Type \'return\' to move the group to marked parent or the entry',
+        '\tto the marked group',
+        'Type \'backspace\' to move a group to the root',
+        'Type \'ESC\' to abort moving',
+        '\n',
         'Press return.')
 
     def show_dir(self, highlight, dir_cont):
@@ -1280,6 +1298,7 @@ class Control(object):
 
         self.draw_text(changed)
         self.group_win.clear()
+            
         if parent is self.db.root_group:
             root_title = 'Parent: _ROOT_'
         else:
@@ -1303,14 +1322,14 @@ class Control(object):
 
                 for i in range(num):
                     if highlight == i + offset:
-                        if groups[i].children:
+                        if groups[i + offset].children:
                             title = '+' + groups[i + offset].title
                         else:
                             title = ' ' + groups[i + offset].title
                         self.group_win.addstr(i + 1, 0, title,
                                               cur.color_pair(h_color))
                     else:
-                        if groups[i].children:
+                        if groups[i + offset].children:
                             title = '+' + groups[i + offset].title
                         else:
                             title = ' ' + groups[i + offset].title

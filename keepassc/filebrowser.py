@@ -348,8 +348,10 @@ class FileBrowser(object):
         if self.dir_cont == -1 or self.dir_cont is False:
             return self.dir_cont
 
+        old_highlight = None
         while True:
-            self.control.show_dir(self.highlight, self.dir_cont)
+            if old_highlight != self.highlight:
+                self.control.show_dir(self.highlight, self.dir_cont)
             try:
                 c = self.control.stdscr.getch()
             except KeyboardInterrupt:
@@ -358,6 +360,7 @@ class FileBrowser(object):
             if 49 <= c <= 57 or c == ord('g'):
                 c = self.start_gg(c)
 
+            old_highlight = self.highlight
             if c in self.lookup:
                 ret = self.lookup[c]()
                 if self.return_flag is True:
