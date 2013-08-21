@@ -105,7 +105,7 @@ def parse_entry(entry, database, password, keyfile):
     except KPError as err:
         print(err)
         exit()
-    for i in db._entries:
+    for i in db.entries:
         if entry.lower() in i.title.lower():
             print('Title: ' + i.title)
             if i.url is not None:
