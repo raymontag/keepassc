@@ -1544,22 +1544,28 @@ class DBBrowser(object):
                 if c == ord('e'):
                     return False
                 # 'cause 'L' changes state
-                if self.state == 0 or self.state == 4:  
+                if self.state == 0 or self.state >= 4:  
                     if (((self.cur_win == 0 and
                          old_g_highlight != self.g_highlight) or
                         c in exceptions or
                         old_window != self.cur_win or
                         old_root is not self.cur_root) and
                         c != cur.KEY_F12):
+
                         self.control.show_groups(self.g_highlight, self.groups,
                                                  self.cur_win, self.g_offset,
                                                  self.changed, self.cur_root)
+
                     if ((self.cur_win == 1 and
                          old_e_highlight != self.e_highlight) or
                         c in exceptions or
                         old_window != self.cur_win or
                         old_g_highlight != self.g_highlight or
                         old_root is not self.cur_root):
+                        
+                        if self.state == 5:
+                            self.entries = self.sort_slmenu_entries(self
+                                                                    .entries)
                         self.control.show_entries(self.e_highlight, 
                                                   self.entries,
                                                   self.cur_win, self.e_offset)
