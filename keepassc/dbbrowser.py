@@ -75,7 +75,7 @@ class DBBrowser(object):
         self.changed = False
         self.cur_win = 0
         # 0 = unlocked, 1 = locked, 2 = pre_lock,
-        # 3 = move group, 4 = move entry
+        # 3 = move group, 4 = move entry, 5 = slmenu
         self.state = 0
         self.move_object = None
 
@@ -85,6 +85,7 @@ class DBBrowser(object):
         self.ssl = ssl
         self.tls_dir = tls_dir
 
+        # self.groups and self.entries are initialized by sort_tables
         self.control.show_groups(self.g_highlight, self.groups,
                                  self.cur_win, self.g_offset,
                                  self.changed, self.cur_root)
@@ -108,6 +109,25 @@ class DBBrowser(object):
             if self.groups[self.g_highlight].entries:
                 self.entries = sorted(self.groups[self.g_highlight].entries,
                                       key=lambda entry: entry.title.lower())
+
+    def sort_slmenu_entries(self, entries):
+        tmp_entries = []
+        if entries:
+            tmp_entries = sorted(entries, key=lambda entry: (entry
+                                                             .title
+                                                             .lower()))
+        return tmp_entries
+
+    def init_slmenu(self):
+        self.control.group_win.clear()
+        ysize, xsize = self.control.stdscr.getmaxyx()
+        self.control.entry_win.resize(ysize - 1, int(xsize / 3))
+        self.control.info_win.resize(ysize - 1, int(2 * xsize / 3))
+        self.control.entry_win.mvwin(1, 0)
+        self.control.info_win.mvwin(1, int(self.control.xsize / 3))
+        
+        self.entries = self.db.entries
+        self.state = 5
 
     def pre_save(self):
         '''Prepare saving'''
@@ -1448,7 +1468,8 @@ class DBBrowser(object):
             ord('h'): self.nav_left,
             cur.KEY_RIGHT: self.nav_right,
             ord('l'): self.nav_right,
-            ord('r'): self.reload_remote_db}
+            ord('r'): self.reload_remote_db,
+            cur.KEY_F12: self.init_slmenu}
 
         locked_state = {
             ord('q'): self.quit_kpc,
@@ -1480,10 +1501,13 @@ class DBBrowser(object):
             ESC: self.move_abort,
             cur.KEY_F1: self.control.move_help}
 
+        slmenu_state = {}
+        slmenu_search_string = ''
+
         exceptions = (ord('s'), ord('S'), ord('P'), ord('t'), ord('p'), 
                       ord('u'), ord('U'), ord('C'), ord('E'), ord('H'), 
                       ord('g'), ord('d'), ord('y'), ord('f'), ord('/'),
-                      cur.KEY_F1, cur.KEY_RESIZE)
+                      cur.KEY_F1, cur.KEY_RESIZE, cur.KEY_F12)
 
         while True:
             old_g_highlight = self.g_highlight
@@ -1497,10 +1521,16 @@ class DBBrowser(object):
                     self.control.config['lock_delay'],
                     self.pre_lock)
                 self.lock_timer.start()
-            try:
-                c = self.control.stdscr.getch()
-            except KeyboardInterrupt:
-                c = 4
+            if self.state != 5:
+                try:
+                    c = self.control.stdscr.getch()
+                except KeyboardInterrupt:
+                    c = 4
+            else:
+                try:
+                    c = self.control.stdscr.get_wch()
+                except KeyboardInterrupt:
+                    c = '\x04'
             if type(self.lock_timer) is threading.Timer:
                 self.lock_timer.cancel()
             if self.state == 0:
@@ -1515,11 +1545,12 @@ class DBBrowser(object):
                     return False
                 # 'cause 'L' changes state
                 if self.state == 0 or self.state == 4:  
-                    if ((self.cur_win == 0 and
+                    if (((self.cur_win == 0 and
                          old_g_highlight != self.g_highlight) or
                         c in exceptions or
                         old_window != self.cur_win or
-                        old_root is not self.cur_root):
+                        old_root is not self.cur_root) and
+                        c != cur.KEY_F12):
                         self.control.show_groups(self.g_highlight, self.groups,
                                                  self.cur_win, self.g_offset,
                                                  self.changed, self.cur_root)
@@ -1546,7 +1577,7 @@ class DBBrowser(object):
                 else:
                     self.pre_save()
                     self.lock_db()
-            elif self.state > 2 and c in move_states:
+            elif 4 >= self.state >= 3 and c in move_states:
                 move_states[c]()
                 if ((self.cur_win == 0 and
                      old_g_highlight != self.g_highlight) or
@@ -1556,4 +1587,22 @@ class DBBrowser(object):
                                              self.cur_win, self.g_offset,
                                              self.changed, self.cur_root)
                 self.control.show_entries(self.e_highlight, self.entries,
+                                          self.cur_win, self.e_offset)
+            elif self.state == 5:
+                if (c == cur.KEY_BACKSPACE or c == chr(DEL) and 
+                    len(slmenu_search_string) != 0):
+                    slmenu_search_string = slmenu_search_string[:-1]
+                    self.e_highlight = 0
+                elif c == cur.KEY_BACKSPACE or c == chr(DEL):
+                    pass
+                elif type(c) is not int:
+                    slmenu_search_string += c
+
+                entries = []
+                for i in self.entries:
+                    if i.title.lower().startswith(slmenu_search_string
+                                                  .lower()):
+                        entries.append(i)
+                entries = self.sort_slmenu_entries(entries)
+                self.control.show_entries(self.e_highlight, entries,
                                           self.cur_win, self.e_offset)

@@ -1345,7 +1345,6 @@ class Control(object):
     def show_entries(self, e_highlight, entries, cur_win, offset):
         '''Just print all entries in a column'''
 
-        self.info_win.clear()
         try:
             self.entry_win.clear()
             if entries:
@@ -1389,7 +1388,12 @@ class Control(object):
             pass
         finally:
             self.entry_win.noutrefresh()
+        cur.doupdate()
 
+        self.show_info(entries, e_highlight)
+
+    def show_info(self, entries, e_highlight):
+        self.info_win.clear()
         try:
             if entries:
                 xsize = self.entry_win.getmaxyx()[1]
@@ -1463,3 +1467,4 @@ class Control(object):
         finally:
             self.info_win.noutrefresh()
         cur.doupdate()
+
