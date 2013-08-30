@@ -1468,3 +1468,6 @@ class Control(object):
             self.info_win.noutrefresh()
         cur.doupdate()
 
+    def show_options(self):
+        pass
+

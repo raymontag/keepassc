@@ -110,14 +110,6 @@ class DBBrowser(object):
                 self.entries = sorted(self.groups[self.g_highlight].entries,
                                       key=lambda entry: entry.title.lower())
 
-    def sort_slmenu_entries(self, entries):
-        tmp_entries = []
-        if entries:
-            tmp_entries = sorted(entries, key=lambda entry: (entry
-                                                             .title
-                                                             .lower()))
-        return tmp_entries
-
     def init_slmenu(self):
         self.control.group_win.clear()
         ysize, xsize = self.control.stdscr.getmaxyx()
@@ -126,8 +118,30 @@ class DBBrowser(object):
         self.control.entry_win.mvwin(1, 0)
         self.control.info_win.mvwin(1, int(self.control.xsize / 3))
         
+        self.e_highlight = 0
+        self.cur_win = 1
+        
         self.entries = self.db.entries
         self.state = 5
+
+    def normal_browsing(self):
+        self.control.resize_all()
+        self.state = 0
+
+        self.entries = []
+        if self.groups[self.g_highlight].entries:
+            self.entries = sorted(self.groups[self.g_highlight].entries,
+                                  key=lambda entry: entry.title.lower())
+
+        # Entries will be repainted but groups not
+        self.control.show_groups(self.g_highlight, self.groups,
+                                 self.cur_win, self.g_offset,
+                                 self.changed, self.cur_root)
+
+    def show_options(self):
+        # self.state = 6
+
+        self.control.show_options()
 
     def pre_save(self):
         '''Prepare saving'''
@@ -1501,7 +1515,13 @@ class DBBrowser(object):
             ESC: self.move_abort,
             cur.KEY_F1: self.control.move_help}
 
-        slmenu_state = {}
+        slmenu_state = {
+            '\x04': self.quit_kpc,
+            cur.KEY_DOWN: self.nav_down,
+            cur.KEY_UP: self.nav_up,
+            NL: self.show_options,
+            cur.KEY_F12: self.normal_browsing}
+
         slmenu_search_string = ''
 
         exceptions = (ord('s'), ord('S'), ord('P'), ord('t'), ord('p'), 
@@ -1521,6 +1541,7 @@ class DBBrowser(object):
                     self.control.config['lock_delay'],
                     self.pre_lock)
                 self.lock_timer.start()
+
             if self.state != 5:
                 try:
                     c = self.control.stdscr.getch()
@@ -1601,6 +1622,8 @@ class DBBrowser(object):
                     self.e_highlight = 0
                 elif c == cur.KEY_BACKSPACE or c == chr(DEL):
                     pass
+                elif c in slmenu_state:
+                    slmenu_state[c]()
                 elif type(c) is not int:
                     slmenu_search_string += c
 
@@ -1609,6 +1632,9 @@ class DBBrowser(object):
                     if i.title.lower().startswith(slmenu_search_string
                                                   .lower()):
                         entries.append(i)
-                entries = self.sort_slmenu_entries(entries)
-                self.control.show_entries(self.e_highlight, entries,
+
+                self.entries = sorted(entries, key=lambda entry: (entry
+                                                                 .title
+                                                                 .lower()))
+                self.control.show_entries(self.e_highlight, self.entries,
                                           self.cur_win, self.e_offset)
