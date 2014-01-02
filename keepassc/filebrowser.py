@@ -350,7 +350,7 @@ class FileBrowser(object):
 
         old_highlight = None
         while True:
-            if old_highlight != self.highlight:
+            if old_highlight != self.highlight or self.highlight == 0:
                 self.control.show_dir(self.highlight, self.dir_cont)
             try:
                 c = self.control.stdscr.getch()
