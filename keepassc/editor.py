@@ -89,7 +89,7 @@ class Editor(object):
         self.win_size_y = self.win_size_orig_y
         self.win_size_x = self.win_size_orig_x
         self.win_init()
-        self.box_init(quick_help)
+        self.box_init()
         self.text_init(inittext)
         self.keys_init()
         self.display()
@@ -112,7 +112,7 @@ class Editor(object):
             self.boxscr.box()
             if self.title:
                 self.boxscr.addstr(1, 1, self.title, curses.A_BOLD)
-                self.boxscr.addstr(quick_help, curses.A_STANDOUT)
+                self.boxscr.addstr(self.quick_help, curses.A_STANDOUT)
                 self.boxscr.addstr
             self.boxscr.refresh()
         elif self.title:
