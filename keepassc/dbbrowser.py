@@ -726,7 +726,7 @@ class DBBrowser(object):
 
                 if pass_comment is False:
                     comment = Editor(self.control.stdscr, win_location=(0, 1),
-                                     title="Comment: ")()
+                                     title="Comment: ", quick_help="   (F2: Save, F5: Cancel)")()
                 if comment is False:
                     pass_password = False
                     continue
@@ -1137,7 +1137,8 @@ class DBBrowser(object):
         if self.entries:
             std = 'Comment: '
             edit = Editor(self.control.stdscr, title=std, win_location=(0, 1),
-                          inittext=self.entries[self.e_highlight].comment)()
+                          inittext=self.entries[self.e_highlight].comment,
+                          quick_help="   (F2: Save, F5: Cancel)")()
             if edit == -1:
                 self.close()
             elif edit is not False:

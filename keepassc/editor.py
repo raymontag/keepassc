@@ -61,10 +61,12 @@ class Editor(object):
     """
 
     def __init__(self, scr, title="", inittext="", win_location=(0, 0),
-                 win_size=(20, 80), box=True, max_text_size=0, pw_mode=False):
+                 win_size=(20, 80), box=True, max_text_size=0, pw_mode=False,
+                 quick_help="   (F2 or Enter: Save, F5: Cancel)"):
         self.scr = scr
         self.title = title
         self.box = box
+        self.quick_help = quick_help
         self.max_text_size = max_text_size
         self.pw_mode = pw_mode
         if self.pw_mode is True:
@@ -87,7 +89,7 @@ class Editor(object):
         self.win_size_y = self.win_size_orig_y
         self.win_size_x = self.win_size_orig_x
         self.win_init()
-        self.box_init()
+        self.box_init(quick_help)
         self.text_init(inittext)
         self.keys_init()
         self.display()
@@ -105,7 +107,6 @@ class Editor(object):
         self.scr.refresh()
         self.stdscr.clear()
         self.stdscr.refresh()
-        quick_help = "   (F2 or Enter: Save, F5: Cancel)"
         if self.box is True:
             self.boxscr.clear()
             self.boxscr.box()
@@ -117,7 +118,7 @@ class Editor(object):
         elif self.title:
             self.boxscr.clear()
             self.boxscr.addstr(0, 0, self.title, curses.A_BOLD)
-            self.boxscr.addstr(quick_help, curses.A_STANDOUT)
+            self.boxscr.addstr(self.quick_help, curses.A_STANDOUT)
             self.boxscr.refresh()
 
     def text_init(self, text):
