@@ -798,7 +798,8 @@ class Control(object):
                                'lock_delay': 60,
                                'rem_db': True,
                                'rem_key': False,
-                               'skip_menu': False}
+                               'skip_menu': False,
+                               'pin': True}
             elif menu == 10:
                 write_config(self, self.config)
                 return True
