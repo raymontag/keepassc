@@ -24,6 +24,7 @@ import os
 import threading
 import webbrowser
 from curses.ascii import NL, DEL, ESC
+from datetime import datetime
 from os.path import isfile, isdir
 from subprocess import Popen, PIPE
 
@@ -734,28 +735,7 @@ class DBBrowser(object):
                     self.close()
                 pass_comment = True
 
-                self.control.draw_text(self.changed,
-                                       (1, 0, 'Set expiration date? [y/(n)]'))
-                while True:
-                    try:
-                        e = self.control.stdscr.getch()
-                    except KeyboardInterrupt:
-                        e = 4
-
-                    if e == ord('y'):
-                        exp_date = self.control.get_exp_date()
-                        break
-                    elif e == 4:
-                        self.close()
-                    elif e == cur.KEY_RESIZE:
-                        self.control.resize_all()
-                    elif e == cur.KEY_F5:
-                        pass_comment = False
-                        goto_last = True
-                        break
-                    else:
-                        exp_date = (2999, 12, 28)
-                        break
+                exp_date = self.control.get_exp_date()
                 if goto_last is True:
                     goto_last = False
                     continue

@@ -21,7 +21,7 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 import curses as cur
 import logging
 from curses.ascii import NL, DEL, SP
-from datetime import date
+from datetime import date, datetime
 from os import chdir, getcwd, getenv, geteuid, makedirs, remove
 from os.path import expanduser, isfile, isdir, realpath, join
 from pwd import getpwuid
@@ -388,6 +388,114 @@ class Control(object):
             return password
 
     def get_exp_date(self, *exp):
+        nav = self.gen_menu(1,
+                        ((1, 0, 'Expires never (1)'),
+                         (2, 0, 'Set expire date manual (2)'),
+                         (3, 0, 'Expires tomorrow (3)'),
+                         (4, 0, 'Expires in 1 week (4)'),
+                         (5, 0, 'Expires in 2 weeks (5)'),
+                         (6, 0, 'Expires in 1 month (6)'),
+                         (7, 0, 'Expires in 3 months (7)'),
+                         (8, 0, 'Expires in 6 months (8)'),
+                         (9, 0, 'Expires in 1 year (9)')))
+
+        tmp_date = datetime.now()
+        d = tmp_date.day
+        m = tmp_date.month
+        y = tmp_date.year
+        if nav == 1:
+            exp_date = (2999, 12, 28)
+        elif nav == 2:
+            if exp:
+                exp_date = self.get_manual_exp_date(exp[0], exp[1], exp[2])
+            else:
+                exp_date = self.get_manual_exp_date()
+        elif nav == 3:
+            if (((m == 1 or m == 3 or m == 5 or m == 7 or m == 8 or m == 10) and d == 31) or
+                ((m == 4 or m == 6 or m == 9 or m == 11) and d == 30)):
+                exp_date = (y, m + 1, 1)
+            elif (m == 2 and ((y % 4 == 0 and (y % 100 != 0 or y % 400 == 0) and d == 29) or d == 28)):
+                exp_date = (y, 3, 1)
+            elif m == 12 and d == 31:
+                exp_date = (y + 1, 1, 1)
+            else:
+                exp_date = (y, m, d + 1)
+        elif nav == 4:
+            if ((m == 1 or m == 3 or m == 5 or m == 7 or m == 8 or m == 10) and d + 7 > 31):
+                exp_date = (y, m + 1, (d + 7) % 31)
+            elif ((m == 4 or m == 6 or m == 9 or m == 11) and d + 7 > 30):
+                exp_date = (y, m + 1, (d + 7) % 30)
+            elif (m == 2 and (y % 4 == 0 and (y % 100 != 0 or y % 400 == 0) and d + 7 > 29)):
+                exp_date = (y, 3, (d + 7) % 29)
+            elif (m == 2 and d + 7 > 28):
+                exp_date = (y, 3, (d + 7) % 28)
+            elif m == 12 and d + 7 > 31:
+                exp_date = (y + 1, 1, (d + 7) % 31)
+            else:
+                exp_date = (y, m, d + 7)
+        elif nav == 5:
+            if ((m == 1 or m == 3 or m == 5 or m == 7 or m == 8 or m == 10) and d + 14 > 31):
+                exp_date = (y, m + 1, (d + 14) % 31)
+            elif ((m == 4 or m == 6 or m == 9 or m == 11) and d + 14 > 30):
+                exp_date = (y, m + 1, (d + 14) % 30)
+            elif (m == 2 and (y % 4 == 0 and (y % 100 != 0 or y % 400 == 0) and d + 14 > 29)):
+                exp_date = (y, 3, (d + 14) % 29)
+            elif (m == 2 and d + 14 > 28):
+                exp_date = (y, 3, (d + 14) % 28)
+            elif m == 12 and d + 14 > 31:
+                exp_date = (y + 1, 1, (d + 14) % 31)
+            else:
+                exp_date = (y, m, d + 14)
+        elif nav == 6:
+            if m == 1 and (y % 4 == 0 and (y % 100 != 0 or y % 400 == 0) and d > 29):
+                exp_date = (y, 3, d % 29)
+            elif (m == 1 and d > 28):
+                exp_date = (y, 3, d % 28)
+            elif (m == 3 or m == 5 or m == 7 or m == 8 or m == 10) and d == 31:
+                exp_date = (y, m + 2, 1)
+            elif m == 12:
+                exp_date = (y + 1, 1, d)
+            else:
+                exp_date = (y, m + 1, d)
+        elif nav == 7:
+            if (m == 1 or m == 3 or m == 8) and d == 31:
+                exp_date = (y, m + 4, 1)
+            elif m == 10 or m == 12:
+                exp_date = (y + 1, (m + 3) % 12, d)
+            elif m == 11 and ((y + 1) % 4 == 0 and ((y + 1) % 100 != 0 or (y + 1) % 400 == 0)) and d > 29:
+                exp_date = (y + 1, 3, d % 29)
+            elif m == 11 and d > 28:
+                exp_date = (y + 1, 3, d % 28)
+            else:
+                exp_date = (y, m + 3, d)
+        elif nav == 8:
+            if (m == 3 or m == 5) and d == 31:
+                exp_date = (y, m + 7, 1)
+            elif (m == 7 or m == 9 or m == 11):
+                exp_date = (y + 1, (m + 6) % 12, d)
+            elif m == 8 and ((y + 1) % 4 == 0 and ((y + 1) % 100 != 0 or (y + 1) % 400 == 0)) and d > 29:
+                exp_date = (y + 1, 3, d % 29)
+            elif m == 8 and d > 28:
+                exp_date = (y + 1, 3, d % 28)
+            elif (m == 10 or m == 12) and d == 31:
+                exp_date = (y + 1, (m + 7) % 12, 1)
+            elif (m == 8 or m == 10 or m == 12):
+                exp_date = (y + 1, (m + 6) % 12, d)
+            else:
+                exp_date = (y, m + 6, d)
+        elif nav == 9:
+            if m == 2 and d == 29:
+                exp_date = (y + 1, 3, 1)
+            else:
+                exp_date = (y + 1, m, d)
+        elif nav == -1:
+            return -1
+        elif nav is False:
+            return False
+        
+        return exp_date
+
+    def get_manual_exp_date(self, *exp):
         '''This method is used to get an expiration date for entries.
 
         exp is used to display an actual expiration date.
