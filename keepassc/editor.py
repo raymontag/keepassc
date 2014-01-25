@@ -301,6 +301,9 @@ class Editor(object):
         if len(line) < self.win_size_x:
             self.text[self.buffer_idx_y] = "".join(line)
             self.cur_pos_x += 1
+        elif self.max_text_size == 0 and self.insert_line_or_quit() != -2:
+            self.text[self.buffer_idx_y + 1] = "".join(c)
+            self.cur_pos_x += 1
 
     def insert_line_or_quit(self):
         """Insert a new line at the cursor. Wrap text from the cursor to the
@@ -312,7 +315,7 @@ class Editor(object):
             # Save and quit for single-line entries
             return False
         if len(self.text) == self.max_text_size:
-            return
+            return -2
         line = list(self.text[self.buffer_idx_y])
         newline = line[self.cur_pos_x:]
         line = line[:self.cur_pos_x]
