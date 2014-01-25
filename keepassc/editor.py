@@ -189,6 +189,7 @@ class Editor(object):
         self.cur_pos_y = 0
         self.cur_pos_x = 0
         # y_offset controls the up-down scrolling feature
+        self.x_offset = 0
         self.y_offset = 0
         self.buffer_idx_y = 0
         self.buffer_idx_x = 0
@@ -254,7 +255,13 @@ class Editor(object):
 
     def right(self):
         if self.cur_pos_x < self.win_size_x:
-            self.cur_pos_x = self.cur_pos_x + 1
+            self.cur_pos_x += 1
+        elif self.max_test_size == 1:
+            self.cur_pos_x += 1
+            self.x_offset += 1
+        else:
+            #self.down()
+            pass
 
     def up(self):
         if self.cur_pos_y > 0:
@@ -301,9 +308,34 @@ class Editor(object):
         if len(line) < self.win_size_x:
             self.text[self.buffer_idx_y] = "".join(line)
             self.cur_pos_x += 1
-        elif self.max_text_size == 0 and self.insert_line_or_quit() != -2:
-            self.text[self.buffer_idx_y + 1] = "".join(c)
+        elif self.max_text_size == 1:
+            self.text[self.buffer_idx_y] = "".join(line)
             self.cur_pos_x += 1
+            self.x_offset += 1
+        else:
+            if self.cur_pos_y < len(self.text) - 1:
+                nline = self.text[self.cur_pos_y + 1]
+            if len(self.text) != self.max_text_size:
+                if self.cur_pos_y < len(self.text) - 1:
+                    i = 1
+                    # while len(("".join(line[-1:])) + nline) > self.win_size_x + 1:
+                    #     wrap = nline[-1]
+                    #     self.text[self.cur_pos_y] = "".join(line[:-1])
+                    #     line = list(self.text[self.cur_pos_y + i])
+                    #     line.insert(0, wrap)
+                    #     self.text[self.cur_pos_y + 1] = ("".join(line[-1:])) + nline[:-1]
+                    #     nline = self.text[self.cur_pos_y + 1 + i]
+                    self.text[self.cur_pos_y] = "".join(line[:-1])
+                    self.text[self.cur_pos_y + i] = ("".join(line[-1:])) + nline 
+                else:
+                    self.text[self.cur_pos_y] = "".join(line[:-1])
+                    self.text.insert(self.cur_pos_y + 1, "".join(line[-1:]))
+                if self.cur_pos_x < self.win_size_x - 1:
+                    self.cur_pos_x += 1
+                else:
+                    self.down()
+                    self.cur_pos_x = 0
+                self.buffer_rows = max(self.win_size_y, len(self.text))
 
     def insert_line_or_quit(self):
         """Insert a new line at the cursor. Wrap text from the cursor to the
@@ -315,7 +347,7 @@ class Editor(object):
             # Save and quit for single-line entries
             return False
         if len(self.text) == self.max_text_size:
-            return -2
+            return
         line = list(self.text[self.buffer_idx_y])
         newline = line[self.cur_pos_x:]
         line = line[:self.cur_pos_x]
@@ -442,7 +474,7 @@ class Editor(object):
         """
         try:
             while True:
-                self.stdscr.move(self.cur_pos_y, self.cur_pos_x)
+                self.stdscr.move(self.cur_pos_y, (self.cur_pos_x - self.x_offset))
                 loop = self.get_key()
                 if loop is False or loop == -1:
                     break
@@ -460,15 +492,22 @@ class Editor(object):
         """Display the editor window and the current contents.
 
         """
-        s = self.text[self.y_offset:(self.y_offset + self.win_size_y) or 1]
-        for y, line in enumerate(s):
-            try:
-                self.stdscr.move(y, 0)
-                self.stdscr.clrtoeol()
-                if not self.pw_mode:
-                    self.stdscr.addstr(y, 0, line)
-            except:
-                self.close()
+        if self.max_text_size == 1:
+            s = self.text[0][self.x_offset:(self.x_offset + self.win_size_x)]
+            self.stdscr.move(0, 0)
+            self.stdscr.clrtoeol()
+            if not self.pw_mode:                                                                                                                                           
+                self.stdscr.addstr(0, 0, s)
+        else:
+            s = self.text[self.y_offset:(self.y_offset + self.win_size_y) or 1]
+            for y, line in enumerate(s):
+                try:
+                    self.stdscr.move(y, 0)
+                    self.stdscr.clrtoeol()
+                    if not self.pw_mode:
+                        self.stdscr.addstr(y, 0, line)
+                except:
+                    self.close()
         self.stdscr.refresh()
         if self.box:
             self.boxscr.refresh()
