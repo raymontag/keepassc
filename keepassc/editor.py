@@ -317,24 +317,17 @@ class Editor(object):
                 nline = self.text[self.cur_pos_y + 1]
             if len(self.text) != self.max_text_size:
                 if self.cur_pos_y < len(self.text) - 1:
-                    i = 1
-                    # while len(("".join(line[-1:])) + nline) > self.win_size_x + 1:
-                    #     wrap = nline[-1]
-                    #     self.text[self.cur_pos_y] = "".join(line[:-1])
-                    #     line = list(self.text[self.cur_pos_y + i])
-                    #     line.insert(0, wrap)
-                    #     self.text[self.cur_pos_y + 1] = ("".join(line[-1:])) + nline[:-1]
-                    #     nline = self.text[self.cur_pos_y + 1 + i]
                     self.text[self.cur_pos_y] = "".join(line[:-1])
-                    self.text[self.cur_pos_y + i] = ("".join(line[-1:])) + nline 
+                    self.text[self.cur_pos_y + 1] = ("".join(line[-1:])) + nline
+                    self.text_init("".join(self.text))
                 else:
                     self.text[self.cur_pos_y] = "".join(line[:-1])
                     self.text.insert(self.cur_pos_y + 1, "".join(line[-1:]))
-                if self.cur_pos_x < self.win_size_x - 1:
+                if self.cur_pos_x < self.win_size_x - 2:
                     self.cur_pos_x += 1
                 else:
                     self.down()
-                    self.cur_pos_x = 0
+                    self.cur_pos_x = 1
                 self.buffer_rows = max(self.win_size_y, len(self.text))
 
     def insert_line_or_quit(self):
