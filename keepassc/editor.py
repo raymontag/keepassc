@@ -127,7 +127,10 @@ class Editor(object):
 
         """
         t = str(text).split('\n')
-        t = [wrap(i, self.win_size_x - 1) for i in t]
+        if self.max_text_size != 1:
+            t = [wrap(i, self.win_size_x - 1) for i in t]
+        else:
+            t = [t]
         self.text = []
         for line in t:
             # This retains any empty lines
@@ -141,7 +144,7 @@ class Editor(object):
                                    max([len(i) for i in self.text]))
             self.buffer_rows = max(self.win_size_y, len(self.text))
         self.text_orig = self.text[:]
-        if self.max_text_size:
+        if self.max_text_size > 1:
             # Truncates initial text if max_text_size < len(self.text)
             self.text = self.text[:self.max_text_size]
         self.buf_length = len(self.text[self.buffer_idx_y])
@@ -250,18 +253,28 @@ class Editor(object):
         self.stdscr.keypad(1)
 
     def left(self):
-        if self.cur_pos_x > 0:
-            self.cur_pos_x = self.cur_pos_x - 1
+        if (self.max_text_size == 1 and 
+              (self.cur_pos_x - self.x_offset) == 0 and self.x_offset > 0):
+            self.cur_pos_x -= 1
+            self.x_offset -= 1
+        elif self.cur_pos_x > 0:
+            self.cur_pos_x -= 1
+        elif self.cur_pos_y > 0:
+            self.up()
+            self.buffer_idx_y = self.cur_pos_y + self.y_offset
+            self.buf_length = len(self.text[self.buffer_idx_y])
+            self.end()
 
     def right(self):
-        if self.cur_pos_x < self.win_size_x:
+        if self.cur_pos_x < self.win_size_x - 1:
             self.cur_pos_x += 1
-        elif self.max_test_size == 1:
+        elif self.max_text_size == 1 and self.cur_pos_x < self.buf_length:
             self.cur_pos_x += 1
-            self.x_offset += 1
-        else:
-            #self.down()
-            pass
+            if self.cur_pos_x == self.x_offset + self.win_size_x:
+                self.x_offset += 1
+        elif self.max_text_size != 1:
+            self.cur_pos_x = 0
+            self.down()
 
     def up(self):
         if self.cur_pos_y > 0:
@@ -281,9 +294,13 @@ class Editor(object):
 
     def end(self):
         self.cur_pos_x = self.buf_length
+        if self.max_text_size == 1:
+            self.x_offset = max(0, self.cur_pos_x - self.win_size_x + 1)
 
     def home(self):
         self.cur_pos_x = 0
+        if self.max_text_size == 1:
+            self.x_offset = 0
 
     def page_up(self):
         self.y_offset = max(0, self.y_offset - self.win_size_y)
