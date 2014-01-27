@@ -107,12 +107,13 @@ class FileBrowser(object):
              nav == 3) or
             ((self.last_file is None or self.ask_for_lf is False) and 
              nav == 2)):
+            filepath = ''
             while True:
                 if self.last_file:
                     init = self.last_file
                 else:
                     init = ''
-                filepath = self.get_direct_filepath()
+                filepath = self.get_direct_filepath(filepath)
                 if filepath is False:
                     return False
                 elif filepath == -1:
@@ -134,73 +135,13 @@ class FileBrowser(object):
         else:
             return False
 
-    def get_direct_filepath(self):
+    def get_direct_filepath(self, filepath):
         '''Get a direct filepath.'''
 
-        e = ''
-        show = 0
-        rem = []
-        cur_dir = ''
-        if self.last_file is not None:
-            edit = self.last_file
-        else:
-            edit = ''
-        while e != '\n':
-            if e == cur.KEY_BACKSPACE or e == chr(DEL) and len(edit) != 0:
-                edit = edit[:-1]
-                show = 0
-                rem = []
-                cur_dir = ''
-            elif e == cur.KEY_BACKSPACE or e == chr(DEL):
-                pass
-            elif e == '\x04':
-                return -1
-            elif e == '':
-                pass
-            elif e == cur.KEY_F5:
-                return False
-            elif e == cur.KEY_RESIZE:
-                self.control.resize_all()
-            elif e == '~':
-                edit += expanduser('~/')
-                show = 0
-                rem = []
-                cur_dir = ''
-            elif e == '\t':
-                if cur_dir == '':
-                    last = edit.split('/')[-1]
-                    cur_dir = edit[:-len(last)]
-                try:
-                    dir_cont = listdir(cur_dir)
-                except OSError:
-                    pass
-                else:
-                    if len(rem) == 0:
-                        for i in dir_cont:
-                            if i[:len(last)] == last:
-                                rem.append(i)
-                    if len(rem) > 0:
-                        edit = cur_dir + rem[show]
-                    else:
-                        edit = cur_dir + last
-                    if show + 1 >= len(rem):
-                        show = 0
-                    else:
-                        show += 1
-                    if isdir(edit):
-                        edit += '/'
-            elif type(e) is not int:
-                show = 0
-                rem = []
-                cur_dir = ''
-                edit += e
-
-            self.control.draw_text(False, (1, 0, 'Filepath: ' + edit))
-            try:
-                e = self.control.stdscr.get_wch()
-            except KeyboardInterrupt:
-                e = '\x04'
-        return edit
+        return Editor(self.control.stdscr, max_text_size=1,
+                      win_location=(0, 1),
+                      win_size=(1, 80), title="Direct filepath: ",
+                      inittext = filepath, filebrowser = True)()
 
     def nav_down(self):
         '''Navigate down'''

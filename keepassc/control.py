@@ -974,8 +974,8 @@ class Control(object):
                                   (3, 0, 'Connect to a remote database(3)'),
                                   (4, 0, 'Configuration (4)'),
                                   (5, 0, 'Quit (5)')),
-                                 (7, 0, 'Type \'F1\' for help inside the file '
-                                        'or database browser.'),
+                                 (7, 0, 'Type \'F1\' for help inside the editor, '
+                                        'file or database browser.'),
                                  (8, 0, 'Type \'F5\' to return to the previous'
                                         ' dialog at any time.'))
             if menu == 1:
