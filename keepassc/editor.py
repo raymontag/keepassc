@@ -29,8 +29,6 @@ from textwrap import wrap
 from os import listdir
 from os.path import expanduser, isdir
 
-import sys
-
 
 class Editor(object):
     """ Basic python curses text editor class.
