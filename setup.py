@@ -29,6 +29,7 @@ setup(name = "keepassc",
       description = "A password manager that is fully compatible to KeePass v.1.x and KeePassX",
       packages = ['keepassc'],
       scripts = ['bin/keepassc', 'bin/keepassc-server', 'bin/keepassc-agent'],
+      install_requires = ['kppy', 'PyCrypto'],
       classifiers = [
           'Programming Language :: Python :: 3.3',
           'Operating System :: POSIX',
