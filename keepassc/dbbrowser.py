@@ -27,6 +27,7 @@ from curses.ascii import NL, DEL, ESC
 from datetime import datetime
 from os.path import isfile, isdir
 from subprocess import Popen, PIPE
+from sys import platform
 
 from kppy.database import KPDBv1
 from kppy.exceptions import KPError
@@ -1260,14 +1261,18 @@ class DBBrowser(object):
 
         if stuff is not None:
             try:
-                Popen(
-                    ['xsel', '-pc'], stderr=PIPE, stdout=PIPE)
-                Popen(
-                    ['xsel', '-bc'], stderr=PIPE, stdout=PIPE)
-                Popen(['xsel', '-pi'], stdin=PIPE, stderr=PIPE,
-                      stdout=PIPE).communicate(stuff.encode())
-                Popen(['xsel', '-bi'], stdin=PIPE, stderr=PIPE,
-                      stdout=PIPE).communicate(stuff.encode())
+                if platform != 'darwin':
+                    Popen(['xsel', '-pc'], stderr=PIPE, stdout=PIPE)
+                    Popen(['xsel', '-bc'], stderr=PIPE, stdout=PIPE)
+                    Popen(['xsel', '-pi'], stdin=PIPE, stderr=PIPE,
+                          stdout=PIPE).communicate(stuff.encode())
+                    Popen(['xsel', '-bi'], stdin=PIPE, stderr=PIPE,
+                          stdout=PIPE).communicate(stuff.encode())
+                else:
+                    Popen(['pboard', '-pboard', 'general'], stderr=PIPE, 
+                        stdout=PIPE).communicate(b'')
+                    Popen(['pboard', '-pboard', 'general'], stderr=PIPE, 
+                          stdout=PIPE).communicate(stuff.encode())
                 if self.control.config['del_clip'] is True:
                     if type(self.clip_timer) is threading.Timer:
                         self.clip_timer.cancel()
@@ -1291,8 +1296,12 @@ class DBBrowser(object):
             cb_p = Popen('xsel', stdout=PIPE)
             cb = cb_p.stdout.read().decode()
             if cb == self.cb:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                if platform != 'darwin':
+                    Popen(['xsel', '-pc'])
+                    Popen(['xsel', '-bc'])
+                else:
+                    Popen(['pboard', '-pboard', 'general'], stderr=PIPE, 
+                        stdout=PIPE).communicate(b'')
                 self.cb = None
         except FileNotFoundError:  # xsel not installed
             pass
