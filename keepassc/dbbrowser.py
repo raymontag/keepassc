@@ -1269,9 +1269,9 @@ class DBBrowser(object):
                     Popen(['xsel', '-bi'], stdin=PIPE, stderr=PIPE,
                           stdout=PIPE).communicate(stuff.encode())
                 else:
-                    Popen(['pcopy', '-pboard', 'general'], stdin=PIPE,
+                    Popen(['pbcopy', '-pboard', 'general'], stdin=PIPE,
                           stderr=PIPE, stdout=PIPE).communicate(b'')
-                    Popen(['pcopy', '-pboard', 'general'], stdin=PIPE,
+                    Popen(['pbcopy', '-pboard', 'general'], stdin=PIPE,
                           stderr=PIPE, stdout=PIPE).communicate(stuff.encode())
                 if self.control.config['del_clip'] is True:
                     if type(self.clip_timer) is threading.Timer:
@@ -1300,7 +1300,7 @@ class DBBrowser(object):
                     Popen(['xsel', '-pc'])
                     Popen(['xsel', '-bc'])
                 else:
-                    Popen(['pcopy', '-pboard', 'general'], stdin=PIPE,
+                    Popen(['pbcopy', '-pboard', 'general'], stdin=PIPE,
                         stderr=PIPE, stdout=PIPE).communicate(b'')
                 self.cb = None
         except FileNotFoundError:  # xsel not installed
