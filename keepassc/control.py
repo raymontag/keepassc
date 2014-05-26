@@ -363,9 +363,10 @@ class Control(object):
             items = self.gen_check_menu(((1, 0, 'Include numbers'),
                                          (2, 0,
                                           'Include capitalized letters'),
-                                         (3, 0, 'Include special symbols')),
-                                        (5, 0, 'Press space to un-/check'),
-                                        (6, 0,
+                                         (3, 0, 'Include special symbols'),
+                                         (4, 0, 'Include space')),
+                                        (6, 0, 'Press space to un-/check'),
+                                        (7, 0,
                                          'Press return to enter options'))
             if items is False or items == -1:
                 return items
@@ -380,7 +381,9 @@ class Control(object):
             if items[1] == 1:
                 char_set += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
             if items[2] == 1:
-                char_set += '!"#$%& \'()*+,-./:;<=>?@[\\]^_`{|}~$§'
+                char_set += '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~$'
+            if items[3] == 1:
+                char_set += ' '
 
             password = ''
             for _ in range(length):
