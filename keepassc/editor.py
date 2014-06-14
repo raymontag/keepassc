@@ -84,7 +84,7 @@ class Editor(object):
             except:
                 pass
             curses.echo()
-        locale.setlocale(locale.LC_ALL, '')
+        #locale.setlocale(locale.LC_ALL, '')
         curses.use_default_colors()
         #encoding = locale.getpreferredencoding()
         self.resize_flag = False
