@@ -1262,11 +1262,11 @@ class DBBrowser(object):
         if stuff is not None:
             try:
                 if platform != 'darwin':
-                    Popen(['xsel', '-pc'], stderr=PIPE, stdout=PIPE)
-                    Popen(['xsel', '-bc'], stderr=PIPE, stdout=PIPE)
-                    Popen(['xsel', '-pi'], stdin=PIPE, stderr=PIPE,
+                    Popen(['xsel', '-pc', '-l', '/dev/null'], stderr=PIPE, stdout=PIPE)
+                    Popen(['xsel', '-bc', '-l', '/dev/null'], stderr=PIPE, stdout=PIPE)
+                    Popen(['xsel', '-pi', '-l', '/dev/null'], stdin=PIPE, stderr=PIPE,
                           stdout=PIPE).communicate(stuff.encode())
-                    Popen(['xsel', '-bi'], stdin=PIPE, stderr=PIPE,
+                    Popen(['xsel', '-bi', '-l', '/dev/null'], stdin=PIPE, stderr=PIPE,
                           stdout=PIPE).communicate(stuff.encode())
                 else:
                     Popen(['pbcopy', '-pboard', 'general'], stdin=PIPE,
@@ -1293,12 +1293,12 @@ class DBBrowser(object):
         '''Delete the X clipboard'''
 
         try:
-            cb_p = Popen('xsel', stdout=PIPE)
+            cb_p = Popen(['xsel', '-l', '/dev/null'], stdout=PIPE)
             cb = cb_p.stdout.read().decode()
             if cb == self.cb:
                 if platform != 'darwin':
-                    Popen(['xsel', '-pc'])
-                    Popen(['xsel', '-bc'])
+                    Popen(['xsel', '-pc', '-l', '/dev/null'])
+                    Popen(['xsel', '-bc', '-l', '/dev/null'])
                 else:
                     Popen(['pbcopy', '-pboard', 'general'], stdin=PIPE,
                         stderr=PIPE, stdout=PIPE).communicate(b'')
