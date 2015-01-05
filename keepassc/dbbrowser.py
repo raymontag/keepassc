@@ -24,8 +24,10 @@ import os
 import threading
 import webbrowser
 from curses.ascii import NL, DEL, ESC
+from datetime import datetime
 from os.path import isfile, isdir
 from subprocess import Popen, PIPE
+from sys import platform
 
 from kppy.database import KPDBv1
 from kppy.exceptions import KPError
@@ -726,7 +728,7 @@ class DBBrowser(object):
 
                 if pass_comment is False:
                     comment = Editor(self.control.stdscr, win_location=(0, 1),
-                                     title="Comment: ")()
+                                     title="Comment: ", quick_help="   (F2: Save, F5: Cancel)")()
                 if comment is False:
                     pass_password = False
                     continue
@@ -734,28 +736,7 @@ class DBBrowser(object):
                     self.close()
                 pass_comment = True
 
-                self.control.draw_text(self.changed,
-                                       (1, 0, 'Set expiration date? [y/(n)]'))
-                while True:
-                    try:
-                        e = self.control.stdscr.getch()
-                    except KeyboardInterrupt:
-                        e = 4
-
-                    if e == ord('y'):
-                        exp_date = self.control.get_exp_date()
-                        break
-                    elif e == 4:
-                        self.close()
-                    elif e == cur.KEY_RESIZE:
-                        self.control.resize_all()
-                    elif e == cur.KEY_F5:
-                        pass_comment = False
-                        goto_last = True
-                        break
-                    else:
-                        exp_date = (2999, 12, 28)
-                        break
+                exp_date = self.control.get_exp_date()
                 if goto_last is True:
                     goto_last = False
                     continue
@@ -1137,7 +1118,8 @@ class DBBrowser(object):
         if self.entries:
             std = 'Comment: '
             edit = Editor(self.control.stdscr, title=std, win_location=(0, 1),
-                          inittext=self.entries[self.e_highlight].comment)()
+                          inittext=self.entries[self.e_highlight].comment,
+                          quick_help="   (F2: Save, F5: Cancel)")()
             if edit == -1:
                 self.close()
             elif edit is not False:
@@ -1279,14 +1261,18 @@ class DBBrowser(object):
 
         if stuff is not None:
             try:
-                Popen(
-                    ['xsel', '-pc'], stderr=PIPE, stdout=PIPE)
-                Popen(
-                    ['xsel', '-bc'], stderr=PIPE, stdout=PIPE)
-                Popen(['xsel', '-pi'], stdin=PIPE, stderr=PIPE,
-                      stdout=PIPE).communicate(stuff.encode())
-                Popen(['xsel', '-bi'], stdin=PIPE, stderr=PIPE,
-                      stdout=PIPE).communicate(stuff.encode())
+                if platform != 'darwin':
+                    Popen(['xsel', '-pc', '-l', '/dev/null'], stderr=PIPE, stdout=PIPE)
+                    Popen(['xsel', '-bc', '-l', '/dev/null'], stderr=PIPE, stdout=PIPE)
+                    Popen(['xsel', '-pi', '-l', '/dev/null'], stdin=PIPE, stderr=PIPE,
+                          stdout=PIPE).communicate(stuff.encode())
+                    Popen(['xsel', '-bi', '-l', '/dev/null'], stdin=PIPE, stderr=PIPE,
+                          stdout=PIPE).communicate(stuff.encode())
+                else:
+                    Popen(['pbcopy', '-pboard', 'general'], stdin=PIPE,
+                          stderr=PIPE, stdout=PIPE).communicate(b'')
+                    Popen(['pbcopy', '-pboard', 'general'], stdin=PIPE,
+                          stderr=PIPE, stdout=PIPE).communicate(stuff.encode())
                 if self.control.config['del_clip'] is True:
                     if type(self.clip_timer) is threading.Timer:
                         self.clip_timer.cancel()
@@ -1307,11 +1293,15 @@ class DBBrowser(object):
         '''Delete the X clipboard'''
 
         try:
-            cb_p = Popen('xsel', stdout=PIPE)
+            cb_p = Popen(['xsel', '-l', '/dev/null'], stdout=PIPE)
             cb = cb_p.stdout.read().decode()
             if cb == self.cb:
-                Popen(['xsel', '-pc'])
-                Popen(['xsel', '-bc'])
+                if platform != 'darwin':
+                    Popen(['xsel', '-pc', '-l', '/dev/null'])
+                    Popen(['xsel', '-bc', '-l', '/dev/null'])
+                else:
+                    Popen(['pbcopy', '-pboard', 'general'], stdin=PIPE,
+                        stderr=PIPE, stdout=PIPE).communicate(b'')
                 self.cb = None
         except FileNotFoundError:  # xsel not installed
             pass

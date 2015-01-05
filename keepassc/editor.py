@@ -26,6 +26,8 @@ import curses
 import curses.ascii
 import locale
 from textwrap import wrap
+from os import listdir
+from os.path import expanduser, isdir
 
 
 class Editor(object):
@@ -61,11 +63,15 @@ class Editor(object):
     """
 
     def __init__(self, scr, title="", inittext="", win_location=(0, 0),
-                 win_size=(20, 80), box=True, max_text_size=0, pw_mode=False):
+                 win_size=(20, 80), box=True, max_text_size=0, pw_mode=False,
+                 quick_help="   (F2 or Enter: Save, F5: Cancel)", 
+                 filebrowser = False):
         self.scr = scr
         self.title = title
         self.box = box
+        self.quick_help = quick_help
         self.max_text_size = max_text_size
+        self.filebrowser = filebrowser
         self.pw_mode = pw_mode
         if self.pw_mode is True:
             try:
@@ -78,7 +84,7 @@ class Editor(object):
             except:
                 pass
             curses.echo()
-        locale.setlocale(locale.LC_ALL, '')
+        #locale.setlocale(locale.LC_ALL, '')
         curses.use_default_colors()
         #encoding = locale.getpreferredencoding()
         self.resize_flag = False
@@ -90,6 +96,8 @@ class Editor(object):
         self.box_init()
         self.text_init(inittext)
         self.keys_init()
+        if filebrowser is True:
+            self.filebrowser_init()
         self.display()
 
     def __call__(self):
@@ -105,19 +113,18 @@ class Editor(object):
         self.scr.refresh()
         self.stdscr.clear()
         self.stdscr.refresh()
-        quick_help = "   (F2 or Enter: Save, F5: Cancel)"
         if self.box is True:
             self.boxscr.clear()
             self.boxscr.box()
             if self.title:
                 self.boxscr.addstr(1, 1, self.title, curses.A_BOLD)
-                self.boxscr.addstr(quick_help, curses.A_STANDOUT)
+                self.boxscr.addstr(self.quick_help, curses.A_STANDOUT)
                 self.boxscr.addstr
             self.boxscr.refresh()
         elif self.title:
             self.boxscr.clear()
             self.boxscr.addstr(0, 0, self.title, curses.A_BOLD)
-            self.boxscr.addstr(quick_help, curses.A_STANDOUT)
+            self.boxscr.addstr(self.quick_help, curses.A_STANDOUT)
             self.boxscr.refresh()
 
     def text_init(self, text):
@@ -126,7 +133,10 @@ class Editor(object):
 
         """
         t = str(text).split('\n')
-        t = [wrap(i, self.win_size_x - 1) for i in t]
+        if self.max_text_size != 1:
+            t = [wrap(i, self.win_size_x - 1) for i in t]
+        else:
+            t = [t]
         self.text = []
         for line in t:
             # This retains any empty lines
@@ -140,7 +150,7 @@ class Editor(object):
                                    max([len(i) for i in self.text]))
             self.buffer_rows = max(self.win_size_y, len(self.text))
         self.text_orig = self.text[:]
-        if self.max_text_size:
+        if self.max_text_size > 1:
             # Truncates initial text if max_text_size < len(self.text)
             self.text = self.text[:self.max_text_size]
         self.buf_length = len(self.text[self.buffer_idx_y])
@@ -177,6 +187,7 @@ class Editor(object):
             chr(curses.ascii.ETX):               self.close,
             "\n":                                self.insert_line_or_quit,
             -1:                                  self.resize,
+            "\t":                                self.tab_completion
         }
 
     def win_init(self):
@@ -188,6 +199,7 @@ class Editor(object):
         self.cur_pos_y = 0
         self.cur_pos_x = 0
         # y_offset controls the up-down scrolling feature
+        self.x_offset = 0
         self.y_offset = 0
         self.buffer_idx_y = 0
         self.buffer_idx_x = 0
@@ -247,13 +259,34 @@ class Editor(object):
                                           self.win_location_x)
         self.stdscr.keypad(1)
 
+    def filebrowser_init(self):
+        self.cur_dir = ''
+        self.show = 0
+        self.rem = []
+
     def left(self):
-        if self.cur_pos_x > 0:
-            self.cur_pos_x = self.cur_pos_x - 1
+        if (self.max_text_size == 1 and 
+              (self.cur_pos_x - self.x_offset) == 0 and self.x_offset > 0):
+            self.cur_pos_x -= 1
+            self.x_offset -= 1
+        elif self.cur_pos_x > 0:
+            self.cur_pos_x -= 1
+        elif self.cur_pos_y > 0:
+            self.up()
+            self.buffer_idx_y = self.cur_pos_y + self.y_offset
+            self.buf_length = len(self.text[self.buffer_idx_y])
+            self.end()
 
     def right(self):
-        if self.cur_pos_x < self.win_size_x:
-            self.cur_pos_x = self.cur_pos_x + 1
+        if self.cur_pos_x < self.win_size_x - 1:
+            self.cur_pos_x += 1
+        elif self.max_text_size == 1 and self.cur_pos_x < self.buf_length:
+            self.cur_pos_x += 1
+            if self.cur_pos_x == self.x_offset + self.win_size_x:
+                self.x_offset += 1
+        elif self.max_text_size != 1:
+            self.cur_pos_x = 0
+            self.down()
 
     def up(self):
         if self.cur_pos_y > 0:
@@ -273,9 +306,13 @@ class Editor(object):
 
     def end(self):
         self.cur_pos_x = self.buf_length
+        if self.max_text_size == 1:
+            self.x_offset = max(0, self.cur_pos_x - self.win_size_x + 1)
 
     def home(self):
         self.cur_pos_x = 0
+        if self.max_text_size == 1:
+            self.x_offset = 0
 
     def page_up(self):
         self.y_offset = max(0, self.y_offset - self.win_size_y)
@@ -298,8 +335,59 @@ class Editor(object):
         line = list(self.text[self.buffer_idx_y])
         line.insert(self.buffer_idx_x, c)
         if len(line) < self.win_size_x:
-            self.text[self.buffer_idx_y] = "".join(line)
-            self.cur_pos_x += 1
+            if self.filebrowser is True:
+                self.show = 0
+                self.rem = []
+                self.cur_dir = ""
+                if c == "~":
+                    line = line[:-1]
+                    line.insert(self.buffer_idx_x, expanduser("~/"))
+                    self.text[self.buffer_idx_y] = "".join(line)
+                    self.cur_pos_x += len(expanduser("~/"))
+                    self.x_offset = max(0, (len(self.text[self.buffer_idx_y])
+                                            - self.win_size_x) + 1)
+                else:
+                    self.text[self.buffer_idx_y] = "".join(line)
+                    self.cur_pos_x += 1
+            else:
+                self.text[self.buffer_idx_y] = "".join(line)
+                self.cur_pos_x += 1
+        elif self.max_text_size == 1:
+            if self.filebrowser is True:
+                self.show = 0
+                self.rem = []
+                self.cur_dir = ""
+                if c == "~":
+                    line = line[:-1]
+                    line.insert(self.buffer_idx_x, expanduser("~/"))
+                    self.text[self.buffer_idx_y] = "".join(line)
+                    self.cur_pos_x += len(expanduser("~/"))
+                    self.x_offset += len(expanduser("~/"))
+                else:
+                    self.text[self.buffer_idx_y] = "".join(line)
+                    self.cur_pos_x += 1
+                    self.x_offset += 1            
+            else:
+                self.text[self.buffer_idx_y] = "".join(line)
+                self.cur_pos_x += 1
+                self.x_offset += 1            
+        else:
+            if self.cur_pos_y < len(self.text) - 1:
+                nline = self.text[self.cur_pos_y + 1]
+            if len(self.text) != self.max_text_size:
+                if self.cur_pos_y < len(self.text) - 1:
+                    self.text[self.cur_pos_y] = "".join(line[:-1])
+                    self.text[self.cur_pos_y + 1] = ("".join(line[-1:])) + nline
+                    self.text_init("".join(self.text))
+                else:
+                    self.text[self.cur_pos_y] = "".join(line[:-1])
+                    self.text.insert(self.cur_pos_y + 1, "".join(line[-1:]))
+                if self.cur_pos_x < self.win_size_x - 2:
+                    self.cur_pos_x += 1
+                else:
+                    self.down()
+                    self.cur_pos_x = 1
+                self.buffer_rows = max(self.win_size_y, len(self.text))
 
     def insert_line_or_quit(self):
         """Insert a new line at the cursor. Wrap text from the cursor to the
@@ -349,6 +437,11 @@ class Editor(object):
         # the bottom of the text.
         self.stdscr.clear()
 
+        if self.filebrowser is True:
+            self.show = 0
+            self.rem = []
+            self.cur_dir = ""
+
     def del_char(self):
         """Delete character under the cursor.
 
@@ -375,6 +468,37 @@ class Editor(object):
         self.text[self.buffer_idx_y] = "".join(line)
         self.cur_pos_x = 0
 
+    def tab_completion(self):
+        if self.filebrowser is False:
+            self.insert_char("\t")
+            return
+
+        if self.cur_dir == '':
+            last = self.text[0].split('/')[-1]
+            self.cur_dir = self.text[0][:-len(last)]
+        try:
+            dir_cont = listdir(self.cur_dir)
+        except OSError:
+            pass
+        else:
+            if len(self.rem) == 0:
+                for i in dir_cont:
+                    if i[:len(last)] == last:
+                        self.rem.append(i)
+            if len(self.rem) > 0:
+                self.text[0] = self.cur_dir + self.rem[self.show]
+            else:
+                self.text[0] = self.cur_dir + last
+            if self.show + 1 >= len(self.rem):
+                self.show = 0
+            else:
+                self.show += 1
+            if isdir(self.text[0]):
+                self.text[0] += '/'
+        self.buffer_idx_y = self.cur_pos_y + self.y_offset
+        self.buf_length = len(self.text[self.buffer_idx_y])
+        self.end()
+ 
     def quit(self):
         return False
 
@@ -438,7 +562,7 @@ class Editor(object):
         """
         try:
             while True:
-                self.stdscr.move(self.cur_pos_y, self.cur_pos_x)
+                self.stdscr.move(self.cur_pos_y, (self.cur_pos_x - self.x_offset))
                 loop = self.get_key()
                 if loop is False or loop == -1:
                     break
@@ -456,15 +580,22 @@ class Editor(object):
         """Display the editor window and the current contents.
 
         """
-        s = self.text[self.y_offset:(self.y_offset + self.win_size_y) or 1]
-        for y, line in enumerate(s):
-            try:
-                self.stdscr.move(y, 0)
-                self.stdscr.clrtoeol()
-                if not self.pw_mode:
-                    self.stdscr.addstr(y, 0, line)
-            except:
-                self.close()
+        if self.max_text_size == 1:
+            s = self.text[0][self.x_offset:(self.x_offset + self.win_size_x)]
+            self.stdscr.move(0, 0)
+            self.stdscr.clrtoeol()
+            if not self.pw_mode:                                                                                                                                           
+                self.stdscr.addstr(0, 0, s)
+        else:
+            s = self.text[self.y_offset:(self.y_offset + self.win_size_y) or 1]
+            for y, line in enumerate(s):
+                try:
+                    self.stdscr.move(y, 0)
+                    self.stdscr.clrtoeol()
+                    if not self.pw_mode:
+                        self.stdscr.addstr(y, 0, line)
+                except:
+                    self.close()
         self.stdscr.refresh()
         if self.box:
             self.boxscr.refresh()

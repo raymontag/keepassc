@@ -28,7 +28,7 @@ First check if Python 3 is executed on your system with 'python' (e.g. ArchLinux
 
 If all dependencies are fulfilled type 'python setup.py install' resp. 'python3 setup.py install' in the root directory of KeePassC.
 
-Furthermore check if the directory /var/empty exists (normally it should but it seems that is doesn't on Ubuntu). If not execute as root user 'mkdir -m 755 /var/empty'.
+Furthermore check if the directory /var/empty exists (normally it should but it seems that is doesn't on Debian and derivates). If not execute as root user 'mkdir -m 755 /var/empty'.
 
 Some users had problems to install PyCrypto in the right way on Ubuntu. Maybe this bash-script could help (written for Debian/Ubuntu like system; thx to iwfmp):
 
@@ -61,12 +61,12 @@ You can get help at any time by pressing F1 in the file or database browser.
 Dependencies:
 -------------
 
-* Python 3
+* Python 3 (>= 3.3)
 * kppy http://www.nongnu.org/kppy
 * xsel (optional but necessary if you want to copy usernames and passwords to clipboard)  http://www.vergenet.net/~conrad/software/xsel/
 * A POSIX-compatible operating system
 
-Copyright (C) 2012 Karsten-Kai König <kkoenig@posteo.de>
+Copyright (C) 2012-2014 Karsten-Kai König <kkoenig@posteo.de>
 
 KeePassC is free software: you can redistribute it and/or modify it under the terms
 of the GNU General Public License as published by the Free Software Foundation,
