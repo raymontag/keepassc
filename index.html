@@ -8,7 +8,7 @@
     <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
     <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
 
-    <title>KeepassC by raymontag</title>
+    <title>KeepassC by raymontag aka lykaner aka GrayFox</title>
 <script type="text/javascript">
 /* <![CDATA[ */
     (function() {
@@ -38,20 +38,14 @@
     <div class="container">
       <section id="main_content">
         <h1>KeePassC</h1>
-        <h3>Actual stable release from August 21, 2013: v1.6.2</h3>
-
+        <h3>Actual stable release from January 05, 2015: v1.7.0</h3>
+	<p><em>My main focus has switched to <a href="https://github.com/raymontag/rust-keepass">reimplement</a> this project in <a href="http://www.rust-lang.org/">Rust</a> as it allows me to realize my vision of a secure password manager which is not possible with Python. However I will publish bug fixes and answer bug reports if there are any. As KeePassC is stable and feature-complete this shouldn't be a reason for not using it anymore.</em></p>
 <a class="FlattrButton" style="display:none;" rev="flattr;button:compact;" href="http://raymontag.github.com/keepassc/"></a>
 <noscript><a href="http://flattr.com/thing/1147323/KeePassC" target="_blank">
 <img src="http://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" /></a></noscript>
-<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
-<input type="hidden" name="cmd" value="_s-xclick">
-<input type="hidden" name="hosted_button_id" value="EFK7S76AGVBMN">
-<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
-<img alt="" border="0" src="https://www.paypalobjects.com/de_DE/i/scr/pixel.gif" width="1" height="1">
-</form>
 <ul>
 <li>License: GPL v3 or later</li>
-<li>Author: Karsten-Kai König <a href="mailto:kkoenig@posteo.de">kkoenig@posteo.de</a>
+<li>Author: Karsten-Kai König <a href="mailto:grayfox@outerhaven.de">grayfox@outerhaven.de</a> <a href="http://twitter.com/gr4yf0x">Twitter</a>
 </li>
 <ul>
 <li>License of editor.py: MIT
@@ -104,6 +98,12 @@ with the keyboard (vim-like keys are supported).</p>
 
 <p>If all dependencies are fulfilled type 'python setup.py install' in the root directory of KeePassC.</p>
 
+<p>There are packages in the ArchLinux User Repository: 
+<ul>
+<li><a href="https://aur.archlinux.org/packages/keepassc/">Stable</a></li>
+<li><a href="https://aur.archlinux.org/packages/keepassc-git/">Development</a></li>
+</ul></p>
+
 <h2>Usage:</h2>
 
 <p>Start the program with 'keepassc'. To get help type 'F1' while KeePassC is executed and you will see usage
@@ -123,6 +123,28 @@ information to the current window (not in main menu).</p>
 </ul><h2>Changelog:</h2>
 
 <p>Third number means small bug fixes</p>
+
+<h3>Version 1.7 (January 05, 2015)</h3>
+
+<ul>
+<li>Default expiration dates when changing expiration date or creating new entries.</li>
+<li>Automatic line breaks when editing comments.</li>
+<li>xscroll in Editor with one line (e.g. when editing titles; was issue #40).</li>
+<li>Direct filepath searching with the editor (issue #37).</li>
+<li>Use pbcopy instead of xsel on Mac OS X (issue #59).</li>
+<li>Including spaces in password generation is optional now.</li>
+<li>Bug fixes.</li>
+</ul>
+    
+<h3>Version 1.6 (August 16, 2013)</h3>
+
+<ul>
+<li>A server-client structure is implemented for network usage or to omit password entering. SSL/TLS, threading i    supported, too.</li>
+<li>Some little performance tweaks.</li>
+<li>Entry information are not cutted anymore if the window is to small.</li>
+<li>Expired entries are marked red.</li>
+<li>New help menu.</li>
+</ul>
 
 <h3>Version 1.5 (February 22, 2013)</h3>
 
