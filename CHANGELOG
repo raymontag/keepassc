@@ -1,3 +1,13 @@
+Version 1.7 (January 05, 2015)
+
+    Default expiration dates when changing expiration date or creating new entries.
+    Automatic line breaks when editing comments.
+    xscroll in Editor with one line (e.g. when editing titles; was issue #40).
+    Direct filepath searching with the editor (issue #37).
+    Use pbcopy instead of xsel on Mac OS X (issue #59).
+    Including spaces in password generation is optional now.
+    Bug fixes.
+
 Version 1.6 (August 16, 2013)
 
     A server-client structure is implemented for network usage or to omit password entering. SSL/TLS, threading i    supported, too.

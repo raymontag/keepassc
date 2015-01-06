@@ -1,8 +1,8 @@
-KeePassC v.1.6.2
+KeePassC v.1.7.0
 ================
 
 * License: GPL v3 or later
-* Author: Karsten-Kai König <kkoenig@posteo.de>
+* Author: Karsten-Kai König <grayfox@outerhaven.de>
 ** License of editor.py: MIT
 ** Author of editor.py: Scott Hansen <firecat four one five three at gmail dot com>
 ** Github: https://github.com/firecat53/py_curses_editor
@@ -66,7 +66,7 @@ Dependencies:
 * xsel (optional but necessary if you want to copy usernames and passwords to clipboard)  http://www.vergenet.net/~conrad/software/xsel/
 * A POSIX-compatible operating system
 
-Copyright (C) 2012-2014 Karsten-Kai König <kkoenig@posteo.de>
+Copyright (C) 2012-2015 Karsten-Kai König <grayfox@outerhaven.de>
 
 KeePassC is free software: you can redistribute it and/or modify it under the terms
 of the GNU General Public License as published by the Free Software Foundation,

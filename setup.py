@@ -1,5 +1,5 @@
 '''
-Copyright (C) 2013 Karsten-Kai König <kkoenig@posteo.de>
+Copyright (C) 2012-2015 Karsten-Kai König <grayfox@outerhaven.de>
 
 This file is part of keepassc.
 
@@ -21,9 +21,9 @@ with keepassc.  If not, see <http://www.gnu.org/licenses/>.
 from distutils.core import setup
 
 setup(name = "keepassc",
-      version = "1.6.2",
+      version = "1.7.0",
       author = "Karsten-Kai König, Scott Hansen",
-      author_email = "kkoenig@posteo.de",
+      author_email = "grayfox@outerhaven.de",
       url = "http://raymontag.github.com/keepassc",
       download_url = "https://github.com/raymontag/keepassc/tarball/master",
       description = "A password manager that is fully compatible to KeePass v.1.x and KeePassX",
