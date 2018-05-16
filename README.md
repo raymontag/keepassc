@@ -1,7 +1,7 @@
-KeePassC v.1.7.0
+KeePassC v.1.8.0
 ================
 
-* License: GPL v3 or later
+* License: ISC
 * Author: Karsten-Kai König <grayfox@outerhaven.de>
 ** License of editor.py: MIT
 ** Author of editor.py: Scott Hansen <firecat four one five three at gmail dot com>
@@ -30,23 +30,6 @@ If all dependencies are fulfilled type 'python setup.py install' resp. 'python3 
 
 Furthermore check if the directory /var/empty exists (normally it should but it seems that is doesn't on Debian and derivates). If not execute as root user 'mkdir -m 755 /var/empty'.
 
-Some users had problems to install PyCrypto in the right way on Ubuntu. Maybe this bash-script could help (written for Debian/Ubuntu like system; thx to iwfmp):
-
-#!/bin/bash
-
-if [[ -z `command -v keepassc` ]]; then
-  sudo apt-get build-dep python-crypto
-  githubRepos="dlitz/pycrypto raymontag/kppy raymontag/keepassc"
-  for githubRepo in $githubRepos; do
-    repoName=`echo ${githubRepo} | awk -F/ '{print $2}'`
-    repoLocation=/usr/local/src/${repoName}
-    sudo git clone https://github.com/${githubRepo} $repoLocation
-    cd $repoLocation
-    sudo python3 setup.py build
-    sudo python3 setup.py install
-  done
-fi
-
 Usage:
 ------
 Start the program with 'keepassc'. To get help type 'F1' while KeePassC is executed and you will see usage
@@ -63,18 +46,13 @@ Dependencies:
 
 * Python 3 (>= 3.3)
 * kppy http://www.nongnu.org/kppy
+* 
 * xsel (optional but necessary if you want to copy usernames and passwords to clipboard)  http://www.vergenet.net/~conrad/software/xsel/
 * A POSIX-compatible operating system
 
-Copyright (C) 2012-2015 Karsten-Kai König <grayfox@outerhaven.de>
+Copyright (c) 2012-2018 Karsten-Kai König <grayfox@outerhaven.de>
 
-KeePassC is free software: you can redistribute it and/or modify it under the terms
-of the GNU General Public License as published by the Free Software Foundation,
-either version 3 of the License, or at your option) any later version.
+Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
 
-KeePassC is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-You should have received a copy of the GNU General Public License along with
-KeePassC.  If not, see <http://www.gnu.org/licenses/>

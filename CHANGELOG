@@ -1,3 +1,8 @@
+Version 1.8 (Mai 16, 2018)
+
+    Changed crypto package to PyCryptodome
+    Relicensed with the ISC license
+
 Version 1.7 (January 05, 2015)
 
     Default expiration dates when changing expiration date or creating new entries.
