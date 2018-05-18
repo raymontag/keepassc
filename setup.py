@@ -4,7 +4,7 @@ from stat import ST_MODE
 from distutils.core import setup
 
 setup(name = "keepassc",
-      version = "1.8.0",
+      version = "1.8.1",
       author = "Karsten-Kai König, Scott Hansen",
       author_email = "grayfox@outerhaven.de",
       url = "http://raymontag.github.com/keepassc",
@@ -12,7 +12,7 @@ setup(name = "keepassc",
       description = "A password manager that is fully compatible to KeePass v.1.x and KeePassX",
       packages = ['keepassc'],
       scripts = ['bin/keepassc', 'bin/keepassc-server', 'bin/keepassc-agent'],
-      install_requires = ['kppy', 'PyCryptodome'],
+      install_requires = ['kppy', 'pycryptodomex'],
       classifiers = [
           'Programming Language :: Python :: 3.3',
           'Operating System :: POSIX',

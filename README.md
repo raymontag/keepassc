@@ -1,4 +1,4 @@
-KeePassC v.1.8.0
+KeePassC v.1.8.1
 ================
 
 * License: ISC
