@@ -43,13 +43,13 @@ class waitDecorator(object):
                 self.func(args[0], args[1])
                 self.lock = False
                 break
-        
+
 class Server(Daemon):
     """The KeePassC server daemon"""
 
     def __init__(self, pidfile, loglevel, logfile, address = None,
                  port = 50002, db = None, password = None, keyfile = None,
-                 tls = False, tls_dir = None, tls_port = 50003, 
+                 tls = False, tls_dir = None, tls_port = 50003,
                  tls_req = False):
         Daemon.__init__(self, pidfile)
 
@@ -68,7 +68,7 @@ class Server(Daemon):
         if db is None:
             print('Need a database path')
             sys.exit(1)
-            
+
         self.db_path = realpath(expanduser(db))
 
         # To use this idiom only once, I store the keyfile path
@@ -110,7 +110,7 @@ class Server(Daemon):
         self.net_sock = None
         self.tls_sock = None
         self.tls_req = tls_req
-        
+
         if tls is True or tls_req is True:
             self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
             cert = join(tls_dir, "servercert.pem")
@@ -165,20 +165,20 @@ class Server(Daemon):
 
     def check_password(self, password, keyfile):
         """Check received password"""
-        
+
         master = get_key(password, keyfile, True)
         remote_final =  transform_key(master, self.db._transf_randomseed,
-                                      self.db._final_randomseed, 
+                                      self.db._final_randomseed,
                                       self.db._key_transf_rounds)
         master = get_key(self.db.password, self.db.keyfile)
         final =  transform_key(master, self.db._transf_randomseed,
-                               self.db._final_randomseed, 
+                               self.db._final_randomseed,
                                self.db._key_transf_rounds)
         return (remote_final == final)
 
     def run(self):
         """Overide Daemon.run() and provide socets"""
-        
+
         try:
             local_thread = threading.Thread(target=self.handle_non_tls,
                                             args=(self.sock,))
@@ -205,7 +205,7 @@ class Server(Daemon):
                 logging.error(err.__str__())
             else:
                 logging.info('Connection from '+client[0]+':'+str(client[1]))
-                client_thread = threading.Thread(target=self.handle_client, 
+                client_thread = threading.Thread(target=self.handle_client,
                                                  args=(conn,client,))
                 client_thread.daemon = True
                 client_thread.start()
@@ -222,7 +222,7 @@ class Server(Daemon):
                 logging.error(err.__str__())
             else:
                 logging.info('Connection from '+client[0]+':'+str(client[1]))
-                client_thread = threading.Thread(target=self.handle_client, 
+                client_thread = threading.Thread(target=self.handle_client,
                                                  args=(conn, client,))
                 client_thread.daemon = True
                 client_thread.start()
@@ -357,7 +357,7 @@ class Server(Daemon):
 
         self.db.save()
         self.send_db(conn, [])
-    
+
     @waitDecorator
     def delete_group(self, conn, parts):
         group_id = int(parts.pop(0))
@@ -388,7 +388,7 @@ class Server(Daemon):
         time = datetime(int(parts[0]), int(parts[1]), int(parts[2]),
                         int(parts[3]), int(parts[4]), int(parts[5]))
         time = time.timetuple()
-       
+
         for i in self.db.entries:
             if i.uuid == uuid:
                 if self.check_last_mod(i, time) is True:
@@ -457,7 +457,7 @@ class Server(Daemon):
 
         self.db.save()
         self.send_db(conn, [])
-        
+
     @waitDecorator
     def set_g_title(self, conn, parts):
         title = parts.pop(0).decode()
@@ -636,7 +636,7 @@ class Server(Daemon):
         self.send_db(conn, [])
 
     def check_last_mod(self, obj, time):
-       return obj.last_mod.timetuple() > time 
+       return obj.last_mod.timetuple() > time
 
     def handle_sigterm(self, signum, frame):
         self.db.lock()
