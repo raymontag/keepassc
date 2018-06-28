@@ -45,6 +45,9 @@ def receive(conn):
     while True:
         try:
             received = conn.recv(16)
+            if not received:
+                logging.error("No data received")
+                break
         except:
             raise
         if b'\xDE\xAD\xE1\x1D' in received:
