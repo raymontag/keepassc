@@ -4,7 +4,7 @@ from stat import ST_MODE
 from distutils.core import setup
 
 setup(name = "keepassc",
-      version = "1.8.1",
+      version = "1.8.2",
       author = "Karsten-Kai König, Scott Hansen",
       author_email = "grayfox@outerhaven.de",
       url = "http://raymontag.github.com/keepassc",
